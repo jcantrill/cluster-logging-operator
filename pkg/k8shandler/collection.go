@@ -43,7 +43,12 @@ func (clusterRequest *ClusterLoggingRequest) CreateOrUpdateCollection() (err err
 
 	// there is no easier way to check this in golang without writing a helper function
 	// TODO: write a helper function to validate Type is a valid option for common setup or tear down
-	if cluster.Spec.Collection.Logs.Type == logging.LogCollectionTypeFluentd || cluster.Spec.Collection.Logs.Type == logging.LogCollectionTypeRsyslog {
+	switch cluster.Spec.Collection.Logs.Type {
+	case logging.LogCollectionTypeFluentd:
+		fallthrough
+	case logging.LogCollectionTypeRsyslog:
+		fallthrough
+	case logging.LogCollectionTypePromTail:
 		if err = clusterRequest.createOrUpdateCollectionPriorityClass(); err != nil {
 			return
 		}
@@ -51,6 +56,30 @@ func (clusterRequest *ClusterLoggingRequest) CreateOrUpdateCollection() (err err
 		if collectorServiceAccount, err = clusterRequest.createOrUpdateCollectorServiceAccount(); err != nil {
 			return
 		}
+	}
+	//HACK - Refactor this
+	if cluster.Spec.Collection.Logs.Type == logging.LogCollectionTypePromTail {
+
+		if err = clusterRequest.createOrUpdatePromTailService(); err != nil {
+			return
+		}
+
+		if err = clusterRequest.createOrUpdatePromTailServiceMonitor(); err != nil {
+			return
+		}
+
+		if err = clusterRequest.createOrUpdatePromTailConfigMap(); err != nil {
+			return
+		}
+
+		if err = clusterRequest.createOrUpdatePromTailSecret(); err != nil {
+			return
+		}
+
+		if err = clusterRequest.createOrUpdatePromTailDaemonset(); err != nil {
+			return
+		}
+
 	}
 
 	if cluster.Spec.Collection.Logs.Type == logging.LogCollectionTypeFluentd {

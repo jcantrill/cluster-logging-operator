@@ -30,6 +30,12 @@ type ClusterLoggingStatus struct {
 	Conditions    []ClusterCondition  `json:"clusterConditions,omitempty"`
 }
 
+type OperandSpec struct {
+	Resources    *v1.ResourceRequirements `json:"resources"`
+	NodeSelector map[string]string        `json:"nodeSelector,omitempty"`
+	Tolerations  []v1.Toleration          `json:"tolerations,omitempty"`
+}
+
 // This is the struct that will contain information pertinent to Log visualization (Kibana)
 type VisualizationSpec struct {
 	Type       VisualizationType `json:"type"`
@@ -56,9 +62,9 @@ type LogStoreSpec struct {
 
 type ElasticsearchSpec struct {
 	Resources        *v1.ResourceRequirements               `json:"resources"`
-	NodeCount        int32                                  `json:"nodeCount"`
 	NodeSelector     map[string]string                      `json:"nodeSelector,omitempty"`
 	Tolerations      []v1.Toleration                        `json:"tolerations,omitempty"`
+	NodeCount        int32                                  `json:"nodeCount"`
 	Storage          elasticsearch.ElasticsearchStorageSpec `json:"storage"`
 	RedundancyPolicy elasticsearch.RedundancyPolicyType     `json:"redundancyPolicy"`
 }
@@ -69,9 +75,10 @@ type CollectionSpec struct {
 }
 
 type LogCollectionSpec struct {
-	Type        LogCollectionType `json:"type"`
-	FluentdSpec `json:"fluentd,omitempty"`
-	RsyslogSpec `json:"rsyslog,omitempty"`
+	Type         LogCollectionType `json:"type"`
+	FluentdSpec  `json:"fluentd,omitempty"`
+	PromTailSpec `json:"promtail,omitempty"`
+	RsyslogSpec  `json:"rsyslog,omitempty"`
 }
 
 type EventCollectionSpec struct {
@@ -79,15 +86,16 @@ type EventCollectionSpec struct {
 }
 
 type FluentdSpec struct {
-	Resources    *v1.ResourceRequirements `json:"resources"`
-	NodeSelector map[string]string        `json:"nodeSelector,omitempty"`
-	Tolerations  []v1.Toleration          `json:"tolerations,omitempty"`
+	OperandSpec
 }
 
 type RsyslogSpec struct {
-	Resources    *v1.ResourceRequirements `json:"resources"`
-	NodeSelector map[string]string        `json:"nodeSelector,omitempty"`
-	Tolerations  []v1.Toleration          `json:"tolerations,omitempty"`
+	OperandSpec
+}
+
+type PromTailSpec struct {
+	OperandSpec
+	Endpoint string `json:"endpoint,omitempty"`
 }
 
 // This is the struct that will contain information pertinent to Log curation (Curator)
@@ -231,8 +239,9 @@ const (
 type LogCollectionType string
 
 const (
-	LogCollectionTypeFluentd LogCollectionType = "fluentd"
-	LogCollectionTypeRsyslog LogCollectionType = "rsyslog"
+	LogCollectionTypeFluentd  LogCollectionType = "fluentd"
+	LogCollectionTypePromTail LogCollectionType = "promtail"
+	LogCollectionTypeRsyslog  LogCollectionType = "rsyslog"
 )
 
 type EventCollectionType string

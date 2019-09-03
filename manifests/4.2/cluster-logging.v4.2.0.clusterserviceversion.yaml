@@ -259,6 +259,8 @@ spec:
                     value: "quay.io/openshift/origin-oauth-proxy:latest"
                   - name: RSYSLOG_IMAGE
                     value: "quay.io/openshift/origin-logging-rsyslog:latest"
+                  - name: PROMTAIL_IMAGE
+                    value: "quay.io/openshift/origin-promtail:latest"
   customresourcedefinitions:
     owned:
     - name: clusterloggings.logging.openshift.io
