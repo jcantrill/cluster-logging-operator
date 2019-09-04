@@ -56,6 +56,8 @@ func (clusterRequest *ClusterLoggingRequest) CreateOrUpdateCollection() (err err
 		if collectorServiceAccount, err = clusterRequest.createOrUpdateCollectorServiceAccount(); err != nil {
 			return
 		}
+	default:
+		logrus.Warnf("Unsupported collector type: %v", cluster.Spec.Collection.Logs.Type)
 	}
 	//HACK - Refactor this
 	if cluster.Spec.Collection.Logs.Type == logging.LogCollectionTypePromTail {
@@ -189,7 +191,12 @@ func (clusterRequest *ClusterLoggingRequest) CreateOrUpdateCollection() (err err
 		clusterRequest.removeRsyslog()
 	}
 
-	if cluster.Spec.Collection.Logs.Type != logging.LogCollectionTypeFluentd && cluster.Spec.Collection.Logs.Type != logging.LogCollectionTypeRsyslog {
+	switch cluster.Spec.Collection.Logs.Type {
+	case logging.LogCollectionTypeFluentd:
+		fallthrough
+	case logging.LogCollectionTypeRsyslog:
+		fallthrough
+	case logging.LogCollectionTypePromTail:
 		if err = clusterRequest.RemoveServiceAccount("logcollector"); err != nil {
 			return
 		}

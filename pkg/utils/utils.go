@@ -29,6 +29,7 @@ var COMPONENT_IMAGES = map[string]string{
 	"curator":       "CURATOR_IMAGE",
 	"fluentd":       "FLUENTD_IMAGE",
 	"elasticsearch": "ELASTICSEARCH_IMAGE",
+	"promtail":      "PROMTAIL_IMAGE",
 	"rsyslog":       "RSYSLOG_IMAGE",
 }
 

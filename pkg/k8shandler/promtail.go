@@ -141,11 +141,11 @@ func newPromTailPodSpec(logging *logging.ClusterLogging) v1.PodSpec {
 	}
 
 	container.VolumeMounts = []v1.VolumeMount{
-		{Name: "varlog", MountPath: "/var/log"},
 		{Name: "varlibdockercontainers", ReadOnly: true, MountPath: "/var/lib/docker"},
 		{Name: "config", ReadOnly: true, MountPath: "/etc/promtail"},
 		{Name: "dockerhostname", ReadOnly: true, MountPath: "/etc/docker-hostname"},
 		{Name: "localtime", ReadOnly: true, MountPath: "/etc/localtime"},
+		{Name: "filebufferstorage", MountPath: "/var/lib/promtail"},
 	}
 
 	container.SecurityContext = &v1.SecurityContext{
@@ -176,6 +176,7 @@ func newPromTailPodSpec(logging *logging.ClusterLogging) v1.PodSpec {
 			{Name: "config", VolumeSource: v1.VolumeSource{ConfigMap: &v1.ConfigMapVolumeSource{LocalObjectReference: v1.LocalObjectReference{Name: promtailName}}}},
 			{Name: "dockerhostname", VolumeSource: v1.VolumeSource{HostPath: &v1.HostPathVolumeSource{Path: "/etc/hostname"}}},
 			{Name: "localtime", VolumeSource: v1.VolumeSource{HostPath: &v1.HostPathVolumeSource{Path: "/etc/localtime"}}},
+			{Name: "filebufferstorage", VolumeSource: v1.VolumeSource{HostPath: &v1.HostPathVolumeSource{Path: "/var/lib/promtail"}}},
 		},
 		logging.Spec.Collection.Logs.PromTailSpec.NodeSelector,
 		tolerations,
