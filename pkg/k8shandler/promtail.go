@@ -1,17 +1,22 @@
 package k8shandler
 
 import (
+	"crypto/md5"
+	"encoding/hex"
 	"fmt"
+	"reflect"
 
 	monitoringv1 "github.com/coreos/prometheus-operator/pkg/apis/monitoring/v1"
 	logging "github.com/openshift/cluster-logging-operator/pkg/apis/logging/v1"
 	"github.com/openshift/cluster-logging-operator/pkg/utils"
+	"github.com/sirupsen/logrus"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/client-go/util/retry"
 
 	apps "k8s.io/api/apps/v1"
+	core "k8s.io/api/core/v1"
 	v1 "k8s.io/api/core/v1"
 )
 
@@ -105,8 +110,23 @@ func (clusterRequest *ClusterLoggingRequest) createOrUpdatePromTailConfigMap() e
 	if err != nil && !errors.IsAlreadyExists(err) {
 		return fmt.Errorf("Failure constructing configmap %q: %v", configMap.Name, err)
 	}
+	retryErr := retry.RetryOnConflict(retry.DefaultRetry, func() error {
+		current := &core.ConfigMap{}
+		if err = clusterRequest.Get(configMap.Name, current); err != nil {
+			if errors.IsNotFound(err) {
+				logrus.Debugf("Returning nil. The configmap %q was not found even though create previously failed.  Was it culled?", configMap.Name)
+				return nil
+			}
+			return fmt.Errorf("Failed to get %v configmap for %q: %v", configMap.Name, clusterRequest.cluster.Name, err)
+		}
+		if reflect.DeepEqual(configMap.Data, current.Data) {
+			return nil
+		}
+		current.Data = configMap.Data
+		return clusterRequest.Update(current)
+	})
 
-	return nil
+	return retryErr
 }
 
 func (clusterRequest *ClusterLoggingRequest) createOrUpdatePromTailSecret() error {
@@ -133,15 +153,19 @@ func newPromTailPodSpec(logging *logging.ClusterLogging) v1.PodSpec {
 			Protocol:      v1.ProtocolTCP,
 		},
 	}
-
-	container.Env = []v1.EnvVar{}
+	hasher := md5.New()
+	hasher.Write([]byte(string(utils.GetFileContents(utils.GetShareDir() + "/promtail/promtail.yaml"))))
+	md5hash := hex.EncodeToString(hasher.Sum(nil))
+	container.Env = []v1.EnvVar{
+		v1.EnvVar{Name: "PROMTAIL_YAML_HASH", Value: md5hash},
+	}
 	container.Args = []string{
 		"-config.file=/etc/promtail/promtail.yaml",
 		"-client.url=" + logging.Spec.Collection.Logs.PromTailSpec.Endpoint,
 	}
 
 	container.VolumeMounts = []v1.VolumeMount{
-		{Name: "varlibdockercontainers", ReadOnly: true, MountPath: "/var/lib/docker"},
+		{Name: "varlog", ReadOnly: true, MountPath: "/var/log"},
 		{Name: "config", ReadOnly: true, MountPath: "/etc/promtail"},
 		{Name: "dockerhostname", ReadOnly: true, MountPath: "/etc/docker-hostname"},
 		{Name: "localtime", ReadOnly: true, MountPath: "/etc/localtime"},
@@ -172,7 +196,7 @@ func newPromTailPodSpec(logging *logging.ClusterLogging) v1.PodSpec {
 		"logcollector",
 		[]v1.Container{container},
 		[]v1.Volume{
-			{Name: "varlibdockercontainers", VolumeSource: v1.VolumeSource{HostPath: &v1.HostPathVolumeSource{Path: "/var/lib/docker"}}},
+			{Name: "varlog", VolumeSource: v1.VolumeSource{HostPath: &v1.HostPathVolumeSource{Path: "/var/log"}}},
 			{Name: "config", VolumeSource: v1.VolumeSource{ConfigMap: &v1.ConfigMapVolumeSource{LocalObjectReference: v1.LocalObjectReference{Name: promtailName}}}},
 			{Name: "dockerhostname", VolumeSource: v1.VolumeSource{HostPath: &v1.HostPathVolumeSource{Path: "/etc/hostname"}}},
 			{Name: "localtime", VolumeSource: v1.VolumeSource{HostPath: &v1.HostPathVolumeSource{Path: "/etc/localtime"}}},
