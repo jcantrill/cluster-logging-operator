@@ -34,6 +34,13 @@ var (
 
 var serviceAccountLogCollectorUID types.UID
 
+func createCommonCollectorResources(clusterRequest *ClusterLoggingRequest) (collectorServiceAccount *core.ServiceAccount, err error) {
+	if err = clusterRequest.createOrUpdateCollectionPriorityClass(); err != nil {
+		return nil, err
+	}
+	return clusterRequest.createOrUpdateCollectorServiceAccount()
+}
+
 //CreateOrUpdateCollection component of the cluster
 func (clusterRequest *ClusterLoggingRequest) CreateOrUpdateCollection() (err error) {
 
@@ -43,24 +50,25 @@ func (clusterRequest *ClusterLoggingRequest) CreateOrUpdateCollection() (err err
 
 	// there is no easier way to check this in golang without writing a helper function
 	// TODO: write a helper function to validate Type is a valid option for common setup or tear down
+	if cluster.Spec.Collection.Logs.PromTailSpec != nil {
+		if collectorServiceAccount, err = createCommonCollectorResources(clusterRequest); err != nil {
+			return
+		}
+	}
 	switch cluster.Spec.Collection.Logs.Type {
 	case logging.LogCollectionTypeFluentd:
 		fallthrough
 	case logging.LogCollectionTypeRsyslog:
-		fallthrough
+		if collectorServiceAccount, err = createCommonCollectorResources(clusterRequest); err != nil {
+			return
+		}
 	case logging.LogCollectionTypePromTail:
-		if err = clusterRequest.createOrUpdateCollectionPriorityClass(); err != nil {
-			return
-		}
-
-		if collectorServiceAccount, err = clusterRequest.createOrUpdateCollectorServiceAccount(); err != nil {
-			return
-		}
+		break
 	default:
 		logrus.Warnf("Unsupported collector type: %v", cluster.Spec.Collection.Logs.Type)
 	}
 	//HACK - Refactor this
-	if cluster.Spec.Collection.Logs.Type == logging.LogCollectionTypePromTail {
+	if cluster.Spec.Collection.Logs.PromTailSpec != nil {
 
 		if err = clusterRequest.createOrUpdatePromTailService(); err != nil {
 			return

@@ -23,10 +23,10 @@ type ClusterLoggingSpec struct {
 type ClusterLoggingStatus struct {
 	// Important: Run "operator-sdk generate k8s" to regenerate code after modifying this file
 	// Add custom validation using kubebuilder tags: https://book.kubebuilder.io/beyond_basics/generating_crd.html
-	Visualization VisualizationStatus `json:"visualization"`
-	LogStore      LogStoreStatus      `json:"logStore"`
-	Collection    CollectionStatus    `json:"collection"`
-	Curation      CurationStatus      `json:"curation"`
+	Visualization VisualizationStatus `json:"visualization,omitempty"`
+	LogStore      LogStoreStatus      `json:"logStore,omitempty"`
+	Collection    CollectionStatus    `json:"collection,omitempty"`
+	Curation      CurationStatus      `json:"curation,omitempty"`
 	Conditions    []ClusterCondition  `json:"clusterConditions,omitempty"`
 }
 
@@ -75,10 +75,12 @@ type CollectionSpec struct {
 }
 
 type LogCollectionSpec struct {
-	Type         LogCollectionType `json:"type"`
-	FluentdSpec  `json:"fluentd,omitempty"`
-	PromTailSpec `json:"promtail,omitempty"`
-	RsyslogSpec  `json:"rsyslog,omitempty"`
+	Type        LogCollectionType `json:"type"`
+	FluentdSpec `json:"fluentd,omitempty"`
+
+	//PromTailSpec is a devpreview configuration to deploy promtail along side the other collectors.
+	*PromTailSpec `json:"promtail,omitempty"`
+	RsyslogSpec   `json:"rsyslog,omitempty"`
 }
 
 type EventCollectionSpec struct {

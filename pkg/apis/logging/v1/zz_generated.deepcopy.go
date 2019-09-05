@@ -644,7 +644,11 @@ func (in *KibanaStatus) DeepCopy() *KibanaStatus {
 func (in *LogCollectionSpec) DeepCopyInto(out *LogCollectionSpec) {
 	*out = *in
 	in.FluentdSpec.DeepCopyInto(&out.FluentdSpec)
-	in.PromTailSpec.DeepCopyInto(&out.PromTailSpec)
+	if in.PromTailSpec != nil {
+		in, out := &in.PromTailSpec, &out.PromTailSpec
+		*out = new(PromTailSpec)
+		(*in).DeepCopyInto(*out)
+	}
 	in.RsyslogSpec.DeepCopyInto(&out.RsyslogSpec)
 	return
 }
