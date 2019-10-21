@@ -8,15 +8,16 @@ import (
 	"strings"
 	"time"
 
-	k8shandler "github.com/openshift/cluster-logging-operator/pkg/k8shandler"
-	"github.com/openshift/cluster-logging-operator/pkg/logger"
-	"github.com/openshift/cluster-logging-operator/pkg/utils"
-	elasticsearch "github.com/openshift/elasticsearch-operator/pkg/apis/logging/v1"
 	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/wait"
+
+	k8shandler "github.com/openshift/cluster-logging-operator/pkg/k8shandler"
+	"github.com/openshift/cluster-logging-operator/pkg/logger"
+	"github.com/openshift/cluster-logging-operator/pkg/utils"
+	elasticsearch "github.com/openshift/elasticsearch-operator/pkg/apis/logging/v1"
 )
 
 const (
@@ -95,6 +96,10 @@ func (es *elasticLogStore) HasApplicationLogs(timeToWait time.Duration) (bool, e
 		return indices.HasApplicationLogs(), nil
 	})
 	return true, err
+}
+
+func (es *elasticLogStore) HasAuditLogs(timeToWait time.Duration) (bool, error) {
+	return true, nil
 }
 
 //Indices fetches the list of indices stored by Elasticsearch

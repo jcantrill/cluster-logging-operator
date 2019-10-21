@@ -21,10 +21,9 @@ import (
 
 	cl "github.com/openshift/cluster-logging-operator/pkg/apis/logging/v1"
 	k8shandler "github.com/openshift/cluster-logging-operator/pkg/k8shandler"
+	"github.com/openshift/cluster-logging-operator/pkg/logger"
 	"github.com/openshift/cluster-logging-operator/pkg/utils"
 	e2eutil "github.com/openshift/cluster-logging-operator/test/e2e"
-
-	"github.com/openshift/cluster-logging-operator/pkg/logger"
 )
 
 const (
@@ -55,6 +54,8 @@ type LogStore interface {
 	HasApplicationLogs(timeToWait time.Duration) (bool, error)
 
 	HasInfraStructureLogs(timeToWait time.Duration) (bool, error)
+
+	HasAuditLogs(timeToWait time.Duration) (bool, error)
 }
 
 type E2ETestFramework struct {

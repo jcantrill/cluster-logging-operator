@@ -22,7 +22,7 @@ const (
 
 var (
 	outputTypes = sets.NewString(string(logging.OutputTypeElasticsearch), string(logging.OutputTypeForward))
-	sourceTypes = sets.NewString(string(logging.LogSourceTypeApp), string(logging.LogSourceTypeInfra))
+	sourceTypes = sets.NewString(string(logging.LogSourceTypeApp), string(logging.LogSourceTypeInfra), string(logging.LogSourceTypeAudit))
 )
 
 func (clusterRequest *ClusterLoggingRequest) generateCollectorConfig() (config string, err error) {

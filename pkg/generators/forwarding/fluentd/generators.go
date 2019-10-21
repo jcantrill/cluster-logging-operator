@@ -7,10 +7,11 @@ import (
 	"strings"
 	"text/template"
 
+	"k8s.io/apimachinery/pkg/util/sets"
+
 	logging "github.com/openshift/cluster-logging-operator/pkg/apis/logging/v1"
 	"github.com/openshift/cluster-logging-operator/pkg/generators"
 	"github.com/openshift/cluster-logging-operator/pkg/logger"
-	"k8s.io/apimachinery/pkg/util/sets"
 )
 
 var (
@@ -65,6 +66,7 @@ func (engine *ConfigGenerator) Generate(forwarding *logging.ForwardingSpec) (str
 	data := struct {
 		CollectInfraLogs        bool
 		CollectAppLogs          bool
+		CollectAuditLogs        bool
 		SourceInputLabels       []string
 		SourceToPipelineLabels  []string
 		PipelinesToOutputLabels []string
@@ -72,6 +74,7 @@ func (engine *ConfigGenerator) Generate(forwarding *logging.ForwardingSpec) (str
 	}{
 		logTypes.Has(string(logging.LogSourceTypeInfra)),
 		logTypes.Has(string(logging.LogSourceTypeApp)),
+		logTypes.Has(string(logging.LogSourceTypeAudit)),
 		sourceInputLabels,
 		sourceToPipelineLabels,
 		pipelineToOutputLabels,

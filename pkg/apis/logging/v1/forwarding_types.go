@@ -10,6 +10,9 @@ const (
 
 	//LogSourceTypeInfra are logs from infra structure containers or node logs
 	LogSourceTypeInfra LogSourceType = "logs.infra"
+
+	//LogSourceTypeAudit are audit logs from the infrastructure containers or node audit logs
+	LogSourceTypeAudit LogSourceType = "logs.audit"
 )
 
 //ForwardingSpec specifies log forwarding pipelines from a defined sources to dest outputs

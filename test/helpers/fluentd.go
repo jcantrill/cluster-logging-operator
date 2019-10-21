@@ -7,13 +7,14 @@ import (
 	"strings"
 	"time"
 
-	"github.com/openshift/cluster-logging-operator/pkg/k8shandler"
-	"github.com/openshift/cluster-logging-operator/pkg/logger"
-	"github.com/openshift/cluster-logging-operator/pkg/utils"
 	apps "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/wait"
+
+	"github.com/openshift/cluster-logging-operator/pkg/k8shandler"
+	"github.com/openshift/cluster-logging-operator/pkg/logger"
+	"github.com/openshift/cluster-logging-operator/pkg/utils"
 )
 
 type fluentReceiverLogStore struct {
@@ -49,6 +50,11 @@ const (
   append true
   path /tmp/app.logs
 </match>
+<match linux-audit.log** k8s-audit.log** openshift-audit.log**>
+  @type file
+  append true
+  path /tmp/audit.logs
+</match>
 <match **>
 	@type stdout
 </match>
@@ -69,6 +75,11 @@ const (
   @type file
   append true
   path /tmp/app.logs
+</match>
+<match linux-audit.log** k8s-audit.log** openshift-audit.log**>
+  @type file
+  append true
+  path /tmp/audit.logs
 </match>
 <match **>
 	@type stdout
@@ -113,6 +124,10 @@ func (fluent *fluentReceiverLogStore) HasInfraStructureLogs(timeToWait time.Dura
 }
 func (fluent *fluentReceiverLogStore) HasApplicationLogs(timeToWait time.Duration) (bool, error) {
 	return fluent.hasLogs("/tmp/app.logs", timeToWait)
+}
+
+func (fluent *fluentReceiverLogStore) HasAuditLogs(timeToWait time.Duration) (bool, error) {
+	return fluent.hasLogs("/tmp/audit.logs", timeToWait)
 }
 
 func (tc *E2ETestFramework) createServiceAccount() (serviceAccount *corev1.ServiceAccount, err error) {

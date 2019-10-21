@@ -3,8 +3,9 @@ package fluentd
 import (
 	"fmt"
 
-	logging "github.com/openshift/cluster-logging-operator/pkg/apis/logging/v1"
 	"k8s.io/apimachinery/pkg/util/sets"
+
+	logging "github.com/openshift/cluster-logging-operator/pkg/apis/logging/v1"
 )
 
 func (engine *ConfigGenerator) generateSource(sources sets.String) (results []string, err error) {
@@ -15,6 +16,11 @@ func (engine *ConfigGenerator) generateSource(sources sets.String) (results []st
 	}
 	if sources.Has(string(logging.LogSourceTypeApp)) {
 		templates = append(templates, "inputSourceContainerTemplate")
+	}
+	if sources.Has(string(logging.LogSourceTypeAudit)) {
+		templates = append(templates, "inputSourceHostAuditTemplate")
+		templates = append(templates, "inputSourceK8sAuditTemplate")
+		templates = append(templates, "inputSourceOpenShiftAuditTemplate")
 	}
 	if len(templates) == 0 {
 		return results, fmt.Errorf("Unable to generate source configs for supported source types: %v", sources.List())
