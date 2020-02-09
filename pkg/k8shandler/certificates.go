@@ -143,10 +143,6 @@ func (clusterRequest *ClusterLoggingRequest) CreateOrUpdateCertificates() (err e
 
 func GenerateCertificates(namespace, rootDir, logStoreName, workDir string) (err error) {
 	script := fmt.Sprintf("%s/scripts/cert_generation.sh", rootDir)
-	return RunCertificatesScript(namespace, logStoreName, workDir, script)
-}
-
-func RunCertificatesScript(namespace, logStoreName, workDir, script string) (err error) {
 	logger.Debugf("Running script '%s %s %s %s'", script, workDir, namespace, logStoreName)
 	cmd := exec.Command(script, workDir, namespace, logStoreName)
 	result, err := cmd.Output()
