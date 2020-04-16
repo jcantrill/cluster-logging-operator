@@ -28,7 +28,8 @@ func NewClusterLogging(componentTypes ...LogComponentType) *cl.ClusterLogging {
 			Name:      ClusterLoggingName,
 			Namespace: OpenshiftLoggingNS,
 			Annotations: map[string]string{
-				k8shandler.ForwardingAnnotation: "enabled",
+				// FIXME(alanconway) remove this annotation, fix tests that use it.
+				k8shandler.PreviewForwardingAnnotation: "enabled",
 			},
 		},
 		Spec: cl.ClusterLoggingSpec{

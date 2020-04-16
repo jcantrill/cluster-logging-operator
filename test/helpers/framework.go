@@ -19,7 +19,7 @@ import (
 	"k8s.io/client-go/tools/clientcmd"
 
 	cl "github.com/openshift/cluster-logging-operator/pkg/apis/logging/v1"
-	logforwarding "github.com/openshift/cluster-logging-operator/pkg/apis/logging/v1alpha1"
+	logging "github.com/openshift/cluster-logging-operator/pkg/apis/logging/v1"
 	k8shandler "github.com/openshift/cluster-logging-operator/pkg/k8shandler"
 	"github.com/openshift/cluster-logging-operator/pkg/logger"
 	"github.com/openshift/cluster-logging-operator/pkg/utils"
@@ -28,9 +28,9 @@ import (
 )
 
 const (
-	clusterLoggingURI     = "apis/logging.openshift.io/v1/namespaces/openshift-logging/clusterloggings"
-	logforwardingURI      = "apis/logging.openshift.io/v1alpha1/namespaces/openshift-logging/logforwardings"
-	DefaultCleanUpTimeout = 60.0 * 2
+	clusterLoggingURI      = "apis/logging.openshift.io/v1/namespaces/openshift-logging/clusterloggings"
+	clusterlogforwarderURI = "apis/logging.openshift.io/v1alpha1/namespaces/openshift-logging/clusterlogforwarders"
+	DefaultCleanUpTimeout  = 60.0 * 2
 )
 
 var (
@@ -249,20 +249,21 @@ func (tc *E2ETestFramework) CreateClusterLogging(clusterlogging *cl.ClusterLoggi
 	return result.Error()
 }
 
-func (tc *E2ETestFramework) CreateLogForwarding(forwarding *logforwarding.LogForwarding) error {
-	body, err := json.Marshal(forwarding)
+// TODO(alanconway) clean up.
+func (tc *E2ETestFramework) CreateClusterLogForwarder(forwarder *logging.ClusterLogForwarder) error {
+	body, err := json.Marshal(forwarder)
 	if err != nil {
 		return err
 	}
-	logger.Debugf("Creating LogForwarding: %s", string(body))
+	logger.Debugf("Creating ClusterLogForwarder: %s", string(body))
 	result := tc.KubeClient.RESTClient().Post().
-		RequestURI(logforwardingURI).
+		RequestURI(clusterlogforwarderURI).
 		SetHeader("Content-Type", "application/json").
 		Body(body).
 		Do()
 	tc.AddCleanup(func() error {
 		return tc.KubeClient.RESTClient().Delete().
-			RequestURI(fmt.Sprintf("%s/instance", logforwardingURI)).
+			RequestURI(fmt.Sprintf("%s/instance", clusterlogforwarderURI)).
 			SetHeader("Content-Type", "application/json").
 			Do().Error()
 	})

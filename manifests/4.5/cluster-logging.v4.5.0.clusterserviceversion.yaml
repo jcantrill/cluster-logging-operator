@@ -67,8 +67,8 @@ metadata:
             }
           },
           {
-            "apiVersion": "logging.openshift.io/v1alpha1",
-            "kind": "LogForwarding",
+            "apiVersion": "logging.openshift.io/v1",
+            "kind": "ClusterLogForwarder,
             "metadata": {
               "name": "instance",
               "namespace": "openshift-logging"
@@ -76,9 +76,9 @@ metadata:
             "spec": {
               "outputs": [
                 {
-                  "name": "clo-default-output-es",
+                  "name": "remote-elasticsearch",
                   "type": "elasticsearch",
-                  "endpoint": "elasticsearch.openshift-logging.svc:9200",
+                  "endpoint": "remote.example.org:9200",
                   "secret": {
                     "name": "elasticsearch"
                   }
@@ -86,14 +86,14 @@ metadata:
               ],
               "pipelines": [
                 {
-                  "name": "clo-default-app-pipeline",
-                  "inputSource": "logs-app",
-                  "outputRefs": ["clo-managaged-output-es"]
+                  "name": "enable-default-log-store",
+                  "inputRefs: ["application", "infrastructure", "audit"],
+                  "outputRefs": ["default"]
                 },
                 {
-                  "name": "clo-default-infra-pipeline",
-                  "inputSource": "logs-app",
-                  "outputRefs": ["clo-managaged-output-es"]
+                  "name": "forward-to-remote",
+                  "inputRefs: ["application"],
+                  "outputRefs": ["remote-elasticsearch"]
                 }
               ]
             }
@@ -355,6 +355,8 @@ spec:
         version: v1
       - kind: Elasticsearch
         version: v1
+      - kind: ClusterLogForwarder
+        version: v1
       - kind: LogForwarding
         version: v1alpha1
       - kind: Collector
@@ -478,22 +480,22 @@ spec:
         displayName: Source Status
         path: sources
         x-descriptors:
-        - 'urn:alm:descriptor:com.tectonic.ui:sourceStatuses'        
+        - 'urn:alm:descriptor:com.tectonic.ui:sourceStatuses'
       - description: The status of forwarding outputs
         displayName: Outputs Status
         path: outputs
         x-descriptors:
-        - 'urn:alm:descriptor:com.tectonic.ui:outputStatuses'        
+        - 'urn:alm:descriptor:com.tectonic.ui:outputStatuses'
       - description: The status of forwarding pipelines
         displayName: Pipelines Status
         path: pipelines
         x-descriptors:
-        - 'urn:alm:descriptor:com.tectonic.ui:pipelineStatuses'        
+        - 'urn:alm:descriptor:com.tectonic.ui:pipelineStatuses'
       - description: The status of log forwarding resourece
         displayName: Log Forwarding Status
         path: status
         x-descriptors:
-        - 'urn:alm:descriptor:com.tectonic.ui:logforwardingStatuses'        
+        - 'urn:alm:descriptor:com.tectonic.ui:logforwardingStatuses'
     - name: collectors.logging.openshift.io
       version: v1alpha1
       kind: Collector

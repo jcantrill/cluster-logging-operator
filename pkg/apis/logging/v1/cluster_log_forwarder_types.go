@@ -10,7 +10,6 @@ const ClusterLogForwarderKind = "ClusterLogForwarder"
 // ClusterLogForwarder is the schema for the `clusterlogforwarder` API.
 //
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
-// +kubebuilder:resource:scope=cluster
 // +kubebuilder:subresource:status
 type ClusterLogForwarder struct {
 	metav1.TypeMeta   `json:",inline"`
@@ -22,6 +21,10 @@ type ClusterLogForwarder struct {
 
 // ClusterLogForwarderSpec defines the desired state of ClusterLogForwarder
 type ClusterLogForwarderSpec struct {
+	// Inputs are named inputs of log messages
+	//
+	// +required
+	Inputs []InputSpec `json:"inputs,omitempty"`
 	// Outputs are named destinations for log messages.
 	//
 	// +required
@@ -45,7 +48,7 @@ type ClusterLogForwarderStatus struct {
 }
 
 type PipelineSpec struct {
-	// OutputNames lists the names of outputs from this pipeline.
+	// OutputRefs lists the names of outputs from this pipeline.
 	//
 	// +required
 	OutputRefs []string `json:"outputRefs"`
@@ -106,6 +109,8 @@ func NewRoutes(pipelines []PipelineSpec) Routes {
 	return r
 }
 
+// FIXME(alanconway) glom into Routes?
+
 // OutputMap returns a map of names to outputs.
 func (spec *ClusterLogForwarderSpec) OutputMap() map[string]*OutputSpec {
 	m := map[string]*OutputSpec{}
@@ -115,11 +120,11 @@ func (spec *ClusterLogForwarderSpec) OutputMap() map[string]*OutputSpec {
 	return m
 }
 
-// Built-in log input names
-const (
-	InputApplication    = "Application"    // Containers from non-infrastructure namespaces
-	InputInfrastructure = "Infrastructure" // Infrastructure containers and system logs
-	InputAudit          = "Audit"          // System audit logs
-)
-
-var BuiltInInputs = sets.NewString(InputApplication, InputInfrastructure, InputAudit)
+// InputMap returns a map of names to outputs.
+func (spec *ClusterLogForwarderSpec) InputMap() map[string]*InputSpec {
+	m := map[string]*InputSpec{}
+	for i := range spec.Inputs {
+		m[spec.Inputs[i].Name] = &spec.Inputs[i]
+	}
+	return m
+}

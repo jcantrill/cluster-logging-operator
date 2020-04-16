@@ -18,9 +18,9 @@ import (
 	"github.com/openshift/cluster-logging-operator/test/helpers"
 )
 
-// This test verifies we still support managed CL and forwarding without enabling the LogForwarding
+// This test verifies we still support managed CL and forwarding without enabling the ClusterLogForwarder
 // feature for cases like 4.2 and prior
-var _ = Describe("LogForwarding prior to LF feature", func() {
+var _ = Describe("ClusterLogForwarder prior to LF feature", func() {
 	_, filename, _, _ := runtime.Caller(0)
 	logger.Infof("Running %s", filename)
 	var (
@@ -35,7 +35,7 @@ var _ = Describe("LogForwarding prior to LF feature", func() {
 		}
 		rootDir = filepath.Join(filepath.Dir(filename), "..", "..", "..", "..", "/")
 	})
-	Describe("when ClusterLogging is configured with LogForwarding disabled and 'forwarding' to an administrator managed fluentd", func() {
+	Describe("when ClusterLogging is configured with ClusterLogForwarder disabled and 'forwarder' to an administrator managed fluentd", func() {
 
 		Context("and the receiver is secured", func() {
 
@@ -81,7 +81,7 @@ var _ = Describe("LogForwarding prior to LF feature", func() {
 
 				components := []helpers.LogComponentType{helpers.ComponentTypeCollector, helpers.ComponentTypeStore}
 				cr := helpers.NewClusterLogging(components...)
-				cr.ObjectMeta.Annotations[k8shandler.ForwardingAnnotation] = "disabled"
+				cr.ObjectMeta.Annotations[k8shandler.PreviewForwardingAnnotation] = "disabled"
 				if err := e2e.CreateClusterLogging(cr); err != nil {
 					Fail(fmt.Sprintf("Unable to create an instance of cluster logging: %v", err))
 				}

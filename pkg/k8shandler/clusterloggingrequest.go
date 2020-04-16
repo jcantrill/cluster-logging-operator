@@ -11,7 +11,6 @@ import (
 
 	logging "github.com/openshift/cluster-logging-operator/pkg/apis/logging/v1"
 	collector "github.com/openshift/cluster-logging-operator/pkg/apis/logging/v1alpha1"
-	logforward "github.com/openshift/cluster-logging-operator/pkg/apis/logging/v1alpha1"
 	client "sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -19,11 +18,11 @@ type ClusterLoggingRequest struct {
 	client  client.Client
 	cluster *logging.ClusterLogging
 
-	//forwardingRequest is a logforwarding instance
-	ForwardingRequest *logforward.LogForwarding
+	// ForwarderRequest is a logforwarder instance
+	ForwarderRequest logging.ClusterLogForwarder
 
-	//ForwardingSpec is the normalized and sanitized logforwarding spec
-	ForwardingSpec logforward.ForwardingSpec
+	// ForwarderSpec is the normalized and sanitized logforwarder spec
+	ForwarderSpec logging.ClusterLogForwarderSpec
 
 	Collector *collector.CollectorSpec
 }

@@ -15,7 +15,7 @@ import (
 	"github.com/openshift/cluster-logging-operator/test/helpers"
 )
 
-var _ = Describe("LogForwarding", func() {
+var _ = Describe("ClusterLogForwarder", func() {
 	_, filename, _, _ := runtime.Caller(0)
 	logger.Infof("Running %s", filename)
 	var (
@@ -30,7 +30,7 @@ var _ = Describe("LogForwarding", func() {
 		}
 		testDir = filepath.Dir(filename)
 	})
-	Describe("when ClusterLogging is configured with 'forwarding' to an external syslog server", func() {
+	Describe("when ClusterLogging is configured with 'forwarder' to an external syslog server", func() {
 
 		Context("with the legacy syslog plugin", func() {
 
@@ -58,7 +58,7 @@ var _ = Describe("LogForwarding", func() {
 
 					components := []helpers.LogComponentType{helpers.ComponentTypeCollector, helpers.ComponentTypeStore}
 					cr := helpers.NewClusterLogging(components...)
-					cr.ObjectMeta.Annotations[k8shandler.ForwardingAnnotation] = "disabled"
+					cr.ObjectMeta.Annotations[k8shandler.PreviewForwardingAnnotation] = "disabled"
 					if err := e2e.CreateClusterLogging(cr); err != nil {
 						Fail(fmt.Sprintf("Unable to create an instance of cluster logging: %v", err))
 					}
@@ -98,7 +98,7 @@ var _ = Describe("LogForwarding", func() {
 
 					components := []helpers.LogComponentType{helpers.ComponentTypeCollector, helpers.ComponentTypeStore}
 					cr := helpers.NewClusterLogging(components...)
-					cr.ObjectMeta.Annotations[k8shandler.ForwardingAnnotation] = "disabled"
+					cr.ObjectMeta.Annotations[k8shandler.PreviewForwardingAnnotation] = "disabled"
 					if err := e2e.CreateClusterLogging(cr); err != nil {
 						Fail(fmt.Sprintf("Unable to create an instance of cluster logging: %v", err))
 					}
