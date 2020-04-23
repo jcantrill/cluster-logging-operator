@@ -6,7 +6,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	cl "github.com/openshift/cluster-logging-operator/pkg/apis/logging/v1"
-	k8shandler "github.com/openshift/cluster-logging-operator/pkg/k8shandler"
 	elasticsearch "github.com/openshift/elasticsearch-operator/pkg/apis/logging/v1"
 )
 
@@ -27,10 +26,6 @@ func NewClusterLogging(componentTypes ...LogComponentType) *cl.ClusterLogging {
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      ClusterLoggingName,
 			Namespace: OpenshiftLoggingNS,
-			Annotations: map[string]string{
-				// FIXME(alanconway) remove this annotation, fix tests that use it.
-				k8shandler.PreviewForwardingAnnotation: "enabled",
-			},
 		},
 		Spec: cl.ClusterLoggingSpec{
 			ManagementState: cl.ManagementStateManaged,

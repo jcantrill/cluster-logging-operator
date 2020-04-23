@@ -81,7 +81,6 @@ var _ = Describe("ClusterLogForwarder prior to LF feature", func() {
 
 				components := []helpers.LogComponentType{helpers.ComponentTypeCollector, helpers.ComponentTypeStore}
 				cr := helpers.NewClusterLogging(components...)
-				cr.ObjectMeta.Annotations[k8shandler.PreviewForwardingAnnotation] = "disabled"
 				if err := e2e.CreateClusterLogging(cr); err != nil {
 					Fail(fmt.Sprintf("Unable to create an instance of cluster logging: %v", err))
 				}
