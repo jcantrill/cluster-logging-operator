@@ -68,7 +68,7 @@ metadata:
           },
           {
             "apiVersion": "logging.openshift.io/v1",
-            "kind": "ClusterLogForwarder,
+            "kind": "ClusterLogForwarder",
             "metadata": {
               "name": "instance",
               "namespace": "openshift-logging"
@@ -78,7 +78,7 @@ metadata:
                 {
                   "name": "remote-elasticsearch",
                   "type": "elasticsearch",
-                  "endpoint": "remote.example.org:9200",
+                  "url": "remote.example.org:9200",
                   "secret": {
                     "name": "elasticsearch"
                   }
@@ -87,12 +87,12 @@ metadata:
               "pipelines": [
                 {
                   "name": "enable-default-log-store",
-                  "inputRefs: ["application", "infrastructure", "audit"],
+                  "inputRefs": ["application", "infrastructure", "audit"],
                   "outputRefs": ["default"]
                 },
                 {
                   "name": "forward-to-remote",
-                  "inputRefs: ["application"],
+                  "inputRefs": ["application"],
                   "outputRefs": ["remote-elasticsearch"]
                 }
               ]
@@ -496,6 +496,54 @@ spec:
         path: status
         x-descriptors:
         - 'urn:alm:descriptor:com.tectonic.ui:logforwardingStatuses'
+    - name: collectors.logging.openshift.io
+      version: v1alpha1
+      kind: Collector
+      displayName: Log Collector
+      description: Log Collector spec to define log collection
+      specDescriptors:
+      - description: The type of log collector
+        displayName: Collector type
+        path: type
+        x-descriptors:
+        - 'urn:alm:descriptor:com.tectonic.ui:collectorType'
+    - name: clusterlogforwarders.logging.openshift.io
+      version: v1
+      kind: ClusterLogForwarder
+      displayName: Log Forwarder
+      description: Log forwarder spec defines destinations to forward various log sources
+      specDescriptors:
+      - description: The list of output targets that receive log messages
+        displayName: Forwarder Outputs
+        path: outputs
+        x-descriptors:
+        - 'urn:alm:descriptor:com.tectonic.ui:forwarderOutputs'
+      - description: The list of mappings between log inputs (e.g. application logs) and outputs
+        displayName: Forwarder Pipelines
+        path: pipelines
+        x-descriptors:
+        - 'urn:alm:descriptor:com.tectonic.ui:forwarderPipelines'
+      statusDescriptors:
+      - description: Status conditions for the forwarder resource.
+        displayName: Forwarder Conditions
+        path: conditions
+        x-descriptors:
+        - 'urn:alm:descriptor:com.tectonic.ui:forwarderConditions'
+      - description: Status conditions for individual log inputs
+        displayName: Input Conditions
+        path: inputs
+        x-descriptors:
+        - 'urn:alm:descriptor:com.tectonic.ui:inputConditions'
+      - description: Status conditions for individual forwarder outputs
+        displayName: Output Conditions
+        path: outputs
+        x-descriptors:
+        - 'urn:alm:descriptor:com.tectonic.ui:outputConditions'
+      - description: Status conditions for forwarder pipelines
+        displayName: Pipeline Conditions
+        path: pipelines
+        x-descriptors:
+        - 'urn:alm:descriptor:com.tectonic.ui:pipelineConditions'
     - name: collectors.logging.openshift.io
       version: v1alpha1
       kind: Collector
