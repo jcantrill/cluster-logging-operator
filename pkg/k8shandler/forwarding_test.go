@@ -200,8 +200,8 @@ var _ = Describe("Normalizing forwarder", func() {
 
 			It("should drop outputs that conflict with the internally reserved name", func() {
 				request.ForwarderSpec.Outputs = append(request.ForwarderSpec.Outputs, logging.OutputSpec{
-					Name: logging.OutputNameDefault, // FIXME(alanconway) case insensitivity
-					Type: "Elasticsearch",
+					Name: "default",
+					Type: "elasticsearch",
 					URL:  "anOutPut",
 				})
 				spec, status := request.normalizeForwarder()
@@ -307,8 +307,8 @@ var _ = Describe("Normalizing forwarder", func() {
 			spec, status := request.normalizeForwarder()
 			Expect(spec.Pipelines).To(BeEmpty())
 			Expect(status.Conditions).To(HaveCondition("Ready", false, "", ""))
-			Expect(status.Outputs).To(HaveKey(logging.OutputNameDefault))
-			Expect(status.Outputs[logging.OutputNameDefault]).To(HaveCondition("Ready", false, "MissingResource", "log store"))
+			Expect(status.Outputs).To(HaveKey("default"))
+			Expect(status.Outputs["default"]).To(HaveCondition("Ready", false, "MissingResource", "log store"))
 			Expect(spec).To(Equal(&logging.ClusterLogForwarderSpec{}))
 		})
 
@@ -319,7 +319,10 @@ var _ = Describe("Normalizing forwarder", func() {
 			spec, status := request.normalizeForwarder()
 
 			Expect(spec.Outputs).To(HaveLen(1))
-			Expect(spec.Outputs[0].Name).To(Equal(logging.OutputNameDefault))
+			Expect(spec.Outputs[0].Name).To(Equal("default"))
+			Expect(spec.Outputs[0].URL).To(Equal("https://elasticsearch.openshift-logging.svc.cluster.local:9200"))
+			Expect(spec.Outputs[0].Secret.Name).To(Equal("fluentd"))
+			Expect(spec.Outputs[0].Type).To(Equal("elasticsearch"))
 
 			Expect(spec.Pipelines).To(HaveLen(1))
 			pipeline := spec.Pipelines[0]
@@ -328,20 +331,40 @@ var _ = Describe("Normalizing forwarder", func() {
 
 			Expect(status.Conditions).To(HaveCondition("Ready", true, "", ""))
 			Expect(status.Pipelines["pipeline[0]"]).To(HaveCondition("Ready", true, "", ""))
-			Expect(status.Outputs[logging.OutputNameDefault]).To(HaveCondition("Ready", true, "", ""))
+			Expect(status.Outputs["default"]).To(HaveCondition("Ready", true, "", ""))
 			Expect(status.Inputs[logging.InputNameApplication]).To(HaveCondition("Ready", true, "", ""))
 			Expect(status.Inputs[logging.InputNameInfrastructure]).To(HaveCondition("Ready", true, "", ""))
 		})
+
+		It("forwards logs to an explicit default logstore", func() {
+			cluster.Spec.LogStore = &logging.LogStoreSpec{
+				Type: logging.LogStoreTypeElasticsearch,
+			}
+			request.ForwarderSpec = logging.ClusterLogForwarderSpec{
+				Pipelines: []logging.PipelineSpec{
+					{
+						InputRefs:  []string{"audit"},
+						OutputRefs: []string{"default"},
+					},
+				},
+			}
+			spec, status := request.normalizeForwarder()
+			Expect(spec.Outputs).To(HaveLen(1))
+			Expect(spec.Outputs[0].Name).To(Equal("default"))
+			Expect(spec.Outputs[0].URL).To(Equal("https://elasticsearch.openshift-logging.svc.cluster.local:9200"))
+			Expect(spec.Outputs[0].Secret.Name).To(Equal("fluentd"))
+			Expect(spec.Outputs[0].Type).To(Equal("elasticsearch"))
+
+			Expect(status.Conditions).To(HaveCondition("Ready", true, "", ""))
+			Expect(status.Pipelines).To(HaveLen(1))
+			Expect(status.Pipelines["pipeline[0]"]).To(HaveCondition("Ready", true, "", ""))
+			Expect(status.Outputs["default"]).To(HaveCondition("Ready", true, "", ""))
+			Expect(status.Inputs[logging.InputNameAudit]).To(HaveCondition("Ready", true, "", ""))
+		})
 	})
 
-	It("parses spec with syslog", func() {
+	It("parses spec with Inputs and Outputs", func() {
 		request.ForwarderSpec = logging.ClusterLogForwarderSpec{
-			Inputs: []logging.InputSpec{
-				{
-					Name: "in",
-					Type: "application",
-				},
-			},
 			Outputs: []logging.OutputSpec{
 				{
 					Name: "out",
@@ -355,16 +378,14 @@ var _ = Describe("Normalizing forwarder", func() {
 			Pipelines: []logging.PipelineSpec{
 				{
 					Name:       "test",
-					InputRefs:  []string{"in"},
+					InputRefs:  []string{"audit"},
 					OutputRefs: []string{"out"},
 				},
 			},
 		}
-		// FIXME(alanconway)
-		// forwarder.Spec.Outputs[0].Syslog.RFC = "RFC5424"
 		spec, status := request.normalizeForwarder()
 		Expect(status.Conditions).To(HaveCondition("Ready", true, "", ""), "unexpected "+YAMLString(status))
-		_ = spec // FIXME(alanconway)
+		Expect(*spec).To(EqualDiff(request.ForwarderSpec))
 	})
 })
 

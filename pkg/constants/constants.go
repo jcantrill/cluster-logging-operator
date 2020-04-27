@@ -19,7 +19,7 @@ const (
 	ElasticsearchPort = "9200"
 	FluentdName       = "fluentd"
 	KibanaName        = "kibana"
-	LogStoreURL       = "tls://" + ElasticsearchFQDN + ":" + ElasticsearchPort
+	LogStoreURL       = "https://" + ElasticsearchFQDN + ":" + ElasticsearchPort
 	// Secret used by the collector to connect to the store.
 	CollectorSecretName = "fluentd"
 )
