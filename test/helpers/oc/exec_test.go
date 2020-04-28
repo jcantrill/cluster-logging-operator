@@ -55,10 +55,10 @@ var _ = Describe("oc exec pod", func() {
 						Fail("failed to create pod")
 					}
 					tmpFile = f
-					oc.Literal().From("oc -n test-log-gen wait --for=condition=Ready pod/log-generator").Output()
+					_ = oc.Literal().From("oc -n test-log-gen wait --for=condition=Ready pod/log-generator").Output()
 				})
 				It("should not result in error", func() {
-					oc.Literal().From("oc -n test-log-gen logs log-generator -f").OutputFor(time.Second * 10)
+					_ = oc.Literal().From("oc -n test-log-gen logs log-generator -f").OutputFor(time.Second * 10)
 					occmd := oc.Exec().
 						WithNamespace("test-log-gen").
 						Pod("log-generator").
@@ -70,7 +70,7 @@ var _ = Describe("oc exec pod", func() {
 					}
 				})
 				AfterEach(func() {
-					oc.Literal().From("oc delete ns test-log-gen").Run()
+					_, _ = oc.Literal().From("oc delete ns test-log-gen").Run()
 					if tmpFile != nil {
 						os.Remove(tmpFile.Name())
 					} else {
@@ -114,10 +114,10 @@ var _ = Describe("oc exec pod", func() {
 						Fail("failed to create pod")
 					}
 					tmpFile = f
-					oc.Literal().From("oc -n test-log-gen wait --for=condition=Ready pod/log-generator").Output()
+					_ = oc.Literal().From("oc -n test-log-gen wait --for=condition=Ready pod/log-generator").Output()
 				})
 				It("should not result in error", func() {
-					oc.Literal().From("oc -n test-log-gen logs log-generator -f").OutputFor(time.Second * 10)
+					_ = oc.Literal().From("oc -n test-log-gen logs log-generator -f").OutputFor(time.Second * 10)
 					occmd := oc.Exec().
 						WithNamespace("test-log-gen").
 						WithPodGetter(
@@ -134,7 +134,7 @@ var _ = Describe("oc exec pod", func() {
 					}
 				})
 				AfterEach(func() {
-					oc.Literal().From("oc delete ns test-log-gen").Run()
+					_, _ = oc.Literal().From("oc delete ns test-log-gen").Run()
 					if tmpFile != nil {
 						os.Remove(tmpFile.Name())
 					} else {
