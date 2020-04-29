@@ -38,7 +38,7 @@ var _ = Describe("Generating fluentd secure forward output store config blocks",
 			results, err := generator.generateOutputLabelBlocks(outputs)
 			Expect(err).To(BeNil())
 			Expect(len(results)).To(Equal(1))
-			Expect(results[0]).To(MatchLines(`<label @SECUREFORWARD_RECEIVER>
+			Expect(results[0]).To(EqualTrimLines(`<label @SECUREFORWARD_RECEIVER>
 	<match **>
 		# https://docs.fluentd.org/v1.0/articles/in_forward
 	   @type forward
@@ -94,7 +94,7 @@ var _ = Describe("Generating fluentd secure forward output store config blocks",
 			results, err := generator.generateOutputLabelBlocks(outputs)
 			Expect(err).To(BeNil())
 			Expect(len(results)).To(Equal(1))
-			Expect(results[0]).To(MatchLines(`<label @SECUREFORWARD_RECEIVER>
+			Expect(results[0]).To(EqualTrimLines(`<label @SECUREFORWARD_RECEIVER>
 			<match **>
 				# https://docs.fluentd.org/v1.0/articles/in_forward
 			  @type forward

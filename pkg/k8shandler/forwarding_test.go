@@ -1,6 +1,8 @@
 package k8shandler
 
 import (
+	"log"
+
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/ginkgo/extensions/table"
 	. "github.com/onsi/gomega"
@@ -8,6 +10,7 @@ import (
 	"github.com/onsi/gomega/types"
 	logging "github.com/openshift/cluster-logging-operator/pkg/apis/logging/v1"
 	"github.com/openshift/cluster-logging-operator/pkg/apis/logging/v1/outputs"
+	"github.com/openshift/cluster-logging-operator/test"
 	. "github.com/openshift/cluster-logging-operator/test"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -83,6 +86,7 @@ var _ = Describe("Normalizing forwarder", func() {
 					},
 				},
 			}
+			log.Println("FIXME", test.YAMLString(request.ForwarderSpec))
 		})
 		Context("pipelines", func() {
 
@@ -389,9 +393,9 @@ var _ = Describe("Normalizing forwarder", func() {
 	})
 })
 
-var _ = DescribeTable("Normalizing valid forwarder YAML specs",
+var _ = DescribeTable("Normalizing rounnd trip of valid YAML specs",
 
-	func(yamlSpec string, goSpec logging.ClusterLogForwarderSpec) {
+	func(yamlSpec string) {
 		request := ClusterLoggingRequest{
 			client: fake.NewFakeClient(),
 			cluster: &logging.ClusterLogging{
@@ -403,36 +407,59 @@ var _ = DescribeTable("Normalizing valid forwarder YAML specs",
 		Expect(yaml.Unmarshal([]byte(yamlSpec), &request.ForwarderSpec)).To(Succeed())
 		spec, status := request.normalizeForwarder()
 		Expect(status.Conditions).To(HaveCondition("Ready", true, "", ""), spec)
-		Expect(goSpec).To(EqualDiff(*spec))
+		Expect(yamlSpec).To(EqualLines(test.YAMLString(spec)))
 	},
-	Entry("application to syslog", `
+	Entry("simple", `
+outputs:
+- name: myOutput
+  type: elasticsearch
+  url: anOutPut
+- name: someothername
+  type: elasticsearch
+  url: someotherendpoint
+pipelines:
+- inputRefs:
+  - application
+  name: aPipeline
+  outputRefs:
+  - myOutput
+  - someothername
+`),
+	Entry("syslog output", `
 outputs:
 - name: out
-  type: syslog
   syslog:
     severity: Alert
+  type: syslog
   url: syslog-receiver.openshift-logging.svc:24224
 pipelines:
-  - inputRefs: [ application ]
-    outputRefs: [ out ]
-`,
-		logging.ClusterLogForwarderSpec{
-			Outputs: []logging.OutputSpec{
-				{
-					Name: "out",
-					Type: "syslog",
-					URL:  "syslog-receiver.openshift-logging.svc:24224",
-					OutputTypeSpec: logging.OutputTypeSpec{
-						Syslog: &outputs.Syslog{Severity: "Alert"},
-					},
-				},
-			},
-			Pipelines: []logging.PipelineSpec{
-				{
-					Name:       "pipeline[0]",
-					InputRefs:  []string{"application"},
-					OutputRefs: []string{"out"},
-				},
-			},
-		},
-	))
+  - inputRefs: 
+    - application
+    name: foo
+    outputRefs: 
+    - out
+`),
+
+	Entry("regression test 1", `
+outputs:
+- name: foo
+  type: fluentForward
+  url: blah.blah
+pipelines:
+- inputRefs:
+  - application
+  name: test-app
+  outputRefs:
+  - foo
+- inputRefs:
+  - infrastructure
+  name: test-infra
+  outputRefs:
+  - foo
+- inputRefs:
+  - audit
+  name: test-audit
+  outputRefs:
+  - foo
+`),
+)

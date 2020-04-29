@@ -13,11 +13,11 @@ var _ = Describe("Matchers", func() {
 bar
 
 baz
-`).To(MatchLines(`foo
+`).To(EqualTrimLines(`foo
 	bar
 baz`))
 	})
 	It("fails to match by line", func() {
-		Expect("a").NotTo(MatchLines("b"))
+		Expect("a").NotTo(EqualTrimLines("b"))
 	})
 })

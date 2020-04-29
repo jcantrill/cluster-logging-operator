@@ -105,7 +105,7 @@ var _ = Describe("Generating fluentd config", func() {
 		results, err := generator.generateSource(inputs, namespaces)
 		Expect(err).To(BeNil())
 		Expect(results).To(HaveLen(1))
-		Expect(results[0]).To(MatchLines(`
+		Expect(results[0]).To(EqualTrimLines(`
 # container logs
 <source>
   @type tail
@@ -155,7 +155,7 @@ var _ = Describe("Generating fluentd config", func() {
 		}
 		results, err := generator.Generate(forwarder)
 		Expect(err).To(BeNil())
-		Expect(results).To(MatchLines(`
+		Expect(results).To(EqualTrimLines(`
 			## CLO GENERATED CONFIGURATION ###
 			# This file is a copy of the fluentd configuration entrypoint
 			# which should normally be supplied in a configmap.
@@ -521,7 +521,7 @@ var _ = Describe("Generating fluentd config", func() {
 	It("should produce well formed fluent.conf", func() {
 		results, err := generator.Generate(forwarder)
 		Expect(err).To(BeNil())
-		Expect(results).To(MatchLines(`
+		Expect(results).To(EqualTrimLines(`
 			## CLO GENERATED CONFIGURATION ###
 			# This file is a copy of the fluentd configuration entrypoint
 			# which should normally be supplied in a configmap.

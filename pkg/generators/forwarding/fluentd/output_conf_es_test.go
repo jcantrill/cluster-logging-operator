@@ -45,7 +45,7 @@ var _ = Describe("Generating fluentd config blocks", func() {
 			results, err := generator.generatePipelineToOutputLabels([]logging.PipelineSpec{pipeline})
 			Expect(err).To(BeNil())
 			Expect(len(results) > 0).To(BeTrue())
-			Expect(results[0]).To(MatchLines(`<label @MY_SECURE_PIPELINE>
+			Expect(results[0]).To(EqualTrimLines(`<label @MY_SECURE_PIPELINE>
 				<match **>
 					@type copy
 					<store>
@@ -63,7 +63,7 @@ var _ = Describe("Generating fluentd config blocks", func() {
 		It("should produce well formed output label config", func() {
 			results, err := generator.generateOutputLabelBlocks(outputs)
 			Expect(err).To(BeNil())
-			Expect(results[0]).To(MatchLines(`<label @ONCLUSTER_ELASTICSEARCH>
+			Expect(results[0]).To(EqualTrimLines(`<label @ONCLUSTER_ELASTICSEARCH>
 	<match retry_oncluster_elasticsearch>
 		@type copy
 		<store>
@@ -169,7 +169,7 @@ var _ = Describe("Generating fluentd config blocks", func() {
 		It("should produce well formed output label config", func() {
 			results, err := generator.generateOutputLabelBlocks(outputs)
 			Expect(err).To(BeNil())
-			Expect(results[0]).To(MatchLines(`<label @OTHER_ELASTICSEARCH>
+			Expect(results[0]).To(EqualTrimLines(`<label @OTHER_ELASTICSEARCH>
 	<match retry_other_elasticsearch>
 		@type copy
 		<store>

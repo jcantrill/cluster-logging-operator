@@ -29,7 +29,7 @@ var _ = Describe("generating source", func() {
 		})
 
 		It("should produce a container config", func() {
-			Expect(results[0]).To(MatchLines(`# container logs
+			Expect(results[0]).To(EqualTrimLines(`# container logs
 		  <source>
 			@type tail
 			@id container-input
@@ -68,7 +68,7 @@ var _ = Describe("generating source", func() {
 		})
 
 		It("should produce a journal config", func() {
-			Expect(results[0]).To(MatchLines(`
+			Expect(results[0]).To(EqualTrimLines(`
 			#journal logs to gather node
 			<source>
 				@type systemd
@@ -98,7 +98,7 @@ var _ = Describe("generating source", func() {
 		})
 
 		It("should produce configs for the audit logs", func() {
-			Expect(results[0]).To(MatchLines(`
+			Expect(results[0]).To(EqualTrimLines(`
             # linux audit logs
             <source>
               @type tail
@@ -112,7 +112,7 @@ var _ = Describe("generating source", func() {
               </parse>
             </source>
 		  `))
-			Expect(results[1]).To(MatchLines(`
+			Expect(results[1]).To(EqualTrimLines(`
             # k8s audit logs
             <source>
               @type tail
@@ -130,7 +130,7 @@ var _ = Describe("generating source", func() {
               </parse>
             </source>
 		  `))
-			Expect(results[2]).To(MatchLines(`
+			Expect(results[2]).To(EqualTrimLines(`
             # Openshift audit logs
             <source>
               @type tail
@@ -161,7 +161,7 @@ var _ = Describe("generating source", func() {
 		Context("for journal input", func() {
 
 			It("should produce a config with no exclusions", func() {
-				Expect(results[0]).To(MatchLines(`
+				Expect(results[0]).To(EqualTrimLines(`
 			#journal logs to gather node
 			<source>
 				@type systemd
@@ -185,7 +185,7 @@ var _ = Describe("generating source", func() {
 		Context("for container inputs", func() {
 
 			It("should produce a config", func() {
-				Expect(results[1]).To(MatchLines(`# container logs
+				Expect(results[1]).To(EqualTrimLines(`# container logs
 			  <source>
 				@type tail
 				@id container-input
@@ -219,7 +219,7 @@ var _ = Describe("generating source", func() {
 		Context("for audit inputs", func() {
 
 			It("should produce a config with no exclusions", func() {
-				Expect(results[2]).To(MatchLines(`
+				Expect(results[2]).To(EqualTrimLines(`
               # linux audit logs
               <source>
                 @type tail
@@ -233,7 +233,7 @@ var _ = Describe("generating source", func() {
                 </parse>
               </source>
 		    `))
-				Expect(results[3]).To(MatchLines(`
+				Expect(results[3]).To(EqualTrimLines(`
               # k8s audit logs
               <source>
                 @type tail
@@ -251,7 +251,7 @@ var _ = Describe("generating source", func() {
                 </parse>
               </source>
 		    `))
-				Expect(results[4]).To(MatchLines(`
+				Expect(results[4]).To(EqualTrimLines(`
               # Openshift audit logs
               <source>
                 @type tail
