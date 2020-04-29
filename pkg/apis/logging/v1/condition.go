@@ -84,6 +84,8 @@ func NewCondition(t ConditionType, status bool, r ConditionReason, format ...int
 //
 // It allows lookup and ensures uniqueness by type, but marshals as an array
 // with deterministic ordering.
+//
+// +kubebuilder:validation:Type:=array
 type Conditions map[ConditionType]Condition
 
 func NewConditions(conds ...Condition) Conditions {

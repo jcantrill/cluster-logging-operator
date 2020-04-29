@@ -197,7 +197,7 @@ spec:
                 - type
                 type: object
               description: Conditions of the log forwarder.
-              type: object
+              type: array
             inputs:
               additionalProperties:
                 additionalProperties:
@@ -228,7 +228,7 @@ spec:
                 description: "Conditions is a set of condition instances. \n It allows
                   lookup and ensures uniqueness by type, but marshals as an array
                   with deterministic ordering."
-                type: object
+                type: array
               description: Inputs maps input names to conditions of the input.
               type: object
             outputs:
@@ -261,7 +261,7 @@ spec:
                 description: "Conditions is a set of condition instances. \n It allows
                   lookup and ensures uniqueness by type, but marshals as an array
                   with deterministic ordering."
-                type: object
+                type: array
               description: Outputs maps output names to conditions of the output.
               type: object
             pipelines:
@@ -294,7 +294,7 @@ spec:
                 description: "Conditions is a set of condition instances. \n It allows
                   lookup and ensures uniqueness by type, but marshals as an array
                   with deterministic ordering."
-                type: object
+                type: array
               description: Pipelines maps pipeline names to conditions of the pipeline.
               type: object
           type: object
