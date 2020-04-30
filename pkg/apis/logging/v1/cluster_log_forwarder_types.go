@@ -47,6 +47,29 @@ type ClusterLogForwarderStatus struct {
 	Pipelines NamedConditions `json:"pipelines,omitempty"`
 }
 
+func NewClusterLogForwarderStatus() *ClusterLogForwarderStatus {
+	return &ClusterLogForwarderStatus{
+		Conditions: NewConditions(),
+	}
+}
+
+func (lfStatus ClusterLogForwarderStatus) SetNewCondition(t ConditionType, status bool, r ConditionReason, format string, args ...interface{}) {
+	lfStatus.Conditions.Set(NewCondition(t, status, r, format, args...))
+}
+
+func (lfStatus ClusterLogForwarderStatus) IsReady() bool {
+	if !lfStatus.Pipelines.Has(string(ConditionReady)) {
+		return false
+	}
+	if !lfStatus.Outputs.Has(string(ConditionReady)) {
+		return false
+	}
+	if !lfStatus.Inputs.Has(string(ConditionReady)) {
+		return false
+	}
+	return true
+}
+
 type PipelineSpec struct {
 	// OutputRefs lists the names of outputs from this pipeline.
 	//

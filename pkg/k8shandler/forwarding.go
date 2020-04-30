@@ -25,6 +25,7 @@ func (clusterRequest *ClusterLoggingRequest) generateCollectorConfig() (config s
 	spec, status := clusterRequest.normalizeForwarder()
 	clusterRequest.ForwarderSpec = *spec
 	clusterRequest.ForwarderRequest.Status = *status
+	logger.DebugObject("LogForwarder status after normalization: %v", clusterRequest.ForwarderRequest.Status)
 
 	// TODO(alanconway) get rid of legacy/old stuff.
 	generator, err := forwarding.NewConfigGenerator(clusterRequest.cluster.Spec.Collection.Logs.Type, clusterRequest.includeLegacyForwardConfig(), clusterRequest.includeLegacySyslogConfig(), clusterRequest.useOldRemoteSyslogPlugin())
@@ -40,7 +41,7 @@ func (clusterRequest *ClusterLoggingRequest) generateCollectorConfig() (config s
 	}
 	generatedConfig, err := generator.Generate(&clusterRequest.ForwarderSpec)
 	if err != nil {
-		logger.Warnf("Unable to generate log confguraiton: %v", err)
+		logger.Warnf("Unable to generate log configuration: %v", err)
 		return "",
 			clusterRequest.UpdateCondition(
 				logging.CollectorDeadEnd,

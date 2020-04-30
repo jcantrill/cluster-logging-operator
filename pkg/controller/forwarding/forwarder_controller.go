@@ -90,27 +90,14 @@ func (r *ReconcileForwarder) Reconcile(request reconcile.Request) (reconcile.Res
 
 	logger.DebugObject("clusterlogforwarder-controller fetched LF instance: %v", instance)
 
-	s := &instance.Status
-	*s = logging.ClusterLogForwarderStatus{}
+	s := *logging.NewClusterLogForwarderStatus()
+	instance.Status = s
 
 	if instance.Name != constants.SingletonName {
-		s.Conditions.SetNew(logging.ConditionReady, false, logging.ReasonInvalid,
+		s.SetNewCondition(logging.ConditionReady, false, logging.ReasonInvalid,
 			"Invalid name %q, singleton instance must be named %q",
 			instance.Name, constants.SingletonName)
-		logger.Debugf("clusterlogforwarder-controller updating status of instance: %v", instance)
-		if err = r.client.Status().Update(context.TODO(), instance); err != nil {
-			logger.Debugf("clusterlogforwarder-controller error updating status: %v", err)
-			return reconcileResult, err
-		}
-
-		return reconcile.Result{}, nil
-	}
-	s.Conditions.SetNew(logging.ConditionReady, true, "", "")
-
-	logger.Debugf("clusterlogforwarder-controller updating status of instance: %v", instance)
-	if err = r.client.Status().Update(context.TODO(), instance); err != nil {
-		logger.Debugf("clusterlogforwarder-controller error updating status: %v", err)
-		return reconcileResult, err
+		return r.updateStatus(instance, nil)
 	}
 
 	logger.Debug("clusterlogforwarder-controller calling ClusterLogging reconciler...")
@@ -119,5 +106,20 @@ func (r *ReconcileForwarder) Reconcile(request reconcile.Request) (reconcile.Res
 	if reconcileErr != nil {
 		logger.Debugf("clusterlogforwarder-controller returning, error: %v", reconcileErr)
 	}
+	if instance.Status.IsReady() {
+		s.SetNewCondition(logging.ConditionReady, true, "", "")
+	} else {
+		s.SetNewCondition(logging.ConditionDegraded, true, "There are one or more pipelines that are unavailable", "")
+	}
+	return r.updateStatus(instance, reconcileErr)
+}
+
+func (r *ReconcileForwarder) updateStatus(instance *logging.ClusterLogForwarder, reconcileErr error) (reconcile.Result, error) {
+	logger.DebugObject("clusterlogforwarder-controller updating status of instance: %v, error: %v", instance, reconcileErr)
+	if err := r.client.Status().Update(context.TODO(), instance); err != nil {
+		logger.Debugf("clusterlogforwarder-controller error updating status: %v", err)
+		return reconcileResult, reconcileErr
+	}
+
 	return reconcile.Result{}, reconcileErr
 }

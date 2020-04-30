@@ -63,7 +63,7 @@ func init() {
 }
 
 //DebugObject pretty prints the given object
-func DebugObject(sprintfMessage string, object interface{}) {
+func DebugObject(sprintfMessage string, object ...interface{}) {
 	if IsDebugEnabled() && object != nil {
 		pretty, err := json.MarshalIndent(object, "", "  ")
 		if err != nil {

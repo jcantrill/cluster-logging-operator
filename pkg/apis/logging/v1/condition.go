@@ -129,6 +129,17 @@ func (cs Conditions) String() string {
 	return string(b)
 }
 
+func (cs Conditions) UnmarshalJSON(content []byte) error {
+	conditions := &[]Condition{}
+	if err := json.Unmarshal(content, conditions); err != nil {
+		return err
+	}
+	for _, condition := range *conditions {
+		cs.Set(condition)
+	}
+	return nil
+}
+
 type NamedConditions map[string]Conditions
 
 func (nc NamedConditions) Has(name string) bool { return len(nc[name]) > 0 }
