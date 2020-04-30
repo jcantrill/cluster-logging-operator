@@ -67,7 +67,7 @@ func ConditionStatusOf(b bool) corev1.ConditionStatus { return statusValue[b] }
 
 // NewCondition creates a condition with Type, Status, Reason, a fmt-style message
 // and Now() as the LastTransitionTime
-func NewCondition(t ConditionType, status bool, r ConditionReason, format ...interface{}) Condition {
+func NewCondition(t ConditionType, status bool, r ConditionReason, format string, args ...interface{}) Condition {
 	c := Condition{
 		Type:               t,
 		Reason:             r,
@@ -75,7 +75,7 @@ func NewCondition(t ConditionType, status bool, r ConditionReason, format ...int
 		LastTransitionTime: metav1.Now(),
 	}
 	if len(format) > 0 {
-		c.Message = fmt.Sprintf(format[0].(string), format[1:]...)
+		c.Message = fmt.Sprintf(format, args...)
 	}
 	return c
 }
@@ -97,7 +97,6 @@ func NewConditions(conds ...Condition) Conditions {
 }
 
 func (cs Conditions) Get(t ConditionType) Condition { return cs[t] }
-func (cs Conditions) Has(t ConditionType) bool      { _, ok := cs[t]; return ok }
 
 func (cs *Conditions) Set(c Condition) {
 	if *cs == nil {
@@ -106,8 +105,8 @@ func (cs *Conditions) Set(c Condition) {
 	(*cs)[c.Type] = c
 }
 
-func (cs Conditions) SetNew(t ConditionType, status bool, r ConditionReason, format ...interface{}) {
-	cs.Set(NewCondition(t, status, r, format...))
+func (cs Conditions) SetNew(t ConditionType, status bool, r ConditionReason, format string, args ...interface{}) {
+	cs.Set(NewCondition(t, status, r, format, args...))
 }
 
 // Conditions marshals as an array.
@@ -120,6 +119,14 @@ func (cs Conditions) MarshalJSON() ([]byte, error) {
 		return list[a].Type < list[b].Type
 	})
 	return json.Marshal(list)
+}
+
+func (cs Conditions) String() string {
+	b, err := cs.MarshalJSON()
+	if err != nil {
+		return err.Error()
+	}
+	return string(b)
 }
 
 type NamedConditions map[string]Conditions

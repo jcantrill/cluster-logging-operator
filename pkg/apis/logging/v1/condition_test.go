@@ -30,14 +30,14 @@ var _ = Describe("Conditions", func() {
 	It("updates timestamps", func() {
 		before := time.Now()
 		cs := Conditions{}
-		cs.SetNew("x", false, "y")
+		cs.SetNew("x", false, "y", "")
 		Expect(cs["x"].LastTransitionTime.Time).To(BeTemporally(">=", before))
 	})
 
 	Context("evaluates conditions", func() {
 		cs := Conditions{}
-		cs.SetNew("TrueType", true, "")
-		cs.SetNew("FalseType", false, "")
+		cs.SetNew("TrueType", true, "", "")
+		cs.SetNew("FalseType", false, "", "")
 		// Absence means Unknown
 
 		DescribeTable("test status values",

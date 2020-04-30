@@ -105,7 +105,7 @@ func (r *ReconcileForwarder) Reconcile(request reconcile.Request) (reconcile.Res
 
 		return reconcile.Result{}, nil
 	}
-	s.Conditions.SetNew(logging.ConditionReady, true, "")
+	s.Conditions.SetNew(logging.ConditionReady, true, "", "")
 
 	logger.Debugf("clusterlogforwarder-controller updating status of instance: %v", instance)
 	if err = r.client.Status().Update(context.TODO(), instance); err != nil {

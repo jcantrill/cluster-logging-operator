@@ -1,8 +1,6 @@
 package k8shandler
 
 import (
-	"log"
-
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/ginkgo/extensions/table"
 	. "github.com/onsi/gomega"
@@ -86,7 +84,6 @@ var _ = Describe("Normalizing forwarder", func() {
 					},
 				},
 			}
-			log.Println("FIXME", test.YAMLString(request.ForwarderSpec))
 		})
 		Context("pipelines", func() {
 
