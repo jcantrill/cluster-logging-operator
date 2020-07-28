@@ -319,6 +319,8 @@ spec:
                         fieldPath: metadata.name
                   - name: OPERATOR_NAME
                     value: "cluster-logging-operator"
+                  - name: FLUENTBIT_IMAGE
+                    value: "quay.io/jcantrill/fluent-bit:v1.5.2-rh"
                   - name: FLUENTD_IMAGE
                     value: "quay.io/openshift/origin-logging-fluentd:latest"
                   - name: CURATOR_IMAGE
