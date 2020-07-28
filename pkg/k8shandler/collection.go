@@ -6,6 +6,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/openshift/cluster-logging-operator/pkg/k8shandler/collector"
 	"github.com/openshift/cluster-logging-operator/pkg/logger"
 	"github.com/openshift/cluster-logging-operator/pkg/utils"
 	"github.com/sirupsen/logrus"
@@ -41,6 +42,8 @@ func (clusterRequest *ClusterLoggingRequest) CreateOrUpdateCollection(proxyConfi
 	cluster := clusterRequest.cluster
 	collectorConfig := ""
 	collectorConfHash := ""
+	normalizerConfig := ""
+	normalizerConfHash := ""
 
 	var collectorServiceAccount *core.ServiceAccount
 
@@ -55,7 +58,16 @@ func (clusterRequest *ClusterLoggingRequest) CreateOrUpdateCollection(proxyConfi
 			return
 		}
 
-		if collectorConfig, err = clusterRequest.generateCollectorConfig(); err != nil {
+		if normalizerConfig, err = clusterRequest.generateCollectorConfig(); err != nil {
+			return
+		}
+		logger.Debugf("Generated normalizer config: %s", normalizerConfig)
+		normalizerConfHash, err = utils.CalculateMD5Hash(normalizerConfig)
+		if err != nil {
+			logger.Errorf("unable to calculate MD5 hash. E: %s", err.Error())
+			return
+		}
+		if collectorConfig, err = collector.GenerateConfig(); err != nil {
 			return
 		}
 		logger.Debugf("Generated collector config: %s", collectorConfig)
@@ -76,7 +88,11 @@ func (clusterRequest *ClusterLoggingRequest) CreateOrUpdateCollection(proxyConfi
 			return
 		}
 
-		if err = clusterRequest.createOrUpdateFluentdConfigMap(collectorConfig); err != nil {
+		if err = clusterRequest.createOrUpdateFluentdConfigMap(normalizerConfig); err != nil {
+			return
+		}
+
+		if err = collector.ReconcileConfigMap(clusterRequest, clusterRequest.cluster, clusterRequest.cluster.Namespace, collectorConfig); err != nil {
 			return
 		}
 
@@ -84,7 +100,7 @@ func (clusterRequest *ClusterLoggingRequest) CreateOrUpdateCollection(proxyConfi
 			return
 		}
 
-		if err = clusterRequest.createOrUpdateFluentdDaemonset(collectorConfHash, proxyConfig); err != nil {
+		if err = clusterRequest.createOrUpdateFluentdDaemonset(normalizerConfHash, collectorConfHash, proxyConfig); err != nil {
 			return
 		}
 

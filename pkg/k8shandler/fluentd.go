@@ -9,6 +9,7 @@ import (
 	monitoringv1 "github.com/coreos/prometheus-operator/pkg/apis/monitoring/v1"
 	logging "github.com/openshift/cluster-logging-operator/pkg/apis/logging/v1"
 	"github.com/openshift/cluster-logging-operator/pkg/constants"
+	"github.com/openshift/cluster-logging-operator/pkg/k8shandler/collector"
 	"github.com/openshift/cluster-logging-operator/pkg/logger"
 	"github.com/openshift/cluster-logging-operator/pkg/utils"
 	"github.com/sirupsen/logrus"
@@ -361,14 +362,17 @@ func newFluentdPodSpec(cluster *logging.ClusterLogging, elasticsearchAppName str
 		},
 	)
 
+	collectorContainer := collector.NewContainer()
+
 	fluentdPodSpec := NewPodSpec(
 		"logcollector",
-		[]v1.Container{fluentdContainer},
+		[]v1.Container{fluentdContainer, collectorContainer},
 		[]v1.Volume{
 			{Name: "runlogjournal", VolumeSource: v1.VolumeSource{HostPath: &v1.HostPathVolumeSource{Path: "/run/log/journal"}}},
 			{Name: "varlog", VolumeSource: v1.VolumeSource{HostPath: &v1.HostPathVolumeSource{Path: "/var/log"}}},
 			{Name: "varlibdockercontainers", VolumeSource: v1.VolumeSource{HostPath: &v1.HostPathVolumeSource{Path: "/var/lib/docker"}}},
 			{Name: "config", VolumeSource: v1.VolumeSource{ConfigMap: &v1.ConfigMapVolumeSource{LocalObjectReference: v1.LocalObjectReference{Name: "fluentd"}}}},
+			{Name: collector.CollectorConfName, VolumeSource: v1.VolumeSource{ConfigMap: &v1.ConfigMapVolumeSource{LocalObjectReference: v1.LocalObjectReference{Name: collector.CollectorName}}}},
 			{Name: "secureforwardconfig", VolumeSource: v1.VolumeSource{ConfigMap: &v1.ConfigMapVolumeSource{LocalObjectReference: v1.LocalObjectReference{Name: "secure-forward"}, Optional: utils.GetBool(true)}}},
 			{Name: "secureforwardcerts", VolumeSource: v1.VolumeSource{Secret: &v1.SecretVolumeSource{SecretName: "secure-forward", Optional: utils.GetBool(true)}}},
 			{Name: "syslogconfig", VolumeSource: v1.VolumeSource{ConfigMap: &v1.ConfigMapVolumeSource{LocalObjectReference: v1.LocalObjectReference{Name: syslogName}, Optional: utils.GetBool(true)}}},
@@ -452,7 +456,7 @@ func newFluentdInitContainer(cluster *logging.ClusterLogging) v1.Container {
 	return initContainer
 }
 
-func (clusterRequest *ClusterLoggingRequest) createOrUpdateFluentdDaemonset(pipelineConfHash string, proxyConfig *configv1.Proxy) (err error) {
+func (clusterRequest *ClusterLoggingRequest) createOrUpdateFluentdDaemonset(pipelineConfHash, collectorConfHash string, proxyConfig *configv1.Proxy) (err error) {
 
 	cluster := clusterRequest.cluster
 
@@ -469,6 +473,7 @@ func (clusterRequest *ClusterLoggingRequest) createOrUpdateFluentdDaemonset(pipe
 
 	fluentdDaemonset := NewDaemonSet("fluentd", cluster.Namespace, "fluentd", "fluentd", fluentdPodSpec)
 	fluentdDaemonset.Spec.Template.Spec.Containers[0].Env = updateEnvVar(v1.EnvVar{Name: "FLUENT_CONF_HASH", Value: pipelineConfHash}, fluentdDaemonset.Spec.Template.Spec.Containers[0].Env)
+	fluentdDaemonset.Spec.Template.Spec.Containers[1].Env = updateEnvVar(v1.EnvVar{Name: "CONF_HASH", Value: collectorConfHash}, fluentdDaemonset.Spec.Template.Spec.Containers[1].Env)
 
 	annotations, err := clusterRequest.getFluentdAnnotations(fluentdDaemonset)
 	if err != nil {
@@ -578,20 +583,29 @@ func (clusterRequest *ClusterLoggingRequest) getFluentdAnnotations(daemonset *ap
 
 func (clusterRequest *ClusterLoggingRequest) RestartFluentd(proxyConfig *configv1.Proxy) (err error) {
 
-	collectorConfig, err := clusterRequest.generateCollectorConfig()
+	normalizerConfig, err := clusterRequest.generateCollectorConfig()
 	if err != nil {
 		return err
 	}
 
+	logger.Debugf("Generated normalizer config: %s", normalizerConfig)
+	normalizerConfHash, err := utils.CalculateMD5Hash(normalizerConfig)
+	if err != nil {
+		logger.Errorf("unable to calculate MD5 hash. E: %s", err.Error())
+		return err
+	}
+	collectorConfig, err := collector.GenerateConfig()
+	if err != nil {
+		return err
+	}
 	logger.Debugf("Generated collector config: %s", collectorConfig)
 	collectorConfHash, err := utils.CalculateMD5Hash(collectorConfig)
 	if err != nil {
 		logger.Errorf("unable to calculate MD5 hash. E: %s", err.Error())
-		return
+		return err
 	}
-
-	if err = clusterRequest.createOrUpdateFluentdDaemonset(collectorConfHash, proxyConfig); err != nil {
-		return
+	if err = clusterRequest.createOrUpdateFluentdDaemonset(normalizerConfHash, collectorConfHash, proxyConfig); err != nil {
+		return err
 	}
 
 	return clusterRequest.UpdateFluentdStatus()
