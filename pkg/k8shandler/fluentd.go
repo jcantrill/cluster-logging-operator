@@ -29,6 +29,9 @@ const (
 	fluentdName              = "fluentd"
 	syslogName               = "syslog"
 	fluentdRequiredESVersion = "6"
+
+	LogForwardingTopologyAnnotation                  = "clusterlogging.openshift.io/logforwardingTopology"
+	EnableTechPreviewLogForwardingTopologyAnnotation = "clusterlogging.openshift.io/enableTechPreviewTopology"
 )
 
 func (clusterRequest *ClusterLoggingRequest) removeFluentd() (err error) {
