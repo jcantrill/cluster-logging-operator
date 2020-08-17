@@ -30,7 +30,7 @@ TOT_APPS=${TOT_APPS:-1}
 MSG_PER_SEC=${MSG_PER_SEC:-2500}
 TEST_LENGTH_MIN=${TEST_LENGTH_MIN:-10}
 msg_per_minute=$((MSG_PER_SEC * 60))
-tot_lines=$((msg_per_minute * TEST_LENGTH_MIN))
+tot_lines=$((msg_per_minute * TEST_LENGTH_MIN * TOT_APPS))
 
 label_all_nodes=""
 if [ $TOT_APPS -gt 1 ] ; then

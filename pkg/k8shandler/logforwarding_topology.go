@@ -7,9 +7,12 @@ import (
 	logging "github.com/openshift/cluster-logging-operator/pkg/apis/logging/v1"
 	"github.com/openshift/cluster-logging-operator/pkg/constants"
 	"github.com/openshift/cluster-logging-operator/pkg/k8shandler/collector"
+	"github.com/openshift/cluster-logging-operator/pkg/logger"
 	"github.com/openshift/cluster-logging-operator/pkg/utils"
 	core "k8s.io/api/core/v1"
 	v1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/client-go/util/retry"
 )
 
 const (
@@ -21,48 +24,162 @@ const (
 	//the topology to be used in log forwarding
 	EnableTechPreviewLogForwardingTopologyAnnotation = "clusterlogging.openshift.io/enableTechPreviewTopology"
 
-	//DualEdgeNormalizationTopology deploys multiple containers to each node to collect and normalize log messagges
-	DualEdgeNormalizationTopology = "dualEdgeNormalization"
+	//LogForwardingDualEdgeNormalizationTopology deploys multiple containers to each node to collect and normalize log messagges
+	LogForwardingDualEdgeNormalizationTopology = "dualEdgeNormalization"
 
-	//EdgeNormalizationTopology is the default (legacy) topology to deploy a single container to each node to collect and normalize log messages.
-	EdgeNormalizationTopology = "edgeNormalization"
+	//LogForwardingEdgeNormalizationTopology is the default (legacy) topology to deploy a single container to each node to collect and normalize log messages.
+	LogForwardingEdgeNormalizationTopology = "edgeNormalization"
 
-	//CentralNormalizationTopology deploys a single container to each node to collect and forward messages
+	//LogForwardingCentralNormalizationTopology deploys a single container to each node to collect and forward messages
 	//to a centralized log normalizer
-	CentralNormalizationTopology = "centralNormalization"
+	LogForwardingCentralNormalizationTopology = "centralNormalization"
 
 	collectorServiceAccountName = "logCollector"
+
+	collectorName        = "fluentd"
+	componentName        = "fluentd"
+	loggingComponentName = "fluentd"
 )
 
-func ReconcileCollectionAndNormalization() {
-
+func NewTopology(clusterRequest *ClusterLoggingRequest, proxyConfig *configv1.Proxy, pipelineSpec logging.ClusterLogForwarderSpec, trustedCABundleCM *core.ConfigMap) LogForwardingTopology {
+	topology := LogForwardingEdgeNormalizationTopology
+	switch topology {
+	default:
+		return EdgeNormalizationTopology{
+			clusterRequest.cluster,
+			clusterRequest,
+			proxyConfig,
+			pipelineSpec,
+			trustedCABundleCM,
+		}
+	}
 }
 
-func ReconcileCollector() {
+func (clusterRequest *ClusterLoggingRequest) ReconcileLogForwardingTopology(proxyConfig *configv1.Proxy) (err error) {
+	cluster := clusterRequest.cluster
 
+	caTrustBundle := &v1.ConfigMap{}
+	// Create or update cluster proxy trusted CA bundle.
+	if proxyConfig != nil {
+		caTrustBundle, err = clusterRequest.createOrGetTrustedCABundleConfigMap(constants.FluentdTrustedCAName)
+		if err != nil {
+			return
+		}
+	}
+	topology := NewTopology(clusterRequest, proxyConfig, clusterRequest.ForwarderSpec, caTrustBundle)
+	normalizerConfig, err := topology.generateNormalizerConfig()
+	if err != nil {
+		return err
+	}
+
+	logger.Debugf("Generated normalizer config: %s", normalizerConfig)
+	normalizerConfHash, err := utils.CalculateMD5Hash(normalizerConfig)
+	if err != nil {
+		logger.Errorf("unable to calculate MD5 hash. E: %s", err.Error())
+		return err
+	}
+	collectorConfig, err := topology.generateCollectorConfig()
+	if err != nil {
+		return err
+	}
+	logger.Debugf("Generated collector config: %s", collectorConfig)
+	collectorConfHash, err := utils.CalculateMD5Hash(collectorConfig)
+	if err != nil {
+		logger.Errorf("unable to calculate MD5 hash. E: %s", err.Error())
+		return err
+	}
+
+	if err = clusterRequest.reconcileNormalizer(cluster, topology.newNormalizerPodSpec(), normalizerConfHash, collectorConfHash); err != nil {
+		logger.Errorf("Error reconciling normalizer: %v", err)
+	}
+	if err = reconcileCollector(topology.newCollectorPodSpec()); err != nil {
+		logger.Errorf("Error reconciling collector: %v", err)
+	}
+	return err
 }
 
-func ReconcileNormalizer() {
-
+func reconcileCollector(podSpec *core.PodSpec) error {
+	if podSpec == nil {
+		return nil
+	}
+	return nil
 }
 
-type TopologyBuilder interface {
+func (clusterRequest *ClusterLoggingRequest) reconcileNormalizer(cluster *logging.ClusterLogging, podSpec *core.PodSpec, pipelineConfHash, collectorConfHash string) error {
+	if podSpec == nil {
+		return nil
+	}
+	daemonset := NewDaemonSet(collectorName, cluster.Namespace, loggingComponentName, componentName, *podSpec)
+	daemonset.Spec.Template.Spec.Containers[0].Env = updateEnvVar(v1.EnvVar{Name: "FLUENT_CONF_HASH", Value: pipelineConfHash}, daemonset.Spec.Template.Spec.Containers[0].Env)
+	daemonset.Spec.Template.Spec.Containers[1].Env = updateEnvVar(v1.EnvVar{Name: "CONF_HASH", Value: collectorConfHash}, daemonset.Spec.Template.Spec.Containers[1].Env)
+
+	annotations, err := clusterRequest.getFluentdAnnotations(daemonset)
+	if err != nil {
+		return err
+	}
+
+	daemonset.Spec.Template.Annotations = annotations
+
+	uid := getServiceAccountLogCollectorUID()
+	if len(uid) == 0 {
+		// There's no uid for logcollector serviceaccount; setting ClusterLogging for the ownerReference.
+		utils.AddOwnerRefToObject(daemonset, utils.AsOwner(cluster))
+	} else {
+		// There's a uid for logcollector serviceaccount; setting the ServiceAccount for the ownerReference with blockOwnerDeletion.
+		utils.AddOwnerRefToObject(daemonset, NewLogCollectorServiceAccountRef(uid))
+	}
+
+	err = clusterRequest.Create(daemonset)
+	if err != nil && !errors.IsAlreadyExists(err) {
+		return fmt.Errorf("Failure creating Fluentd Daemonset %v", err)
+	}
+
+	if clusterRequest.isManaged() {
+		retryErr := retry.RetryOnConflict(retry.DefaultRetry, func() error {
+			return clusterRequest.updateFluentdDaemonsetIfRequired(daemonset)
+		})
+		if retryErr != nil {
+			return retryErr
+		}
+	}
+
+	return nil
+}
+
+type LogForwardingTopology interface {
 	// GetProxyConfig() *configv1.Proxy
-	GetClusterLogForwarderSpec() logging.ClusterLogForwarderSpec
-	NewCollectorContainer(resources *core.ResourceRequirements, nodeSelector map[string]string, tolerations []core.Toleration) core.Container
-	NewNormalizerContainer(resources *core.ResourceRequirements, nodeSelector map[string]string, tolerations []core.Toleration) core.Container
+	// GetClusterLogForwarderSpec() logging.ClusterLogForwarderSpec
+	// NewCollectorContainer(resources *core.ResourceRequirements) core.Container
+	// NewNormalizerContainer(resources *core.ResourceRequirements, outputs []logging.OutputSpec, proxyConfig *configv1.Proxy) core.Container
 
-	NewCollectorPodSpec() v1.PodSpec
+	newNormalizerPodSpec() *core.PodSpec
+	newCollectorPodSpec() *core.PodSpec
+	newContainers(trustedCAVolumeMount core.VolumeMount) []v1.Container
+	generateCollectorConfig() (string, error)
+	generateNormalizerConfig() (string, error)
 }
 
-type EdgeNormalizationTopologyBuilder struct {
+//EdgeNormalizationTopology creates a topology where collection and normalization are located on the nodes and utilize the
+//same containers.  This is the default (legacy) topology
+type EdgeNormalizationTopology struct {
 	cluster           *logging.ClusterLogging
+	clusterRequest    *ClusterLoggingRequest
 	ProxyConfig       *configv1.Proxy
 	pipelineSpec      logging.ClusterLogForwarderSpec
 	TrustedCABundleCM *core.ConfigMap
 }
 
-func (topology *EdgeNormalizationTopologyBuilder) NewCollectorPodSpec() core.PodSpec {
+func (topology EdgeNormalizationTopology) newCollectorPodSpec() *core.PodSpec {
+	return nil
+}
+func (topology EdgeNormalizationTopology) generateCollectorConfig() (string, error) {
+	return topology.clusterRequest.generateCollectorConfig()
+}
+func (topology EdgeNormalizationTopology) generateNormalizerConfig() (string, error) {
+	return collector.GenerateConfig()
+}
+
+func (topology EdgeNormalizationTopology) newContainers(trustedCAVolumeMount core.VolumeMount) []v1.Container {
 	cluster := topology.cluster
 	collectionSpec := logging.CollectionSpec{}
 	if cluster.Spec.Collection != nil {
@@ -78,7 +195,28 @@ func (topology *EdgeNormalizationTopologyBuilder) NewCollectorPodSpec() core.Pod
 			},
 		}
 	}
-	fluentdContainer := topology.NewNormalizerContainer(resources, collectionSpec.Logs.FluentdSpec.NodeSelector, collectionSpec.Logs.FluentdSpec.Tolerations)
+	container := newNormalizerContainer(resources, topology.pipelineSpec.Outputs, topology.ProxyConfig, trustedCAVolumeMount)
+	return []v1.Container{container}
+}
+
+func (topology EdgeNormalizationTopology) newNormalizerPodSpec() *core.PodSpec {
+	cluster := topology.cluster
+	collectionSpec := logging.CollectionSpec{}
+	if cluster.Spec.Collection != nil {
+		collectionSpec = *cluster.Spec.Collection
+	}
+
+	addTrustedCAVolume := false
+	trustedCAVolumeMount := core.VolumeMount{}
+	// If trusted CA bundle ConfigMap exists and its hash value is non-zero, mount the bundle.
+	if topology.TrustedCABundleCM != nil && hasTrustedCABundle(topology.TrustedCABundleCM) {
+		addTrustedCAVolume = true
+		trustedCAVolumeMount = v1.VolumeMount{
+			Name:      constants.FluentdTrustedCAName,
+			ReadOnly:  true,
+			MountPath: constants.TrustedCABundleMountDir,
+		}
+	}
 	tolerations := utils.AppendTolerations(
 		collectionSpec.Logs.FluentdSpec.Tolerations,
 		[]v1.Toleration{
@@ -94,20 +232,10 @@ func (topology *EdgeNormalizationTopologyBuilder) NewCollectorPodSpec() core.Pod
 			},
 		},
 	)
-	addTrustedCAVolume := false
-	// If trusted CA bundle ConfigMap exists and its hash value is non-zero, mount the bundle.
-	if topology.TrustedCABundleCM != nil && hasTrustedCABundle(topology.TrustedCABundleCM) {
-		addTrustedCAVolume = true
-		fluentdContainer.VolumeMounts = append(fluentdContainer.VolumeMounts,
-			v1.VolumeMount{
-				Name:      constants.FluentdTrustedCAName,
-				ReadOnly:  true,
-				MountPath: constants.TrustedCABundleMountDir,
-			})
-	}
-	fluentdPodSpec := NewPodSpec(
+
+	podSpec := NewPodSpec(
 		collectorServiceAccountName,
-		[]v1.Container{fluentdContainer},
+		topology.newContainers(trustedCAVolumeMount),
 		[]v1.Volume{
 			{Name: "runlogjournal", VolumeSource: v1.VolumeSource{HostPath: &v1.HostPathVolumeSource{Path: "/run/log/journal"}}},
 			{Name: "varlog", VolumeSource: v1.VolumeSource{HostPath: &v1.HostPathVolumeSource{Path: "/var/log"}}},
@@ -131,12 +259,12 @@ func (topology *EdgeNormalizationTopologyBuilder) NewCollectorPodSpec() core.Pod
 	)
 	for _, target := range topology.pipelineSpec.Outputs {
 		if target.Secret != nil && target.Secret.Name != "" {
-			fluentdPodSpec.Volumes = append(fluentdPodSpec.Volumes, v1.Volume{Name: target.Name, VolumeSource: v1.VolumeSource{Secret: &v1.SecretVolumeSource{SecretName: target.Secret.Name}}})
+			podSpec.Volumes = append(podSpec.Volumes, v1.Volume{Name: target.Name, VolumeSource: v1.VolumeSource{Secret: &v1.SecretVolumeSource{SecretName: target.Secret.Name}}})
 		}
 	}
 
 	if addTrustedCAVolume {
-		fluentdPodSpec.Volumes = append(fluentdPodSpec.Volumes,
+		podSpec.Volumes = append(podSpec.Volumes,
 			v1.Volume{
 				Name: constants.FluentdTrustedCAName,
 				VolumeSource: v1.VolumeSource{
@@ -155,28 +283,24 @@ func (topology *EdgeNormalizationTopologyBuilder) NewCollectorPodSpec() core.Pod
 			})
 	}
 
-	fluentdPodSpec.PriorityClassName = clusterLoggingPriorityClassName
+	podSpec.PriorityClassName = clusterLoggingPriorityClassName
 	// Shorten the termination grace period from the default 30 sec to 10 sec.
-	fluentdPodSpec.TerminationGracePeriodSeconds = utils.GetInt64(10)
+	podSpec.TerminationGracePeriodSeconds = utils.GetInt64(10)
 
 	if topology.pipelineSpec.HasDefaultOutput() && cluster.Spec.LogStore != nil {
-		fluentdPodSpec.InitContainers = []v1.Container{
+		podSpec.InitContainers = []v1.Container{
 			newFluentdInitContainer(cluster),
 		}
 	} else {
-		fluentdPodSpec.InitContainers = []v1.Container{}
+		podSpec.InitContainers = []v1.Container{}
 	}
 
-	return fluentdPodSpec
+	return &podSpec
 }
 
-func (topology *EdgeNormalizationTopologyBuilder) NewCollectorContainer(resources *core.ResourceRequirements, nodeSelector map[string]string, tolerations []core.Toleration) core.Container {
-
-}
-
-func (topology *EdgeNormalizationTopologyBuilder) NewNormalizerContainer(resources *core.ResourceRequirements, nodeSelector map[string]string) core.Container {
-	fluentdContainer := NewContainer("fluentd", "fluentd", v1.PullIfNotPresent, *resources)
-	fluentdContainer.Ports = []v1.ContainerPort{
+func newNormalizerContainer(resources *core.ResourceRequirements, outputs []logging.OutputSpec, proxyConfig *configv1.Proxy, trustedCAVolumeMount core.VolumeMount) core.Container {
+	container := NewContainer(fluentdName, fluentdName, v1.PullIfNotPresent, *resources)
+	container.Ports = []v1.ContainerPort{
 		{
 			Name:          metricsPortName,
 			ContainerPort: metricsPort,
@@ -184,7 +308,7 @@ func (topology *EdgeNormalizationTopologyBuilder) NewNormalizerContainer(resourc
 		},
 	}
 
-	fluentdContainer.Env = []v1.EnvVar{
+	container.Env = []v1.EnvVar{
 		{Name: "NODE_NAME", ValueFrom: &v1.EnvVarSource{FieldRef: &v1.ObjectFieldSelector{APIVersion: "v1", FieldPath: "spec.nodeName"}}},
 		{Name: "MERGE_JSON_LOG", Value: "false"},
 		{Name: "PRESERVE_JSON_LOG", Value: "true"},
@@ -199,9 +323,9 @@ func (topology *EdgeNormalizationTopologyBuilder) NewNormalizerContainer(resourc
 		{Name: "NODE_IPV4", ValueFrom: &v1.EnvVarSource{FieldRef: &v1.ObjectFieldSelector{APIVersion: "v1", FieldPath: "status.hostIP"}}},
 		{Name: "CDM_KEEP_EMPTY_FIELDS", Value: "message"}, // by default, keep empty messages
 	}
-	proxyEnv := utils.SetProxyEnvVars(topology.ProxyConfig)
-	fluentdContainer.Env = append(fluentdContainer.Env, proxyEnv...)
-	fluentdContainer.VolumeMounts = []v1.VolumeMount{
+	proxyEnv := utils.SetProxyEnvVars(proxyConfig)
+	container.Env = append(container.Env, proxyEnv...)
+	container.VolumeMounts = []v1.VolumeMount{
 		{Name: "runlogjournal", MountPath: "/run/log/journal"},
 		{Name: "varlog", MountPath: "/var/log"},
 		{Name: "varlibdockercontainers", ReadOnly: true, MountPath: "/var/lib/docker"},
@@ -217,16 +341,17 @@ func (topology *EdgeNormalizationTopologyBuilder) NewNormalizerContainer(resourc
 		{Name: "dockerdaemoncfg", ReadOnly: true, MountPath: "/etc/docker"},
 		{Name: "filebufferstorage", MountPath: "/var/lib/fluentd"},
 		{Name: metricsVolumeName, MountPath: "/etc/fluent/metrics"},
+		trustedCAVolumeMount,
 	}
-	for _, target := range topology.ClusterLogForwarderSpec.Outputs {
+	for _, target := range outputs {
 		if target.Secret != nil && target.Secret.Name != "" {
 			path := fmt.Sprintf("/var/run/ocp-collector/secrets/%s", target.Secret.Name)
-			fluentdContainer.VolumeMounts = append(fluentdContainer.VolumeMounts, v1.VolumeMount{Name: target.Name, MountPath: path})
+			container.VolumeMounts = append(container.VolumeMounts, v1.VolumeMount{Name: target.Name, MountPath: path})
 		}
 	}
 
-	fluentdContainer.SecurityContext = &v1.SecurityContext{
+	container.SecurityContext = &v1.SecurityContext{
 		Privileged: utils.GetBool(true),
 	}
-	return fluentdContainer
+	return container
 }

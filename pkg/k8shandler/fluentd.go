@@ -29,9 +29,6 @@ const (
 	fluentdName              = "fluentd"
 	syslogName               = "syslog"
 	fluentdRequiredESVersion = "6"
-
-	LogForwardingTopologyAnnotation                  = "clusterlogging.openshift.io/logforwardingTopology"
-	EnableTechPreviewLogForwardingTopologyAnnotation = "clusterlogging.openshift.io/enableTechPreviewTopology"
 )
 
 func (clusterRequest *ClusterLoggingRequest) removeFluentd() (err error) {
@@ -624,28 +621,7 @@ func (clusterRequest *ClusterLoggingRequest) getFluentdAnnotations(daemonset *ap
 
 func (clusterRequest *ClusterLoggingRequest) RestartFluentd(proxyConfig *configv1.Proxy) (err error) {
 
-	normalizerConfig, err := clusterRequest.generateCollectorConfig()
-	if err != nil {
-		return err
-	}
-
-	logger.Debugf("Generated normalizer config: %s", normalizerConfig)
-	normalizerConfHash, err := utils.CalculateMD5Hash(normalizerConfig)
-	if err != nil {
-		logger.Errorf("unable to calculate MD5 hash. E: %s", err.Error())
-		return err
-	}
-	collectorConfig, err := collector.GenerateConfig()
-	if err != nil {
-		return err
-	}
-	logger.Debugf("Generated collector config: %s", collectorConfig)
-	collectorConfHash, err := utils.CalculateMD5Hash(collectorConfig)
-	if err != nil {
-		logger.Errorf("unable to calculate MD5 hash. E: %s", err.Error())
-		return err
-	}
-	if err = clusterRequest.createOrUpdateFluentdDaemonset(normalizerConfHash, collectorConfHash, proxyConfig); err != nil {
+	if err = clusterRequest.ReconcileLogForwardingTopology(proxyConfig); err != nil {
 		return err
 	}
 

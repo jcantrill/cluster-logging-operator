@@ -560,6 +560,8 @@ k8s.io/kube-openapi/pkg/util/proto
 # k8s.io/kube-state-metrics v1.7.2
 k8s.io/kube-state-metrics/pkg/metric
 k8s.io/kube-state-metrics/pkg/metrics_store
+# k8s.io/kubernetes v1.13.0
+## explicit
 # k8s.io/utils v0.0.0-20200324210504-a9aa75ae1b89
 k8s.io/utils/buffer
 k8s.io/utils/integer
