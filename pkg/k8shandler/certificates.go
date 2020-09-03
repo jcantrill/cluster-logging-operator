@@ -2,8 +2,8 @@ package k8shandler
 
 import (
 	"fmt"
-	"os/exec"
 
+	"github.com/openshift/cluster-logging-operator/pkg/certificates"
 	"github.com/openshift/cluster-logging-operator/pkg/constants"
 	"github.com/openshift/cluster-logging-operator/pkg/logger"
 	"github.com/openshift/cluster-logging-operator/pkg/utils"
@@ -133,7 +133,7 @@ func (clusterRequest *ClusterLoggingRequest) CreateOrUpdateCertificates() (err e
 	}
 
 	scriptsDir := utils.GetScriptsDir()
-	if err = GenerateCertificates(clusterRequest.Cluster.Namespace, scriptsDir, "elasticsearch", utils.DefaultWorkingDir); err != nil {
+	if err = certificates.GenerateCertificates(clusterRequest.Cluster.Namespace, scriptsDir, "elasticsearch", utils.DefaultWorkingDir); err != nil {
 		return fmt.Errorf("Error running script: %v", err)
 	}
 
@@ -142,20 +142,4 @@ func (clusterRequest *ClusterLoggingRequest) CreateOrUpdateCertificates() (err e
 	}
 
 	return nil
-}
-
-func GenerateCertificates(namespace, scriptsDir, logStoreName, workDir string) (err error) {
-	script := fmt.Sprintf("%s/cert_generation.sh", scriptsDir)
-	return RunCertificatesScript(namespace, logStoreName, workDir, script)
-}
-
-func RunCertificatesScript(namespace, logStoreName, workDir, script string) (err error) {
-	logger.Debugf("Running script '%s %s %s %s'", script, workDir, namespace, logStoreName)
-	cmd := exec.Command(script, workDir, namespace, logStoreName)
-	result, err := cmd.Output()
-	if logger.IsDebugEnabled() {
-		logger.Debugf("cert_generation output: %s", string(result))
-		logger.Debugf("err: %v", err)
-	}
-	return err
 }

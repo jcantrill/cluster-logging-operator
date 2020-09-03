@@ -1,21 +1,28 @@
 package main
 
 import (
+	"bufio"
+	"flag"
 	"fmt"
 	"io/ioutil"
 	"os"
 
-	yaml "gopkg.in/yaml.v2"
+	"github.com/spf13/pflag"
 
-	logging "github.com/openshift/cluster-logging-operator/pkg/apis/logging/v1"
-	"github.com/openshift/cluster-logging-operator/pkg/generators/forwarding"
-	"github.com/openshift/cluster-logging-operator/pkg/k8shandler"
+	"github.com/openshift/cluster-logging-operator/internal/pkg/generator/forwarder"
 	"github.com/openshift/cluster-logging-operator/pkg/logger"
 	"github.com/sirupsen/logrus"
 )
 
 // HACK - This command is for development use only
 func main() {
+
+	yamlFile := flag.String("file", "", "ClusterLogForwarder yaml file. - for stdin")
+	includeDefaultLogStore := flag.Bool("include-default-store", true, "Include the default storage when generating the config")
+	help := flag.Bool("help", false, "This message")
+	pflag.CommandLine.AddGoFlagSet(flag.CommandLine)
+	pflag.Parse()
+
 	if logLevel := os.Getenv("LOG_LEVEL"); logLevel != "" {
 		level, err := logrus.ParseLevel(logLevel)
 		if err != nil {
@@ -24,57 +31,35 @@ func main() {
 		}
 		logrus.SetLevel(level)
 	}
+	logger.Debugf("Args: %v", os.Args)
+
+	if *help || len(os.Args) == 0 {
+		pflag.Usage()
+		os.Exit(1)
+	}
 
 	if len(os.Args) < 2 {
 		logrus.Error("Need to pass the logging forwarding yaml as an arg")
 		os.Exit(1)
 	}
 
-	logCollectorType := logging.LogCollectionTypeFluentd
-	includeLegacyForward := false
-	includeLegacySyslog := false
-	useOldRemoteSyslogPlugin := false
-	includeDefaultLogStore := true
-
-	generator, err := forwarding.NewConfigGenerator(
-		logCollectorType,
-		includeLegacyForward,
-		includeLegacySyslog,
-		useOldRemoteSyslogPlugin)
-	if err != nil {
-		logger.Errorf("Unable to create collector config generator: %v", err)
-		os.Exit(1)
-	}
-
-	yamlFile := os.Args[1]
-	content, err := ioutil.ReadFile(yamlFile)
-	if err != nil {
-		logger.Errorf("Error reading file %s: %v", yamlFile, err)
-		os.Exit(1)
-	}
-	forwarder := &logging.ClusterLogForwarder{}
-	err = yaml.Unmarshal(content, forwarder)
-	if err != nil {
-		logger.Errorf("Error Unmarshalling file %s: %v", yamlFile, err)
-		os.Exit(1)
-	}
-
-	clRequest := &k8shandler.ClusterLoggingRequest{
-		ForwarderRequest: forwarder,
-	}
-	if includeDefaultLogStore {
-		clRequest.Cluster = &logging.ClusterLogging{
-			Spec: logging.ClusterLoggingSpec{
-				LogStore: &logging.LogStoreSpec{
-					Type: logging.LogStoreTypeElasticsearch,
-				},
-			},
+	var reader func() ([]byte, error)
+	if *yamlFile != "-" {
+		reader = func() ([]byte, error) { return ioutil.ReadFile(*yamlFile) }
+	} else {
+		reader = func() ([]byte, error) {
+			stdin := bufio.NewReader(os.Stdin)
+			return ioutil.ReadAll(stdin)
 		}
 	}
-	spec, _ := clRequest.NormalizeForwarder()
-	tunings := &logging.ForwarderSpec{}
 
-	generatedConfig, err := generator.Generate(spec, tunings)
+	content, err := reader()
+	if err != nil {
+		logger.Errorf("Error reading file %s: %v", *yamlFile, err)
+		os.Exit(1)
+	}
+
+	generatedConfig, err := forwarder.Generate(string(content), *includeDefaultLogStore)
 	if err != nil {
 		logger.Warnf("Unable to generate log configuration: %v", err)
 		os.Exit(1)
