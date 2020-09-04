@@ -12,6 +12,9 @@ os::test::junit::declare_suite_start "[ClusterLogging] Prometheus metrics"
 ARTIFACT_DIR=${ARTIFACT_DIR:-$repo_dir/_output}
 LOGGING_NS=${LOGGING_NS:-openshift-logging}
 
+generator="$repo_dir/internal/cmd/forwarder-generator/forwarder-generator"
+
+
 test_name=test-999-fluentd-prometheus-metrics
 
 cleanup() {
@@ -60,6 +63,8 @@ spec:
       fluentd: {}
 EOL
 fi
+
+
 os::cmd::try_until_text "oc -n ${LOGGING_NS} get ds fluentd -o jsonpath={.metadata.name} --ignore-not-found" "fluentd" "$((1 * $minute))"
 expectedcollectors=$( oc get nodes | grep -c " Ready " )
 os::cmd::try_until_text "oc -n ${LOGGING_NS} get ds fluentd -o jsonpath={.status.desiredNumberScheduled}" "${expectedcollectors}"  "$((1 * $minute))"

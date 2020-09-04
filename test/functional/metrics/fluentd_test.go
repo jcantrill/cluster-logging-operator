@@ -2,7 +2,10 @@ package metrics
 
 import (
 	"fmt"
+	"io/ioutil"
 	"math/rand"
+	"os"
+	"path"
 	"strings"
 	"time"
 
@@ -15,6 +18,7 @@ import (
 	"github.com/openshift/cluster-logging-operator/pkg/utils"
 	"github.com/openshift/cluster-logging-operator/test/builder"
 	"github.com/openshift/cluster-logging-operator/test/helpers/oc"
+	"github.com/openshift/cluster-logging-operator/test/helpers/podman"
 )
 
 var _ = Describe("[Metrics] Fluentd", func() {
@@ -42,10 +46,12 @@ spec:
 		testName       string
 		namespace      string
 		fluentConf     string
+		configDir      string
 		err            error
 		image          = utils.GetComponentImage(constants.FluentdName)
 		labels         map[string]string
 		maxDuration, _ = time.ParseDuration("2m")
+		p podman.PodCommand
 	)
 
 	BeforeEach(func() {
@@ -56,31 +62,37 @@ spec:
 		}
 		testName = fmt.Sprintf("test-fluent-%d", rand.Intn(1000))
 		namespace = testName
-		if err := oc.Literal().From(fmt.Sprintf("oc create ns %s", namespace)).Output(); err != nil {
-			Fail(fmt.Sprintf("Error creating test ns: %v", err))
+		if configDir, err = ioutil.TempDir("", "test-fluent-*"); err != nil {
+			Fail(fmt.Sprintf("Error creating temp config dir: %v", err))
 		}
 		//generate empty config
 		if fluentConf, err = forwarder.Generate(clusterLogForwarder, false); err != nil {
 			Fail(fmt.Sprintf("Error generating configuration %v", err))
+		}
+		if err = ioutil.WriteFile(path.Join(configDir, "fluent.conf"), []byte(fluentConf), os.ModeAppend); err != nil {
+			Fail(fmt.Sprintf("Error writing file: %v", err))
+		}
+		if err = ioutil.WriteFile(path.Join(configDir, "run.sh"), utils.GetFileContents(utils.GetShareDir()+"/fluentd/run.sh", os.ModeAppend); err != nil {
+			Fail(fmt.Sprintf("Error writing file:: %v", err))
 		}
 		if err = certificates.GenerateCertificates(namespace,
 			utils.GetScriptsDir(), "elasticsearch",
 			utils.DefaultWorkingDir); err != nil {
 			Fail(fmt.Sprintf("Error generating secrets %v", err))
 		}
-		if _, err := builder.NewConfigMapBuilder(namespace, testName).
-			Add("fluent.conf", fluentConf).
-			Add("run.sh", string(utils.GetFileContents(utils.GetShareDir()+"/fluentd/run.sh"))).
-			Create(); err != nil {
-			Fail(fmt.Sprintf("Error creating fluent configmap: %v", err))
+		if err = os.Link(path.Join(utils.DefaultWorkingDir, "system.logging.fluentd.key"), path.Join(utils.DefaultWorkingDir,"tls.key")) ; err != nil {
+			Fail(fmt.Sprintf("Error linking cert: %v", err))
 		}
-		certsName := "certs-" + testName
-		if _, err := builder.NewConfigMapBuilder(namespace, certsName).
-			Add("tls.key", string(utils.GetWorkingDirFileContents("system.logging.fluentd.key"))).
-			Add("tls.crt", string(utils.GetWorkingDirFileContents("system.logging.fluentd.crt"))).
-			Create(); err != nil {
-			Fail(fmt.Sprintf("Error creating fluent configmap: %v", err))
+		if err = os.Link(path.Join(utils.DefaultWorkingDir, "system.logging.fluentd.crt"), path.Join(utils.DefaultWorkingDir,"tls.crt")) ; err != nil {
+			Fail(fmt.Sprintf("Error linking cert: %v", err))
 		}
+
+		p = podman.Pod(constants.FluentdName).
+		WithImage(image).
+		AddVolume(utils.DefaultWorkingDir, "/etc/fluent/metrics").
+		AddVolume(configDir, "/opt/app-root/src").
+		AddVolume(configDir, "/etc/fluent").
+		Run()
 
 		if _, err := builder.NewPodBuilder(namespace, testName).
 			WithLabels(labels).
