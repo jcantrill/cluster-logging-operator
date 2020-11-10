@@ -156,7 +156,7 @@ func (fluent *fluentReceiverLogStore) logs(file string, timeToWait time.Duration
 	return result, nil
 }
 
-func (fluent *fluentReceiverLogStore) ApplicationLogs(timeToWait time.Duration) (logs, error) {
+func (fluent *fluentReceiverLogStore) ApplicationLogs(timeToWait time.Duration) (Logs, error) {
 	fl, err := fluent.logs("/tmp/app-logs", timeToWait)
 	if err != nil {
 		return nil, err

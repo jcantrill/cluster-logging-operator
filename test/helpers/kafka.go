@@ -20,7 +20,7 @@ type kafkaReceiver struct {
 	topics []string
 }
 
-func (kr *kafkaReceiver) ApplicationLogs(timeToWait time.Duration) (logs, error) {
+func (kr *kafkaReceiver) ApplicationLogs(timeToWait time.Duration) (Logs, error) {
 	logs, err := kr.tc.consumedLogs(kr.app.Name, loggingv1.InputNameApplication)
 	if err != nil {
 		return nil, fmt.Errorf("Failed to read consumed application logs: %s", err)
@@ -133,7 +133,7 @@ func (tc *E2ETestFramework) DeployKafkaReceiver(topics []string) (*apps.Stateful
 	return app, nil
 }
 
-func (tc *E2ETestFramework) consumedLogs(rcvName, inputName string) (logs, error) {
+func (tc *E2ETestFramework) consumedLogs(rcvName, inputName string) (Logs, error) {
 	rcv := tc.LogStores[rcvName].(*kafkaReceiver)
 	topic := kafka.TopicForInputName(rcv.topics, inputName)
 	name := kafka.ConsumerNameForTopic(topic)

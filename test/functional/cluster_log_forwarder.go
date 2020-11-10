@@ -5,7 +5,7 @@ import (
 )
 
 const (
-	forwardOutputName   = "fluentForward"
+	ForwardOutputName   = "fluentForward"
 	forwardPipelineName = "forward-pipeline"
 )
 
@@ -37,9 +37,9 @@ func (p *PipelineBuilder) ToFluentForwardOutput() *ClusterLogForwarderBuilder {
 	outputs := clf.Spec.OutputMap()
 	var output *logging.OutputSpec
 	var found bool
-	if output, found = outputs[forwardOutputName]; !found {
+	if output, found = outputs[ForwardOutputName]; !found {
 		output = &logging.OutputSpec{
-			Name: forwardOutputName,
+			Name: ForwardOutputName,
 			Type: logging.OutputTypeFluentdForward,
 			URL:  "tcp://0.0.0.0:24224",
 		}

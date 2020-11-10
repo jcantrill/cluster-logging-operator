@@ -64,7 +64,7 @@ func init() {
 
 type LogStore interface {
 	//ApplicationLogs returns app logs for a given log store
-	ApplicationLogs(timeToWait time.Duration) (logs, error)
+	ApplicationLogs(timeToWait time.Duration) (Logs, error)
 
 	HasApplicationLogs(timeToWait time.Duration) (bool, error)
 

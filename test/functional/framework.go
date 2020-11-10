@@ -1,8 +1,8 @@
 package functional
 
 import (
+	"context"
 	"fmt"
-	"math/rand"
 	"os"
 	"strconv"
 	"strings"
@@ -14,13 +14,21 @@ import (
 	"github.com/openshift/cluster-logging-operator/internal/pkg/generator/forwarder"
 	logging "github.com/openshift/cluster-logging-operator/pkg/apis/logging/v1"
 	"github.com/openshift/cluster-logging-operator/pkg/certificates"
+	"github.com/openshift/cluster-logging-operator/pkg/components/fluentd"
 	"github.com/openshift/cluster-logging-operator/pkg/constants"
 	"github.com/openshift/cluster-logging-operator/pkg/utils"
+	"github.com/openshift/cluster-logging-operator/test"
 	"github.com/openshift/cluster-logging-operator/test/client"
+	"github.com/openshift/cluster-logging-operator/test/helpers/cmd"
 	"github.com/openshift/cluster-logging-operator/test/helpers/oc"
 	"github.com/openshift/cluster-logging-operator/test/runtime"
 	corev1 "k8s.io/api/core/v1"
+	v1 "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/util/wait"
+)
+
+const (
+	ApplicationLogFile = "/tmp/app-logs"
 )
 
 var (
@@ -39,6 +47,7 @@ type FluentdFunctionalFramework struct {
 	test              *client.Test
 	pod               *corev1.Pod
 	fluentContainerId string
+	closeClient       func()
 }
 
 func init() {
@@ -47,17 +56,20 @@ func init() {
 }
 
 func NewFluentdFunctionalFramework() *FluentdFunctionalFramework {
-	verbosity := 9
+	test := client.NewTest()
+	return NewFluentdFunctionalFrameworkUsing(client.NewTest(), test.Close, 0)
+}
+
+func NewFluentdFunctionalFrameworkUsing(t *client.Test, fnClose func(), verbosity int) *FluentdFunctionalFramework {
 	if level, found := os.LookupEnv("LOG_LEVEL"); found {
 		if i, err := strconv.Atoi(level); err == nil {
 			verbosity = i
 		}
 	}
 
-	log.MustInit("fluent-ftf")
+	log.MustInit("functional-framework")
 	log.SetLogLevel(verbosity)
-	t := client.NewTest()
-	testName := fmt.Sprintf("test-fluent-%d", rand.Intn(1000))
+	testName := "functional"
 	framework := &FluentdFunctionalFramework{
 		Name:      testName,
 		Namespace: t.NS.Name,
@@ -66,22 +78,23 @@ func NewFluentdFunctionalFramework() *FluentdFunctionalFramework {
 			"testtype": "functional",
 			"testname": testName,
 		},
-		test:      t,
-		Forwarder: runtime.NewClusterLogForwarder(),
+		test:        t,
+		Forwarder:   runtime.NewClusterLogForwarder(),
+		closeClient: fnClose,
 	}
 	return framework
 }
 
 func (f *FluentdFunctionalFramework) Cleanup() {
-	f.test.Close()
+	f.closeClient()
 }
 
 func (f *FluentdFunctionalFramework) RunCommand(container string, cmd ...string) (string, error) {
 	log.V(2).Info("Running", "container", container, "cmd", cmd)
 	//out, err := runtime.ExecContainer(f.pod, container, cmd[0], cmd[1:]...).Output()
 	out, err := runtime.ExecOc(f.pod, container, cmd[0], cmd[1:]...)
-	log.V(2).Info("Exec'd", "out", string(out), "err", err)
-	return string(out), err
+	log.V(2).Info("Exec'd", "out", out, "err", err)
+	return out, err
 }
 
 //Deploy the objects needed to functional test
@@ -101,7 +114,7 @@ func (f *FluentdFunctionalFramework) Deploy() (err error) {
 	configmap := runtime.NewConfigMap(f.test.NS.Name, f.Name, map[string]string{})
 	runtime.NewConfigMapBuilder(configmap).
 		Add("fluent.conf", f.Conf).
-		Add("run.sh", string(utils.GetFileContents(utils.GetShareDir()+"/fluentd/run.sh")))
+		Add("run.sh", fluentd.RunScript)
 	if err = f.test.Client.Create(configmap); err != nil {
 		return err
 	}
@@ -122,6 +135,31 @@ func (f *FluentdFunctionalFramework) Deploy() (err error) {
 		AddServicePort(24231, 24231).
 		WithSelector(f.labels)
 	if err = f.test.Client.Create(service); err != nil {
+		return err
+	}
+
+	role := runtime.NewRole(f.test.NS.Name, f.Name,
+		v1.PolicyRule{
+			Verbs:     []string{"list", "get"},
+			Resources: []string{"pods", "namespaces"},
+			APIGroups: []string{""},
+		},
+	)
+	if err = f.test.Client.Create(role); err != nil {
+		return err
+	}
+	rolebinding := runtime.NewRoleBinding(f.test.NS.Name, f.Name,
+		v1.RoleRef{
+			APIGroup: "rbac.authorization.k8s.io",
+			Kind:     "Role",
+			Name:     role.Name,
+		},
+		v1.Subject{
+			Kind: "ServiceAccount",
+			Name: "default",
+		},
+	)
+	if err = f.test.Client.Create(rolebinding); err != nil {
 		return err
 	}
 
@@ -191,18 +229,23 @@ func (f *FluentdFunctionalFramework) addOutputContainers(b *runtime.PodBuilder, 
 	return nil
 }
 
-func (f *FluentdFunctionalFramework) WritesApplicationLogs(numOfLogs int) error {
-	msg := "2020-11-04T18:13:59.061892999+00:00 stdout F Functional test message $n"
+func (f *FluentdFunctionalFramework) WritesApplicationLogs(numOfLogs uint64) error {
+	return f.WritesNApplicationLogsOfSize(numOfLogs, uint64(100))
+}
+
+func (f *FluentdFunctionalFramework) WritesNApplicationLogsOfSize(numOfLogs, size uint64) error {
+	msg := "$(date -u +'%Y-%m-%dT%H:%M:%S.%N%:z') stdout F $msg "
+	//podname_ns_containername-containerid.log
+	//functional_testhack-16511862744968_fluentd-90a0f0a7578d254eec640f08dd155cc2184178e793d0289dff4e7772757bb4f8.log
 	filepath := fmt.Sprintf("/var/log/containers/%s_%s_%s-%s.log", f.pod.Name, f.pod.Namespace, constants.FluentdName, f.fluentContainerId)
-	result, err := f.RunCommand(constants.FluentdName, "bash", "-c", fmt.Sprintf("bash -c 'mkdir -p /var/log/containers;for n in {1..%d};do echo %s > %s; done'", numOfLogs, msg, filepath))
+	result, err := f.RunCommand(constants.FluentdName, "bash", "-c", fmt.Sprintf("bash -c 'mkdir -p /var/log/containers;echo > %s;msg=$(cat /dev/urandom|tr -dc 'a-zA-Z0-9'|fold -w %d|head -n 1);for n in $(seq 1 %d);do echo %s >> %s; done'", filepath, size, numOfLogs, msg, filepath))
 	log.V(3).Info("FluentdFunctionalFramework.WritesApplicationLogs", "result", result, "err", err)
 	return err
 }
 
 func (f *FluentdFunctionalFramework) ReadApplicationLogsFrom(outputName string) (result string, err error) {
-	file := "/tmp/app-logs"
 	err = wait.PollImmediate(defaultRetryInterval, maxDuration, func() (done bool, err error) {
-		result, err = f.RunCommand(outputName, "cat", file)
+		result, err = f.RunCommand(strings.ToLower(outputName), "cat", ApplicationLogFile)
 		if err == nil {
 			return true, nil
 		}
@@ -214,4 +257,28 @@ func (f *FluentdFunctionalFramework) ReadApplicationLogsFrom(outputName string) 
 	}
 	log.V(4).Info("Returning", "logs", result)
 	return result, err
+}
+
+func (f *FluentdFunctionalFramework) ReadNApplicationLogsFrom(n uint64, outputName string) ([]string, error) {
+	lines := []string{}
+	ctx, cancel := context.WithTimeout(context.Background(), test.SuccessTimeout())
+	defer cancel()
+	reader, err := cmd.TailReaderForContainer(f.pod, outputName, ApplicationLogFile)
+	if err != nil {
+		log.V(3).Error(err, "Error creating tail reader")
+		return nil, err
+	}
+	for {
+		line, err := reader.ReadLineContext(ctx)
+		if err != nil {
+			log.V(3).Error(err, "Error readlinecontext")
+			return nil, err
+		}
+		lines = append(lines, line)
+		n--
+		if n == 0 {
+			break
+		}
+	}
+	return lines, err
 }

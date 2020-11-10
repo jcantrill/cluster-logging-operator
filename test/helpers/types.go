@@ -5,6 +5,8 @@ import (
 	"errors"
 	"strings"
 	"time"
+
+	"github.com/openshift/cluster-logging-operator/test"
 )
 
 var ErrParse = errors.New("logs could not be parsed")
@@ -272,11 +274,33 @@ type AllLog struct {
 	Annotations              Annotations      `json:"annotations"`
 	K8SAuditLevel            string           `json:"k8s_audit_level"`
 	OpenshiftAuditLevel      string           `json:"openshift_audit_level"`
+	Timing
 }
-type logs []AllLog
 
-func ParseLogs(in string) (logs, error) {
-	logs := logs{}
+type Logs []AllLog
+
+type Timing struct {
+	//EpocIn is only added during benchmark testing
+	EpocIn float64 `json:"epoc_in"`
+	//EpocOut is only added during benchmark testing
+	EpocOut float64 `json:"epoc_out"`
+}
+
+func (t *Timing) Difference() float64 {
+	return t.EpocOut - t.EpocIn
+}
+
+//Bloat is the ratio of overall size / Message size
+func (l *AllLog) Bloat() float64 {
+	return float64(len(l.String())) / float64(len(l.Message))
+}
+
+func (l *AllLog) String() string {
+	return test.JSONLine(l)
+}
+
+func ParseLogs(in string) (Logs, error) {
+	logs := Logs{}
 	if in == "" {
 		return logs, nil
 	}
@@ -289,8 +313,8 @@ func ParseLogs(in string) (logs, error) {
 	return logs, nil
 }
 
-func (l logs) ByIndex(prefix string) logs {
-	filtered := logs{}
+func (l Logs) ByIndex(prefix string) Logs {
+	filtered := Logs{}
 	for _, entry := range l {
 		if strings.HasPrefix(entry.ViaqIndexName, prefix) {
 			filtered = append(filtered, entry)
@@ -299,8 +323,8 @@ func (l logs) ByIndex(prefix string) logs {
 	return filtered
 }
 
-func (l logs) ByPod(name string) logs {
-	filtered := logs{}
+func (l Logs) ByPod(name string) Logs {
+	filtered := Logs{}
 	for _, entry := range l {
 		if entry.Kubernetes.PodName == name {
 			filtered = append(filtered, entry)
@@ -309,7 +333,7 @@ func (l logs) ByPod(name string) logs {
 	return filtered
 }
 
-func (l logs) NonEmpty() bool {
+func (l Logs) NonEmpty() bool {
 	if l == nil {
 		return false
 	}

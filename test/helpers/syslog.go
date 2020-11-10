@@ -207,7 +207,7 @@ func (syslog *syslogReceiverLogStore) grepLogs(expr string, logfile string, time
 	return value, nil
 }
 
-func (syslog *syslogReceiverLogStore) ApplicationLogs(timeToWait time.Duration) (logs, error) {
+func (syslog *syslogReceiverLogStore) ApplicationLogs(timeToWait time.Duration) (Logs, error) {
 	panic("Method not implemented")
 }
 

@@ -89,7 +89,7 @@ type ElasticLogStore struct {
 	Framework *E2ETestFramework
 }
 
-func (es *ElasticLogStore) ApplicationLogs(timeToWait time.Duration) (logs, error) {
+func (es *ElasticLogStore) ApplicationLogs(timeToWait time.Duration) (Logs, error) {
 	panic("Method not implemented")
 }
 
