@@ -15,10 +15,13 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 )
 
-func Reconcile(requestCluster *logging.ClusterLogging, requestClient client.Client) (err error) {
+func Reconcile(requestCluster *logging.ClusterLogging, requestClient client.Client) (managed bool, err error) {
 	clusterLoggingRequest := ClusterLoggingRequest{
 		Client:  requestClient,
 		Cluster: requestCluster,
+	}
+	if !clusterLoggingRequest.isManaged() {
+		return false, nil
 	}
 
 	forwarder := clusterLoggingRequest.getLogForwarder()
@@ -31,35 +34,35 @@ func Reconcile(requestCluster *logging.ClusterLogging, requestClient client.Clie
 
 	// Reconcile certs
 	if err = clusterLoggingRequest.CreateOrUpdateCertificates(); err != nil {
-		return fmt.Errorf("Unable to create or update certificates for %q: %v", clusterLoggingRequest.Cluster.Name, err)
+		return true, fmt.Errorf("Unable to create or update certificates for %q: %v", clusterLoggingRequest.Cluster.Name, err)
 	}
 
 	// Reconcile Log Store
 	if err = clusterLoggingRequest.CreateOrUpdateLogStore(); err != nil {
-		return fmt.Errorf("Unable to create or update logstore for %q: %v", clusterLoggingRequest.Cluster.Name, err)
+		return true, fmt.Errorf("Unable to create or update logstore for %q: %v", clusterLoggingRequest.Cluster.Name, err)
 	}
 
 	// Reconcile Visualization
 	if err = clusterLoggingRequest.CreateOrUpdateVisualization(proxyConfig); err != nil {
-		return fmt.Errorf("Unable to create or update visualization for %q: %v", clusterLoggingRequest.Cluster.Name, err)
+		return true, fmt.Errorf("Unable to create or update visualization for %q: %v", clusterLoggingRequest.Cluster.Name, err)
 	}
 
 	// Reconcile Curation
 	if err = clusterLoggingRequest.CreateOrUpdateCuration(); err != nil {
-		return fmt.Errorf("Unable to create or update curation for %q: %v", clusterLoggingRequest.Cluster.Name, err)
+		return true, fmt.Errorf("Unable to create or update curation for %q: %v", clusterLoggingRequest.Cluster.Name, err)
 	}
 
 	// Reconcile Collection
 	if err = clusterLoggingRequest.CreateOrUpdateCollection(proxyConfig); err != nil {
-		return fmt.Errorf("Unable to create or update collection for %q: %v", clusterLoggingRequest.Cluster.Name, err)
+		return true, fmt.Errorf("Unable to create or update collection for %q: %v", clusterLoggingRequest.Cluster.Name, err)
 	}
 
 	// Reconcile Metrics Dashboards
 	if err = clusterLoggingRequest.CreateOrUpdateDashboards(); err != nil {
-		return fmt.Errorf("Unable to create or update metrics dashboards for %q: %w", clusterLoggingRequest.Cluster.Name, err)
+		return true, fmt.Errorf("Unable to create or update metrics dashboards for %q: %w", clusterLoggingRequest.Cluster.Name, err)
 	}
 
-	return nil
+	return true, nil
 }
 
 func ReconcileForClusterLogForwarder(forwarder *logging.ClusterLogForwarder, requestClient client.Client) (err error) {
@@ -77,7 +80,7 @@ func ReconcileForClusterLogForwarder(forwarder *logging.ClusterLogForwarder, req
 	}
 	clusterLoggingRequest.Cluster = clusterLogging
 
-	if clusterLogging.Spec.ManagementState == logging.ManagementStateUnmanaged {
+	if !clusterLoggingRequest.isManaged() {
 		return nil
 	}
 
@@ -107,7 +110,7 @@ func ReconcileForGlobalProxy(proxyConfig *configv1.Proxy, requestClient client.C
 
 	clusterLoggingRequest.Cluster = clusterLogging
 
-	if clusterLogging.Spec.ManagementState == logging.ManagementStateUnmanaged {
+	if !clusterLoggingRequest.isManaged() {
 		return nil
 	}
 
@@ -137,7 +140,7 @@ func ReconcileForTrustedCABundle(requestName string, requestClient client.Client
 
 	clusterLoggingRequest.Cluster = clusterLogging
 
-	if clusterLogging.Spec.ManagementState == logging.ManagementStateUnmanaged {
+	if !clusterLoggingRequest.isManaged() {
 		return nil
 	}
 

@@ -82,14 +82,13 @@ func (r *ReconcileClusterLogging) Reconcile(request reconcile.Request) (reconcil
 		return reconcile.Result{}, err
 	}
 
-	if instance.Spec.ManagementState == loggingv1.ManagementStateUnmanaged {
+	var managed bool
+	if managed, err = k8shandler.Reconcile(instance, r.client); !managed {
 		return reconcile.Result{}, nil
 	}
 
-	err = k8shandler.Reconcile(instance, r.client)
-
-	if result, err := r.updateStatus(instance); err != nil {
-		return result, err
+	if result, statusError := r.updateStatus(instance); statusError != nil {
+		return result, statusError
 	}
 
 	return reconcileResult, err

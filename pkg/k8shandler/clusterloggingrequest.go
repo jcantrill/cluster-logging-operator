@@ -23,9 +23,9 @@ type ClusterLoggingRequest struct {
 	ForwarderSpec logging.ClusterLogForwarderSpec
 }
 
-// TODO: determine if this is even necessary
+//isManaged evaluates if the operator should continue to reconcile a request
 func (clusterRequest *ClusterLoggingRequest) isManaged() bool {
-	return clusterRequest.Cluster.Spec.ManagementState == logging.ManagementStateManaged
+	return clusterRequest.Cluster.Spec.ManagementState != logging.ManagementStateUnmanaged
 }
 
 func (clusterRequest *ClusterLoggingRequest) Create(object runtime.Object) error {
