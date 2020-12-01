@@ -187,8 +187,11 @@ github.com/openshift/elasticsearch-operator/pkg/utils
 github.com/openshift/elasticsearch-operator/pkg/utils/comparators
 github.com/openshift/elasticsearch-operator/test/utils
 # github.com/operator-framework/api v0.3.7-0.20200602203552-431198de9fc2
+## explicit
 github.com/operator-framework/api/pkg/lib/version
 github.com/operator-framework/api/pkg/operators
+github.com/operator-framework/api/pkg/operators/v1
+github.com/operator-framework/api/pkg/operators/v1alpha1
 # github.com/operator-framework/operator-registry v1.12.6-0.20200605115407-01fa069730e2
 github.com/operator-framework/operator-registry/pkg/api
 github.com/operator-framework/operator-registry/pkg/image

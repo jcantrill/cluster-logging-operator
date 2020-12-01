@@ -35,6 +35,8 @@ import (
 	oauth "github.com/openshift/api/oauth/v1"
 	routev1 "github.com/openshift/api/route/v1"
 	elasticsearch "github.com/openshift/elasticsearch-operator/pkg/apis"
+	operatorsv1 "github.com/operator-framework/api/pkg/operators/v1"
+	operatorsv1alpha1 "github.com/operator-framework/api/pkg/operators/v1alpha1"
 )
 
 // Change below variables to serve metrics on different host or port.
@@ -133,6 +135,14 @@ func main() {
 
 	if err := configv1.AddToScheme(mgr.GetScheme()); err != nil {
 		log.Error(err, "failed to add resources to scheme", "resource", "configv1")
+		os.Exit(1)
+	}
+	if err := operatorsv1alpha1.AddToScheme(mgr.GetScheme()); err != nil {
+		log.Error(err, "failed to add resources to scheme", "resource", "operatorsv1alpha1")
+		os.Exit(1)
+	}
+	if err := operatorsv1.AddToScheme(mgr.GetScheme()); err != nil {
+		log.Error(err, "failed to add resources to scheme", "resource", "operatorsv1")
 		os.Exit(1)
 	}
 

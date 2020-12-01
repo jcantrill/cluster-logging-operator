@@ -324,6 +324,12 @@ spec:
                     valueFrom:
                       fieldRef:
                         fieldPath: metadata.name
+                  - name: LOGSTORE_OPERATOR_NS
+                    value: "openshift-operators-redhat"
+                  - name: OPERATOR_PACKAGE_CHANNEL
+                    value: "4.7"
+                  - name: OPERATOR_CATALOG_SOURCE
+                    value: "elasticsearch-catalog"
                   - name: OPERATOR_NAME
                     value: "cluster-logging-operator"
                   - name: FLUENTD_IMAGE

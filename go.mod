@@ -21,6 +21,7 @@ require (
 	github.com/onsi/gomega v1.9.0
 	github.com/openshift/api v0.0.0-20200602204738-768b7001fe69
 	github.com/openshift/elasticsearch-operator v0.0.0-20200722044541-14fae5dcddfd
+	github.com/operator-framework/api v0.3.7-0.20200602203552-431198de9fc2
 	github.com/operator-framework/operator-sdk v0.18.1
 	github.com/prometheus/procfs v0.0.10 // indirect
 	github.com/rogpeppe/go-internal v1.5.2 // indirect

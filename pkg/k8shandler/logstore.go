@@ -11,6 +11,7 @@ import (
 	"k8s.io/client-go/util/retry"
 
 	logging "github.com/openshift/cluster-logging-operator/pkg/apis/logging/v1"
+	"github.com/openshift/cluster-logging-operator/pkg/logstore"
 	elasticsearch "github.com/openshift/elasticsearch-operator/pkg/apis/logging/v1"
 	v1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -23,19 +24,20 @@ const (
 )
 
 func (clusterRequest *ClusterLoggingRequest) CreateOrUpdateLogStore() (err error) {
-	if clusterRequest.Cluster.Spec.LogStore == nil || clusterRequest.Cluster.Spec.LogStore.Type == "" {
-		return nil
-	}
 	if clusterRequest.Cluster.Spec.LogStore.Type == logging.LogStoreTypeElasticsearch {
 
 		cluster := clusterRequest.Cluster
 
 		if err = clusterRequest.createOrUpdateElasticsearchSecret(); err != nil {
-			return nil
+			return err
+		}
+
+		if err = logstore.CreateOperator(clusterRequest.Create); err != nil {
+			return err
 		}
 
 		if err = clusterRequest.createOrUpdateElasticsearchCR(); err != nil {
-			return nil
+			return err
 		}
 
 		elasticsearchStatus, err := clusterRequest.getElasticsearchStatus()
