@@ -245,6 +245,13 @@ spec:
       - serviceAccountName: cluster-logging-operator
         rules:
         - apiGroups:
+          - operators.coreos.com
+          resources:
+          - operatorgroups
+          - subscriptions
+          verbs:
+          - "*"
+        - apiGroups:
           - console.openshift.io
           resources:
           - consoleexternalloglinks

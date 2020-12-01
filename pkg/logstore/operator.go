@@ -60,6 +60,7 @@ func newSubscription(ns string) (*operatorsv1alpha1.Subscription, error) {
 			Channel:                channel,
 			CatalogSource:          source,
 			CatalogSourceNamespace: ns,
+			Package:                elasticsearchOperatorName,
 		},
 	}, nil
 }
@@ -80,7 +81,7 @@ func newOperatorGroup(ns string) *operatorsv1.OperatorGroup {
 func createObject(obj runtime.Object, create fnCreate) error {
 	if err := create(obj); err != nil {
 		if !errors.IsAlreadyExists(err) {
-			return fmt.Errorf("Failure creating kind %s whild trying to deploy logstore operator: %v", obj.GetObjectKind(), err)
+			return fmt.Errorf("Failure creating kind %s while trying to deploy logstore operator: %v", obj.GetObjectKind(), err)
 		}
 	}
 	return nil
