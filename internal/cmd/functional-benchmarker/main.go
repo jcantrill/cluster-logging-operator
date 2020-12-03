@@ -32,7 +32,7 @@ func main() {
 
 	log.MustInit("functional-benchmark")
 	log.SetLogLevel(*verbosity)
-	log.V(1).Info("Args: %v", os.Args)
+	log.V(1).Info("Starting functional benchmarker", "command line", os.Args)
 
 	if err := os.Setenv(constants.FluentdImageEnvVar, *image); err != nil {
 		log.Error(err, "Error setting fluent image env var")
@@ -77,54 +77,64 @@ func main() {
 		log.Error(err, "Error parsing logs")
 		os.Exit(1)
 	}
-	if *sample {
+	if *sample && len(jsonlogs) > 0 {
 		fmt.Printf("Sample:\n%s\n", test.JSONString(jsonlogs[0]))
 	}
+	timeDiffs := sortLogsByTimeDiff(jsonlogs)
 	fmt.Printf("  Total Msg: %d\n", *totalMessages)
 	fmt.Printf("Size(bytes): %d\n", *msgSize)
 	fmt.Printf(" Elapsed(s): %s\n", endTime.Sub(startTime))
 	fmt.Printf("    Mean(s): %f\n", mean(jsonlogs))
-	fmt.Printf("     Min(s): %f\n", min(jsonlogs))
-	fmt.Printf("     Max(s): %f\n", max(jsonlogs))
-	fmt.Printf("  Median(s): %f\n", median(jsonlogs))
+	fmt.Printf("     Min(s): %f\n", min(timeDiffs))
+	fmt.Printf("     Max(s): %f\n", max(timeDiffs))
+	fmt.Printf("  Median(s): %f\n", median(timeDiffs))
 	fmt.Printf(" Mean Bloat: %f\n", meanBloat(jsonlogs))
 }
 
 func meanBloat(logs helpers.Logs) float64 {
-	if len(logs) == 0 {
-		return 0
-	}
-	total := float64(0)
-	for _, e := range logs {
-		total += e.Bloat()
-	}
-	return total / float64(len(logs))
+	return genericMean(logs, (*helpers.AllLog).Bloat)
 }
 
 func mean(logs helpers.Logs) float64 {
-	total := float64(0)
-	for _, e := range logs {
-		total += e.Difference()
+	return genericMean(logs, (*helpers.AllLog).Difference)
+}
+
+func genericMean(logs helpers.Logs, f func(l *helpers.AllLog) float64) float64 {
+	if len(logs) == 0 {
+		return 0
+	}
+	var total float64
+	for i := range logs {
+		total += f(&logs[i])
 	}
 	return total / float64(len(logs))
 }
 
-func median(logs helpers.Logs) float64 {
-	diffs := sortLogsByTimeDiff(logs)
+func median(diffs []float64) float64 {
+	if len(diffs) == 0 {
+		return 0
+	}
 	return diffs[(len(diffs)/2)+1]
 }
-func min(logs helpers.Logs) float64 {
-	diffs := sortLogsByTimeDiff(logs)
+
+func min(diffs []float64) float64 {
+	if len(diffs) == 0 {
+		return 0
+	}
 	return diffs[0]
 }
-func max(logs helpers.Logs) float64 {
-	diffs := sortLogsByTimeDiff(logs)
+
+func max(diffs []float64) float64 {
+	if len(diffs) == 0 {
+		return 0
+	}
 	return diffs[len(diffs)-1]
 }
+
 func sortLogsByTimeDiff(logs helpers.Logs) []float64 {
 	diffs := make([]float64, len(logs))
-	for i, e := range logs {
-		diffs[i] = e.Difference()
+	for i := range logs {
+		diffs[i] = logs[i].Difference()
 	}
 	sort.Slice(diffs, func(i, j int) bool { return diffs[i] < diffs[j] })
 	return diffs

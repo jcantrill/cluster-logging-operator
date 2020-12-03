@@ -59,7 +59,10 @@ func (r *runner) runCmd() (string, error) {
 		r.Cmd.Stdout = &outbuf
 		r.Cmd.Stderr = &errbuf
 	}
-	r.Cmd.Env = []string{fmt.Sprintf("%s=%s", "KUBECONFIG", os.Getenv("KUBECONFIG"))}
+	kubeConfig := os.Getenv("KUBECONFIG")
+	if kubeConfig != `` {
+		r.Cmd.Env = []string{"KUBECONFIG=" + kubeConfig}
+	}
 	cmdargs := strings.Join(r.args, " ")
 	err := r.Cmd.Run()
 	if err != nil {
