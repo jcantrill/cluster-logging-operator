@@ -27,7 +27,7 @@ golangci-lint:
 
 build:
 	go build $(BUILD_OPTS) -o bin/cluster-logging-operator ./cmd/manager
-
+	go build $(BUILD_OPTS) -o bin/forwarder-generator ./internal/cmd/forwarder-generator
 build-debug:
 	$(MAKE) build BUILD_OPTS='-gcflags=all="-N -l"'
 

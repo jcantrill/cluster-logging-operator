@@ -73,7 +73,7 @@ func (clusterRequest *ClusterLoggingRequest) removeFluentd() (err error) {
 func (clusterRequest *ClusterLoggingRequest) createOrUpdateFluentdService() error {
 	service := NewService(
 		fluentdName,
-		clusterRequest.cluster.Namespace,
+		clusterRequest.Cluster.Namespace,
 		fluentdName,
 		[]v1.ServicePort{
 			{
@@ -88,7 +88,7 @@ func (clusterRequest *ClusterLoggingRequest) createOrUpdateFluentdService() erro
 		"service.alpha.openshift.io/serving-cert-secret-name": "fluentd-metrics",
 	}
 
-	utils.AddOwnerRefToObject(service, utils.AsOwner(clusterRequest.cluster))
+	utils.AddOwnerRefToObject(service, utils.AsOwner(clusterRequest.Cluster))
 
 	err := clusterRequest.Create(service)
 	if err != nil && !errors.IsAlreadyExists(err) {
@@ -100,7 +100,7 @@ func (clusterRequest *ClusterLoggingRequest) createOrUpdateFluentdService() erro
 
 func (clusterRequest *ClusterLoggingRequest) createOrUpdateFluentdServiceMonitor() error {
 
-	cluster := clusterRequest.cluster
+	cluster := clusterRequest.Cluster
 
 	serviceMonitor := NewServiceMonitor(fluentdName, cluster.Namespace)
 
@@ -142,7 +142,7 @@ func (clusterRequest *ClusterLoggingRequest) createOrUpdateFluentdServiceMonitor
 
 func (clusterRequest *ClusterLoggingRequest) createOrUpdateFluentdPrometheusRule() error {
 
-	cluster := clusterRequest.cluster
+	cluster := clusterRequest.Cluster
 
 	promRule := NewPrometheusRule(fluentdName, cluster.Namespace)
 
@@ -209,7 +209,7 @@ func (clusterRequest *ClusterLoggingRequest) createOrUpdateFluentdConfigMap(flue
 	logrus.Debug("createOrUpdateFluentdConfigMap...")
 	fluentdConfigMap := NewConfigMap(
 		fluentdName,
-		clusterRequest.cluster.Namespace,
+		clusterRequest.Cluster.Namespace,
 		map[string]string{
 			"fluent.conf":          fluentConf,
 			"throttle-config.yaml": string(utils.GetFileContents(utils.GetShareDir() + "/fluentd/fluentd-throttle-config.yaml")),
@@ -217,7 +217,7 @@ func (clusterRequest *ClusterLoggingRequest) createOrUpdateFluentdConfigMap(flue
 		},
 	)
 
-	utils.AddOwnerRefToObject(fluentdConfigMap, utils.AsOwner(clusterRequest.cluster))
+	utils.AddOwnerRefToObject(fluentdConfigMap, utils.AsOwner(clusterRequest.Cluster))
 
 	err := clusterRequest.Create(fluentdConfigMap)
 	if err != nil && !errors.IsAlreadyExists(err) {
@@ -230,7 +230,7 @@ func (clusterRequest *ClusterLoggingRequest) createOrUpdateFluentdConfigMap(flue
 				logrus.Debugf("Returning nil. The configmap %q was not found even though create previously failed.  Was it culled?", fluentdConfigMap.Name)
 				return nil
 			}
-			return fmt.Errorf("Failed to get %v configmap for %q: %v", fluentdConfigMap.Name, clusterRequest.cluster.Name, err)
+			return fmt.Errorf("Failed to get %v configmap for %q: %v", fluentdConfigMap.Name, clusterRequest.Cluster.Name, err)
 		}
 		if reflect.DeepEqual(fluentdConfigMap.Data, current.Data) {
 			return nil
@@ -246,14 +246,14 @@ func (clusterRequest *ClusterLoggingRequest) createOrUpdateFluentdSecret() error
 
 	fluentdSecret := NewSecret(
 		fluentdName,
-		clusterRequest.cluster.Namespace,
+		clusterRequest.Cluster.Namespace,
 		map[string][]byte{
 			"ca-bundle.crt": utils.GetWorkingDirFileContents("ca.crt"),
 			"tls.key":       utils.GetWorkingDirFileContents("system.logging.fluentd.key"),
 			"tls.crt":       utils.GetWorkingDirFileContents("system.logging.fluentd.crt"),
 		})
 
-	utils.AddOwnerRefToObject(fluentdSecret, utils.AsOwner(clusterRequest.cluster))
+	utils.AddOwnerRefToObject(fluentdSecret, utils.AsOwner(clusterRequest.Cluster))
 
 	err := clusterRequest.CreateOrUpdateSecret(fluentdSecret)
 	if err != nil {
@@ -456,7 +456,7 @@ func newFluentdInitContainer(cluster *logging.ClusterLogging) v1.Container {
 
 func (clusterRequest *ClusterLoggingRequest) createOrUpdateFluentdDaemonset(pipelineConfHash string, proxyConfig *configv1.Proxy) (err error) {
 
-	cluster := clusterRequest.cluster
+	cluster := clusterRequest.Cluster
 
 	fluentdTrustBundle := &v1.ConfigMap{}
 	// Create or update cluster proxy trusted CA bundle.

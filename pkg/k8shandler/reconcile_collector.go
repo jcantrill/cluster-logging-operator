@@ -11,7 +11,7 @@ func ReconcileCollector(requestCluster *logging.ClusterLogging, collector *colle
 	logger.Debugf("Reconciling collector: %v", collector)
 	clusterRequest := ClusterLoggingRequest{
 		client:            requestClient,
-		cluster:           requestCluster,
+		Cluster:           requestCluster,
 		ForwardingRequest: nil,
 		Collector:         collector,
 	}

@@ -18,7 +18,7 @@ import (
 func Reconcile(requestCluster *logging.ClusterLogging, requestClient client.Client) (err error) {
 	clusterLoggingRequest := ClusterLoggingRequest{
 		client:  requestClient,
-		cluster: requestCluster,
+		Cluster: requestCluster,
 	}
 
 	forwarding := clusterLoggingRequest.getLogForwarding()
@@ -31,27 +31,27 @@ func Reconcile(requestCluster *logging.ClusterLogging, requestClient client.Clie
 
 	// Reconcile certs
 	if err = clusterLoggingRequest.CreateOrUpdateCertificates(); err != nil {
-		return fmt.Errorf("Unable to create or update certificates for %q: %v", clusterLoggingRequest.cluster.Name, err)
+		return fmt.Errorf("Unable to create or update certificates for %q: %v", clusterLoggingRequest.Cluster.Name, err)
 	}
 
 	// Reconcile Log Store
 	if err = clusterLoggingRequest.CreateOrUpdateLogStore(); err != nil {
-		return fmt.Errorf("Unable to create or update logstore for %q: %v", clusterLoggingRequest.cluster.Name, err)
+		return fmt.Errorf("Unable to create or update logstore for %q: %v", clusterLoggingRequest.Cluster.Name, err)
 	}
 
 	// Reconcile Visualization
 	if err = clusterLoggingRequest.CreateOrUpdateVisualization(proxyConfig); err != nil {
-		return fmt.Errorf("Unable to create or update visualization for %q: %v", clusterLoggingRequest.cluster.Name, err)
+		return fmt.Errorf("Unable to create or update visualization for %q: %v", clusterLoggingRequest.Cluster.Name, err)
 	}
 
 	// Reconcile Curation
 	if err = clusterLoggingRequest.CreateOrUpdateCuration(); err != nil {
-		return fmt.Errorf("Unable to create or update curation for %q: %v", clusterLoggingRequest.cluster.Name, err)
+		return fmt.Errorf("Unable to create or update curation for %q: %v", clusterLoggingRequest.Cluster.Name, err)
 	}
 
 	// Reconcile Collection
 	if err = clusterLoggingRequest.CreateOrUpdateCollection(proxyConfig); err != nil {
-		return fmt.Errorf("Unable to create or update collection for %q: %v", clusterLoggingRequest.cluster.Name, err)
+		return fmt.Errorf("Unable to create or update collection for %q: %v", clusterLoggingRequest.Cluster.Name, err)
 	}
 
 	return nil
@@ -71,7 +71,7 @@ func ReconcileForLogForwarding(forwarding *logforwarding.LogForwarding, requestC
 	if clusterLogging == nil {
 		return nil
 	}
-	clusterLoggingRequest.cluster = clusterLogging
+	clusterLoggingRequest.Cluster = clusterLogging
 
 	if clusterLogging.Spec.ManagementState == logging.ManagementStateUnmanaged {
 		return nil
@@ -81,7 +81,7 @@ func ReconcileForLogForwarding(forwarding *logforwarding.LogForwarding, requestC
 
 	// Reconcile Collection
 	if err = clusterLoggingRequest.CreateOrUpdateCollection(proxyConfig); err != nil {
-		return fmt.Errorf("Unable to reconcile collection for %q: %v", clusterLoggingRequest.cluster.Name, err)
+		return fmt.Errorf("Unable to reconcile collection for %q: %v", clusterLoggingRequest.Cluster.Name, err)
 	}
 
 	return nil
@@ -98,7 +98,7 @@ func ReconcileForGlobalProxy(proxyConfig *configv1.Proxy, requestClient client.C
 		return nil
 	}
 
-	clusterLoggingRequest.cluster = clusterLogging
+	clusterLoggingRequest.Cluster = clusterLogging
 
 	if clusterLogging.Spec.ManagementState == logging.ManagementStateUnmanaged {
 		return nil
@@ -112,7 +112,7 @@ func ReconcileForGlobalProxy(proxyConfig *configv1.Proxy, requestClient client.C
 
 	// Reconcile Collection
 	if err = clusterLoggingRequest.CreateOrUpdateCollection(proxyConfig); err != nil {
-		return fmt.Errorf("Unable to create or update collection for %q: %v", clusterLoggingRequest.cluster.Name, err)
+		return fmt.Errorf("Unable to create or update collection for %q: %v", clusterLoggingRequest.Cluster.Name, err)
 	}
 
 	return nil
@@ -128,7 +128,7 @@ func ReconcileForTrustedCABundle(requestName string, requestClient client.Client
 		return nil
 	}
 
-	clusterLoggingRequest.cluster = clusterLogging
+	clusterLoggingRequest.Cluster = clusterLogging
 
 	if clusterLogging.Spec.ManagementState == logging.ManagementStateUnmanaged {
 		return nil
