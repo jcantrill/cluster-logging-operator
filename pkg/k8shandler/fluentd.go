@@ -163,7 +163,7 @@ func (clusterRequest *ClusterLoggingRequest) reconcileFluentdServiceMonitor() er
 
 	desired.Spec = monitoringv1.ServiceMonitorSpec{
 		JobLabel:  "monitor-fluentd",
-		Endpoints: []monitoringv1.Endpoint{endpoint,logMetricExporterEndpoint},
+		Endpoints: []monitoringv1.Endpoint{endpoint, logMetricExporterEndpoint},
 		Selector:  labelSelector,
 		NamespaceSelector: monitoringv1.NamespaceSelector{
 			MatchNames: []string{cluster.Namespace},
