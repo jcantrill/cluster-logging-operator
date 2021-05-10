@@ -1,34 +1,36 @@
 package main
 
 import (
+	"bufio"
 	"encoding/json"
 	"flag"
 	"fmt"
+	"io/ioutil"
 	"os"
-	"sort"
 	"time"
 
 	"github.com/ViaQ/logerr/log"
 
-	logging "github.com/openshift/cluster-logging-operator/pkg/apis/logging/v1"
 	"github.com/openshift/cluster-logging-operator/pkg/constants"
 	"github.com/openshift/cluster-logging-operator/pkg/utils"
 	"github.com/openshift/cluster-logging-operator/test"
-	"github.com/openshift/cluster-logging-operator/test/client"
-	"github.com/openshift/cluster-logging-operator/test/functional"
 	"github.com/openshift/cluster-logging-operator/test/helpers/types"
-	"github.com/openshift/cluster-logging-operator/test/runtime"
 )
 
 // HACK - This command is for development use only
 func main() {
 
 	image := flag.String("image", "quay.io/openshift/origin-logging-fluentd:latest", "The image to use to run the benchmark")
-	totalMessages := flag.Uint64("totMessages", 10000, "The number of messages to write")
-	msgSize := flag.Uint64("size", 1024, "The message size in bytes")
+	totalMessages := flag.Int("totMessages", 10000, "The number of messages to write per stressor")
+	msgSize := flag.Int("size", 1024, "The message size in bytes")
 	verbosity := flag.Int("verbosity", 0, "")
 	doCleanup := flag.Bool("docleanup", true, "set to false to preserve the namespace")
 	sample := flag.Bool("sample", false, "set to true to dump a sample message")
+	platform := flag.String("platform", "cluster", "The runtime environment: cluster (default), local (experimental). local requires podman")
+	output := flag.String("output", "default", "The output format: default, csv")
+
+	totLogStressors := flag.Int("exp-tot-stressors", 1, "Experimental. Total log stressors (platform=local)")
+	collectorConfigPath := flag.String("exp-collector-config", "", "Experimental. The collector config to use (platform=local")
 
 	flag.Parse()
 
@@ -40,112 +42,112 @@ func main() {
 		log.Error(err, "Error setting fluent image env var")
 		os.Exit(1)
 	}
-	testclient := client.NewNamesapceClient()
-	framework := functional.NewFluentdFunctionalFrameworkUsing(&testclient.Test, testclient.Close, *verbosity)
-	if *doCleanup {
-		defer framework.Cleanup()
+
+	collectorConfig := ReadConfig(*collectorConfigPath)
+	log.V(1).Info(collectorConfig)
+
+	runs := map[string]string{
+		"baseline": fluentdBaselineConf,
+		"config":   collectorConfig,
 	}
 
-	functional.NewClusterLogForwarderBuilder(framework.Forwarder).
-		FromInput(logging.InputNameApplication).
-		ToFluentForwardOutput()
-	err := framework.DeployWithVisitors([]runtime.PodBuilderVisitor{
-		func(b *runtime.PodBuilder) error {
-			return framework.AddBenchmarkForwardOutput(b, framework.Forwarder.Spec.Outputs[0])
-		},
-	})
+	reporter := NewReporter(*output)
+	for name, config := range runs {
+		log.V(1).Info("Executing", "run", name)
+		stats, metrics := NewRun(config, *platform, *totLogStressors, *verbosity, *msgSize, *totalMessages, *sample, *doCleanup)()
+		reporter.Add(name, stats, metrics)
+	}
+	reporter.Print()
+}
+func NewRun(collectorConfig, platform string, totLogStressors, verbosity, msgSize, totMessages int, sample, doCleanup bool) func() (Statistics, Metrics) {
+	return func() (Statistics, Metrics) {
+		runner := NewBencharker(collectorConfig, platform, totLogStressors, verbosity, msgSize, totMessages)
+		runner.Deploy()
+		if doCleanup {
+			log.V(2).Info("Deferring cleanup", "doCleanup", doCleanup)
+			defer runner.Cleanup()
+		}
+
+		startTime := time.Now()
+		var (
+			logs    []string
+			readErr error
+			metrics Metrics
+		)
+		done := make(chan bool)
+		go func() {
+			logs, readErr = runner.ReadApplicationLogs()
+			metrics = runner.Metrics()
+			done <- true
+		}()
+		//defer reader to get logs
+		if err := runner.WritesApplicationLogsOfSize(msgSize); err != nil {
+			log.Error(err, "Error writing application logs")
+			os.Exit(1)
+		}
+		<-done
+		endTime := time.Now()
+		if readErr != nil {
+			log.Error(readErr, "Error reading logs")
+			os.Exit(1)
+		}
+		log.V(4).Info("Read logs", "raw", logs)
+		perflogs := types.PerfLogs{}
+		err := json.Unmarshal([]byte(utils.ToJsonLogs(logs)), &perflogs)
+		if err != nil {
+			log.Error(err, "Error parsing logs")
+			os.Exit(1)
+		}
+		log.V(4).Info("Read logs", "parsed", perflogs)
+		log.V(4).Info("Read logs", "parsed", perflogs)
+		if sample {
+			fmt.Printf("Sample:\n%s\n", test.JSONString(perflogs[0]))
+		}
+		return *NewStatisics(perflogs, msgSize, endTime.Sub(startTime)), metrics
+	}
+}
+
+type Runner interface {
+	Deploy()
+	WritesApplicationLogsOfSize(msgSize int) error
+	ReadApplicationLogs() ([]string, error)
+	Metrics() Metrics
+	Cleanup()
+}
+
+func NewBencharker(collectorConfig, platform string, totLogStressors, verbosity, msgSize, totMessages int) Runner {
+	if platform == "local" {
+		return NewPodmanRunner(collectorConfig, totLogStressors, verbosity, msgSize, totMessages)
+	}
+	return &ContainerRunner{verbosity: verbosity, totalMessages: totMessages}
+}
+
+func ReadConfig(configFile string) string {
+	var reader func() ([]byte, error)
+	switch configFile {
+	case "-":
+		log.V(1).Info("Reading from stdin")
+		reader = func() ([]byte, error) {
+			stdin := bufio.NewReader(os.Stdin)
+			return ioutil.ReadAll(stdin)
+		}
+	case "":
+		log.V(1).Info("received empty configFile. Generating from CLF")
+		return ""
+	default:
+		log.V(1).Info("reading configfile", "filename", configFile)
+		reader = func() ([]byte, error) { return ioutil.ReadFile(configFile) }
+	}
+	content, err := reader()
 	if err != nil {
-		log.Error(err, "Error deploying test pod")
+		log.Error(err, "Error reading config")
 		os.Exit(1)
 	}
-	startTime := time.Now()
-	var (
-		logs    []string
-		readErr error
-	)
-	done := make(chan bool)
-	go func() {
-		logs, readErr = framework.ReadNApplicationLogsFrom(*totalMessages, logging.OutputTypeFluentdForward)
-		done <- true
-	}()
-	//defer reader to get logs
-	if err := framework.WritesNApplicationLogsOfSize(*totalMessages, *msgSize); err != nil {
-		log.Error(err, "Error writing logs to test pod")
-		os.Exit(1)
-	}
-	<-done
-	endTime := time.Now()
-	if readErr != nil {
-		log.Error(readErr, "Error reading logs")
-		os.Exit(1)
-	}
-	log.V(4).Info("Read logs", "raw", logs)
-	perflogs := types.PerfLogs{}
-	err = json.Unmarshal([]byte(utils.ToJsonLogs(logs)), &perflogs)
-	if err != nil {
-		log.Error(err, "Error parsing logs")
-		os.Exit(1)
-	}
-	log.V(4).Info("Read logs", "parsed", perflogs)
-	if *sample {
-		fmt.Printf("Sample:\n%s\n", test.JSONString(perflogs[0]))
-	}
-	timeDiffs := sortLogsByTimeDiff(perflogs)
-	fmt.Printf("  Total Msg: %d\n", *totalMessages)
-	fmt.Printf("Size(bytes): %d\n", *msgSize)
-	fmt.Printf(" Elapsed(s): %s\n", endTime.Sub(startTime))
-	fmt.Printf("    Mean(s): %f\n", mean(perflogs))
-	fmt.Printf("     Min(s): %f\n", min(timeDiffs))
-	fmt.Printf("     Max(s): %f\n", max(timeDiffs))
-	fmt.Printf("  Median(s): %f\n", median(timeDiffs))
-	fmt.Printf(" Mean Bloat: %f\n", meanBloat(perflogs))
+	return string(content)
 }
 
-func meanBloat(logs types.PerfLogs) float64 {
-	return genericMean(logs, (*types.PerfLog).Bloat)
-}
-
-func mean(logs types.PerfLogs) float64 {
-	return genericMean(logs, (*types.PerfLog).ElapsedEpoc)
-}
-
-func genericMean(logs types.PerfLogs, f func(l *types.PerfLog) float64) float64 {
-	if len(logs) == 0 {
-		return 0
-	}
-	var total float64
-	for i := range logs {
-		total += f(&logs[i])
-	}
-	return total / float64(len(logs))
-}
-
-func median(diffs []float64) float64 {
-	if len(diffs) == 0 {
-		return 0
-	}
-	return diffs[(len(diffs) / 2)]
-}
-
-func min(diffs []float64) float64 {
-	if len(diffs) == 0 {
-		return 0
-	}
-	return diffs[0]
-}
-
-func max(diffs []float64) float64 {
-	if len(diffs) == 0 {
-		return 0
-	}
-	return diffs[len(diffs)-1]
-}
-
-func sortLogsByTimeDiff(logs types.PerfLogs) []float64 {
-	diffs := make([]float64, len(logs))
-	for i := range logs {
-		diffs[i] = logs[i].ElapsedEpoc()
-	}
-	sort.Slice(diffs, func(i, j int) bool { return diffs[i] < diffs[j] })
-	return diffs
+type Metrics struct {
+	cpuUserTicks     string
+	cpuKernelTicks   string
+	memVirtualPeakKB string
 }
