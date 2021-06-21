@@ -771,28 +771,24 @@ const storeElasticsearchTemplate = `{{ define "storeElasticsearch" -}}
   host {{.Host}}
   port {{.Port}}
   verify_es_version_at_startup false
+  scheme {{.Scheme}}
+{{- if eq .Scheme "https" }}
+  ssl_version TLSv1_2
+{{- end }}
 {{- if .Target.Secret }}
-{{ if and (.SecretPathIfFound "username") (.SecretPathIfFound "password") -}}
-{{ if and (.SecretPathIfFound "tls.key") (.SecretPathIfFound "tls.crt") -}}
-  scheme https
-{{ else -}}
-  scheme http
-{{ end -}}
+{{- if and (.SecretPathIfFound "username") (.SecretPathIfFound "password") }}
 {{ with $path := .SecretPath "username" -}}
   user "#{File.exists?('{{ $path }}') ? open('{{ $path }}','r') do |f|f.read end : ''}"
 {{ end -}}
 {{ with $path := .SecretPath "password" -}}
   password "#{File.exists?('{{ $path }}') ? open('{{ $path }}','r') do |f|f.read end : ''}"
 {{ end -}}
-{{ else -}}
-  scheme https
-  ssl_version TLSv1_2
+{{ end -}}
+{{- if and (.SecretPathIfFound "tls.key") (.SecretPathIfFound "tls.crt")}}
   client_key '{{ .SecretPath "tls.key"}}'
   client_cert '{{ .SecretPath "tls.crt"}}'
   ca_file '{{ .SecretPath "ca-bundle.crt"}}'
-{{ end -}}
-{{- else}}
-  scheme http
+{{- end }}
 {{- end }}
   target_index_key viaq_index_name
   id_key viaq_msg_id

@@ -6,6 +6,7 @@ import (
 	. "github.com/onsi/gomega"
 	logging "github.com/openshift/cluster-logging-operator/pkg/apis/logging/v1"
 	. "github.com/openshift/cluster-logging-operator/test/matchers"
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	yaml "sigs.k8s.io/yaml"
 )
@@ -15,12 +16,27 @@ var _ = Describe("Generating fluentd config", func() {
 		forwarder     *logging.ClusterLogForwarderSpec
 		forwarderSpec *logging.ForwarderSpec
 		generator     *ConfigGenerator
+		secrets map[string]*corev1.Secret
 	)
 	BeforeEach(func() {
 		var err error
 		generator, err = NewConfigGenerator(false, false, true)
 		Expect(err).To(BeNil())
 		Expect(generator).ToNot(BeNil())
+		secret := &corev1.Secret{
+			Data: map[string][]byte{
+				"shared_key":    []byte("my-key"),
+				"tls.crt":       []byte("my-tls"),
+				"tls.key":       []byte("my-tls-key"),
+				"ca-bundle.crt": []byte("my-bundle"),
+			},
+		}
+		secrets = map[string]*corev1.Secret{
+			"infra-es": secret,
+			"apps-es-1": secret,
+			"apps-es-2": secret,
+			"audit-es": secret,
+		}
 		forwarder = &logging.ClusterLogForwarderSpec{
 			Outputs: []logging.OutputSpec{
 				{
@@ -124,7 +140,7 @@ var _ = Describe("Generating fluentd config", func() {
 				},
 			},
 		}
-		results, err := generator.Generate(forwarder, nil, forwarderSpec)
+		results, err := generator.Generate(forwarder, secrets, forwarderSpec)
 		Expect(err).To(BeNil())
 		Expect(results).To(EqualTrimLines(`
   ## CLO GENERATED CONFIGURATION ###
@@ -844,7 +860,7 @@ var _ = Describe("Generating fluentd config", func() {
 				},
 			},
 		}
-		results, err := generator.Generate(forwarder, nil, forwarderSpec)
+		results, err := generator.Generate(forwarder, secrets, forwarderSpec)
 		Expect(err).To(BeNil())
 		Expect(results).To(EqualTrimLines(`
   ## CLO GENERATED CONFIGURATION ###
@@ -1545,7 +1561,7 @@ var _ = Describe("Generating fluentd config", func() {
 				},
 			},
 		}
-		results, err := generator.Generate(forwarder, nil, forwarderSpec)
+		results, err := generator.Generate(forwarder, secrets, forwarderSpec)
 		Expect(err).To(BeNil())
 		Expect(results).To(EqualTrimLines(`
   ## CLO GENERATED CONFIGURATION ###
@@ -2621,7 +2637,7 @@ var _ = Describe("Generating fluentd config", func() {
 	})
 
 	It("should produce well formed fluent.conf", func() {
-		results, err := generator.Generate(forwarder, nil, forwarderSpec)
+		results, err := generator.Generate(forwarder, secrets, forwarderSpec)
 		Expect(err).To(BeNil())
 		Expect(results).To(EqualTrimLines(`
 			## CLO GENERATED CONFIGURATION ###
