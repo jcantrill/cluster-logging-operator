@@ -180,7 +180,7 @@ test-functional-benchmarker: bin/functional-benchmarker
 
 test-unit: test-forwarder-generator
 	FLUENTD_IMAGE=$(IMAGE_LOGGING_FLUENTD) \
-	go test -cover -race ./pkg/... ./test ./test/helpers ./test/matchers ./test/runtime
+	go test -cover -race ./pkg/... ./internal/builders/... ./test ./test/helpers ./test/matchers ./test/runtime
 
 test-cluster:
 	go test  -cover -race ./test/... -- -root=$(CURDIR)
