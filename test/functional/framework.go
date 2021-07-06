@@ -237,7 +237,7 @@ func (f *FluentdFunctionalFramework) DeployWithVisitors(visitors []runtime.PodBu
 		AddConfigMapVolume("config", f.Name).
 		AddConfigMapVolume("entrypoint", f.Name).
 		AddConfigMapVolume("certs", certsName).
-		AddContainer(constants.FluentdName, f.image).
+		AddContainer(constants.CollectorName, f.image).
 		AddEnvVar("LOG_LEVEL", "debug").
 		AddEnvVarFromFieldRef("POD_IP", "status.podIP").
 		AddVolumeMount("config", "/etc/fluent/configs.d/user", "", true).
@@ -278,7 +278,7 @@ func (f *FluentdFunctionalFramework) DeployWithVisitors(visitors []runtime.PodBu
 	}
 	log.V(2).Info("waiting for fluentd to be ready")
 	err = wait.PollImmediate(time.Second*2, time.Second*30, func() (bool, error) {
-		output, err := oc.Literal().From("oc logs -n %s pod/%s %s", f.Test.NS.Name, f.Name, constants.FluentdName).Run()
+		output, err := oc.Literal().From("oc logs -n %s pod/%s %s", f.Test.NS.Name, f.Name, constants.CollectorName).Run()
 		if err != nil {
 			return false, nil
 		}
@@ -293,7 +293,7 @@ func (f *FluentdFunctionalFramework) DeployWithVisitors(visitors []runtime.PodBu
 		return fmt.Errorf("fluentd did not start in the container")
 	}
 	for _, cs := range f.pod.Status.ContainerStatuses {
-		if cs.Name == constants.FluentdName {
+		if cs.Name == constants.CollectorName {
 			f.fluentContainerId = strings.TrimPrefix(cs.ContainerID, "cri-o://")
 			break
 		}

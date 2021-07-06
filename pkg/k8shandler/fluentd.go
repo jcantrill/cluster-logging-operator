@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"io/ioutil"
+	"path"
 	"reflect"
 	"strconv"
 	"time"
@@ -32,42 +33,42 @@ import (
 
 const (
 	fluentdAlertsFile        = "fluentd/fluentd_prometheus_alerts.yaml"
-	fluentdName              = "fluentd"
 	syslogName               = "syslog"
 	fluentdRequiredESVersion = "6"
 )
 
-func (clusterRequest *ClusterLoggingRequest) removeFluentd() (err error) {
+func (clusterRequest *ClusterLoggingRequest) removeCollector(name string) (err error) {
 	if clusterRequest.isManaged() {
 
-		if err = clusterRequest.RemoveService(fluentdName); err != nil {
+		if err = clusterRequest.RemoveService(name); err != nil {
 			return
 		}
 
-		if err = clusterRequest.RemoveServiceMonitor(fluentdName); err != nil {
+		if err = clusterRequest.RemoveServiceMonitor(name); err != nil {
 			return
 		}
 
-		if err = clusterRequest.RemovePrometheusRule(fluentdName); err != nil {
+		if err = clusterRequest.RemovePrometheusRule(name); err != nil {
 			return
 		}
 
-		if err = clusterRequest.RemoveConfigMap(fluentdName); err != nil {
+		if err = clusterRequest.RemoveConfigMap(name); err != nil {
 			return
 		}
 
-		if err = clusterRequest.RemoveConfigMap(constants.FluentdTrustedCAName); err != nil {
+		caName := fmt.Sprintf("%s-trusted-ca-bundle", name)
+		if err = clusterRequest.RemoveConfigMap(caName); err != nil {
 			return
 		}
 
-		if err = clusterRequest.RemoveDaemonset(fluentdName); err != nil {
+		if err = clusterRequest.RemoveDaemonset(name); err != nil {
 			return
 		}
 
 		// Wait longer than the terminationGracePeriodSeconds
 		time.Sleep(12 * time.Second)
 
-		if err = clusterRequest.RemoveSecret(fluentdName); err != nil {
+		if err = clusterRequest.RemoveSecret(name); err != nil {
 			return
 		}
 
@@ -78,9 +79,9 @@ func (clusterRequest *ClusterLoggingRequest) removeFluentd() (err error) {
 
 func (clusterRequest *ClusterLoggingRequest) reconcileFluentdService() error {
 	desired := factory.NewService(
-		fluentdName,
+		constants.CollectorName,
 		clusterRequest.Cluster.Namespace,
-		fluentdName,
+		constants.CollectorName,
 		[]v1.ServicePort{
 			{
 				Port:       metricsPort,
@@ -96,14 +97,14 @@ func (clusterRequest *ClusterLoggingRequest) reconcileFluentdService() error {
 	)
 
 	desired.Annotations = map[string]string{
-		"service.alpha.openshift.io/serving-cert-secret-name": "fluentd-metrics",
+		"service.alpha.openshift.io/serving-cert-secret-name": constants.CollectorMetricSecretName,
 	}
 
 	utils.AddOwnerRefToObject(desired, utils.AsOwner(clusterRequest.Cluster))
 	err := clusterRequest.Create(desired)
 	if err != nil {
 		if !errors.IsAlreadyExists(err) {
-			return fmt.Errorf("Failure creating the fluentd service: %v", err)
+			return fmt.Errorf("Failure creating the collector service: %v", err)
 		}
 		current := &v1.Service{}
 		retryErr := retry.RetryOnConflict(retry.DefaultRetry, func() error {
@@ -135,7 +136,7 @@ func (clusterRequest *ClusterLoggingRequest) reconcileFluentdServiceMonitor() er
 
 	cluster := clusterRequest.Cluster
 
-	desired := NewServiceMonitor(fluentdName, cluster.Namespace)
+	desired := NewServiceMonitor(constants.CollectorName, cluster.Namespace)
 
 	endpoint := monitoringv1.Endpoint{
 		Port:   metricsPortName,
@@ -143,17 +144,7 @@ func (clusterRequest *ClusterLoggingRequest) reconcileFluentdServiceMonitor() er
 		Scheme: "https",
 		TLSConfig: &monitoringv1.TLSConfig{
 			CAFile:     prometheusCAFile,
-			ServerName: fmt.Sprintf("%s.%s.svc", fluentdName, cluster.Namespace),
-			// ServerName can be e.g. fluentd.openshift-logging.svc
-		},
-	}
-	logMetricExporterEndpoint := monitoringv1.Endpoint{
-		Port:   exporterPortName,
-		Path:   "/metrics",
-		Scheme: "http",
-		TLSConfig: &monitoringv1.TLSConfig{
-			CAFile:     prometheusCAFile,
-			ServerName: fmt.Sprintf("%s.%s.svc", fluentdName, cluster.Namespace),
+			ServerName: fmt.Sprintf("%s.%s.svc", constants.CollectorName, cluster.Namespace),
 			// ServerName can be e.g. fluentd.openshift-logging.svc
 		},
 	}
@@ -165,8 +156,8 @@ func (clusterRequest *ClusterLoggingRequest) reconcileFluentdServiceMonitor() er
 	}
 
 	desired.Spec = monitoringv1.ServiceMonitorSpec{
-		JobLabel:  "monitor-fluentd",
-		Endpoints: []monitoringv1.Endpoint{endpoint, logMetricExporterEndpoint},
+		JobLabel:  "monitor-collector",
+		Endpoints: []monitoringv1.Endpoint{endpoint},
 		Selector:  labelSelector,
 		NamespaceSelector: monitoringv1.NamespaceSelector{
 			MatchNames: []string{cluster.Namespace},
@@ -178,7 +169,7 @@ func (clusterRequest *ClusterLoggingRequest) reconcileFluentdServiceMonitor() er
 	err := clusterRequest.Create(desired)
 	if err != nil {
 		if !errors.IsAlreadyExists(err) {
-			return fmt.Errorf("Failure creating the fluentd ServiceMonitor: %v", err)
+			return fmt.Errorf("Failure creating the collector ServiceMonitor: %v", err)
 		}
 		current := &monitoringv1.ServiceMonitor{}
 		retryErr := retry.RetryOnConflict(retry.DefaultRetry, func() error {
@@ -210,11 +201,11 @@ func (clusterRequest *ClusterLoggingRequest) createOrUpdateFluentdPrometheusRule
 	ctx := context.TODO()
 	cluster := clusterRequest.Cluster
 
-	rule := NewPrometheusRule(fluentdName, cluster.Namespace)
+	rule := NewPrometheusRule(constants.CollectorName, cluster.Namespace)
 
-	spec, err := NewPrometheusRuleSpecFrom(utils.GetShareDir() + "/" + fluentdAlertsFile)
+	spec, err := NewPrometheusRuleSpecFrom(path.Join(utils.GetShareDir(), fluentdAlertsFile))
 	if err != nil {
-		return fmt.Errorf("failure creating the fluentd PrometheusRule: %w", err)
+		return fmt.Errorf("failure creating the collector PrometheusRule: %w", err)
 	}
 
 	rule.Spec = *spec
@@ -226,7 +217,7 @@ func (clusterRequest *ClusterLoggingRequest) createOrUpdateFluentdPrometheusRule
 		return nil
 	}
 	if !errors.IsAlreadyExists(err) {
-		return fmt.Errorf("failure creating the fluentd PrometheusRule: %w", err)
+		return fmt.Errorf("failure creating the collector PrometheusRule: %w", err)
 	}
 
 	current := &monitoringv1.PrometheusRule{}
@@ -294,7 +285,7 @@ func (clusterRequest *ClusterLoggingRequest) useOldRemoteSyslogPlugin() bool {
 
 func (clusterRequest *ClusterLoggingRequest) createOrUpdateFluentdConfigMap(fluentConf string) error {
 	fluentdConfigMap := NewConfigMap(
-		fluentdName,
+		constants.CollectorName,
 		clusterRequest.Cluster.Namespace,
 		map[string]string{
 			"fluent.conf": fluentConf,
@@ -306,7 +297,7 @@ func (clusterRequest *ClusterLoggingRequest) createOrUpdateFluentdConfigMap(flue
 
 	err := clusterRequest.Create(fluentdConfigMap)
 	if err != nil && !errors.IsAlreadyExists(err) {
-		return fmt.Errorf("Failure constructing Fluentd configmap: %v", err)
+		return fmt.Errorf("Failure constructing collector configmap: %v", err)
 	}
 	retryErr := retry.RetryOnConflict(retry.DefaultRetry, func() error {
 		current := &v1.ConfigMap{}
@@ -338,7 +329,7 @@ func (clusterRequest *ClusterLoggingRequest) createOrUpdateFluentdSecret() error
 		return nil
 	})
 	fluentdSecret := NewSecret(
-		fluentdName,
+		constants.CollectorName,
 		clusterRequest.Cluster.Namespace,
 		secrets)
 
@@ -439,7 +430,7 @@ func newFluentdPodSpec(cluster *logging.ClusterLogging, trustedCABundleCM *v1.Co
 		addTrustedCAVolume = true
 		fluentdContainer.VolumeMounts = append(fluentdContainer.VolumeMounts,
 			v1.VolumeMount{
-				Name:      constants.FluentdTrustedCAName,
+				Name:      constants.CollectorTrustedCAName,
 				ReadOnly:  true,
 				MountPath: constants.TrustedCABundleMountDir,
 			})
@@ -480,16 +471,16 @@ func newFluentdPodSpec(cluster *logging.ClusterLogging, trustedCABundleCM *v1.Co
 			{Name: "varlogoauthapiserver", VolumeSource: v1.VolumeSource{HostPath: &v1.HostPathVolumeSource{Path: "/var/log/oauth-apiserver"}}},
 			{Name: "varlogopenshiftapiserver", VolumeSource: v1.VolumeSource{HostPath: &v1.HostPathVolumeSource{Path: "/var/log/openshift-apiserver"}}},
 			{Name: "varlogkubeapiserver", VolumeSource: v1.VolumeSource{HostPath: &v1.HostPathVolumeSource{Path: "/var/log/kube-apiserver"}}},
-			{Name: "config", VolumeSource: v1.VolumeSource{ConfigMap: &v1.ConfigMapVolumeSource{LocalObjectReference: v1.LocalObjectReference{Name: "fluentd"}}}},
+			{Name: "config", VolumeSource: v1.VolumeSource{ConfigMap: &v1.ConfigMapVolumeSource{LocalObjectReference: v1.LocalObjectReference{Name: constants.CollectorName}}}},
 			{Name: "secureforwardconfig", VolumeSource: v1.VolumeSource{ConfigMap: &v1.ConfigMapVolumeSource{LocalObjectReference: v1.LocalObjectReference{Name: "secure-forward"}, Optional: utils.GetBool(true)}}},
 			{Name: "secureforwardcerts", VolumeSource: v1.VolumeSource{Secret: &v1.SecretVolumeSource{SecretName: "secure-forward", Optional: utils.GetBool(true)}}},
 			{Name: "syslogconfig", VolumeSource: v1.VolumeSource{ConfigMap: &v1.ConfigMapVolumeSource{LocalObjectReference: v1.LocalObjectReference{Name: syslogName}, Optional: utils.GetBool(true)}}},
 			{Name: "syslogcerts", VolumeSource: v1.VolumeSource{Secret: &v1.SecretVolumeSource{SecretName: syslogName, Optional: utils.GetBool(true)}}},
-			{Name: "entrypoint", VolumeSource: v1.VolumeSource{ConfigMap: &v1.ConfigMapVolumeSource{LocalObjectReference: v1.LocalObjectReference{Name: "fluentd"}}}},
-			{Name: "certs", VolumeSource: v1.VolumeSource{Secret: &v1.SecretVolumeSource{SecretName: "fluentd", Optional: utils.GetBool(true)}}},
+			{Name: "entrypoint", VolumeSource: v1.VolumeSource{ConfigMap: &v1.ConfigMapVolumeSource{LocalObjectReference: v1.LocalObjectReference{Name: constants.CollectorName}}}},
+			{Name: "certs", VolumeSource: v1.VolumeSource{Secret: &v1.SecretVolumeSource{SecretName: constants.CollectorName, Optional: utils.GetBool(true)}}},
 			{Name: "localtime", VolumeSource: v1.VolumeSource{HostPath: &v1.HostPathVolumeSource{Path: "/etc/localtime"}}},
 			{Name: "filebufferstorage", VolumeSource: v1.VolumeSource{HostPath: &v1.HostPathVolumeSource{Path: "/var/lib/fluentd"}}},
-			{Name: metricsVolumeName, VolumeSource: v1.VolumeSource{Secret: &v1.SecretVolumeSource{SecretName: "fluentd-metrics"}}},
+			{Name: metricsVolumeName, VolumeSource: v1.VolumeSource{Secret: &v1.SecretVolumeSource{SecretName: constants.CollectorMetricSecretName}}},
 			{Name: "tmp", VolumeSource: v1.VolumeSource{EmptyDir: &v1.EmptyDirVolumeSource{Medium: v1.StorageMediumMemory}}},
 		},
 		collectionSpec.Logs.FluentdSpec.NodeSelector,
@@ -502,11 +493,11 @@ func newFluentdPodSpec(cluster *logging.ClusterLogging, trustedCABundleCM *v1.Co
 	if addTrustedCAVolume {
 		fluentdPodSpec.Volumes = append(fluentdPodSpec.Volumes,
 			v1.Volume{
-				Name: constants.FluentdTrustedCAName,
+				Name: constants.CollectorTrustedCAName,
 				VolumeSource: v1.VolumeSource{
 					ConfigMap: &v1.ConfigMapVolumeSource{
 						LocalObjectReference: v1.LocalObjectReference{
-							Name: constants.FluentdTrustedCAName,
+							Name: constants.CollectorTrustedCAName,
 						},
 						Items: []v1.KeyToPath{
 							{
@@ -599,14 +590,14 @@ func (clusterRequest *ClusterLoggingRequest) createOrUpdateFluentdDaemonset(pipe
 
 	var fluentdTrustBundle *v1.ConfigMap
 	// Create or update cluster proxy trusted CA bundle.
-	fluentdTrustBundle, err = clusterRequest.createOrGetTrustedCABundleConfigMap(constants.FluentdTrustedCAName)
+	fluentdTrustBundle, err = clusterRequest.createOrGetTrustedCABundleConfigMap(constants.CollectorTrustedCAName)
 	if err != nil {
 		return
 	}
 
 	fluentdPodSpec := newFluentdPodSpec(cluster, fluentdTrustBundle, clusterRequest.ForwarderSpec)
 
-	fluentdDaemonset := NewDaemonSet("fluentd", cluster.Namespace, "fluentd", "fluentd", fluentdPodSpec)
+	fluentdDaemonset := NewDaemonSet(constants.CollectorName, cluster.Namespace, constants.CollectorName, constants.CollectorName, fluentdPodSpec)
 	fluentdDaemonset.Spec.Template.Spec.Containers[0].Env = updateEnvVar(v1.EnvVar{Name: "FLUENT_CONF_HASH", Value: pipelineConfHash}, fluentdDaemonset.Spec.Template.Spec.Containers[0].Env)
 
 	trustedCAHashValue, err := clusterRequest.getTrustedCABundleHash()
@@ -626,7 +617,7 @@ func (clusterRequest *ClusterLoggingRequest) createOrUpdateFluentdDaemonset(pipe
 
 	err = clusterRequest.Create(fluentdDaemonset)
 	if err != nil && !errors.IsAlreadyExists(err) {
-		return fmt.Errorf("Failure creating Fluentd Daemonset %v", err)
+		return fmt.Errorf("Failure creating collector Daemonset %v", err)
 	}
 
 	if clusterRequest.isManaged() {
@@ -650,7 +641,7 @@ func (clusterRequest *ClusterLoggingRequest) updateFluentdDaemonsetIfRequired(de
 			// recreate it on the next time through if necessary
 			return nil
 		}
-		return fmt.Errorf("Failed to get Fluentd daemonset: %v", err)
+		return fmt.Errorf("Failed to get collector daemonset: %v", err)
 	}
 
 	flushBuffer := isBufferFlushRequired(current, desired)
@@ -663,13 +654,13 @@ func (clusterRequest *ClusterLoggingRequest) updateFluentdDaemonsetIfRequired(de
 		if flushBuffer {
 			log.Info("Updating and restarting collector pods to flush its buffers...")
 			if err = clusterRequest.Update(current); err != nil {
-				log.V(2).Error(err, "Failed to prepare Fluentd daemonset to flush its buffers")
+				log.V(2).Error(err, "Failed to prepare collector daemonset to flush its buffers")
 				return err
 			}
 
 			// wait for pods to all restart then continue
 			if err = clusterRequest.waitForDaemonSetReady(current); err != nil {
-				return fmt.Errorf("Timed out waiting for Fluentd to be ready")
+				return fmt.Errorf("Timed out waiting for collector to be ready")
 			}
 		}
 		current.Spec = desired.Spec
@@ -684,7 +675,7 @@ func (clusterRequest *ClusterLoggingRequest) updateFluentdDaemonsetIfRequired(de
 func (clusterRequest *ClusterLoggingRequest) getTrustedCABundleHash() (string, error) {
 
 	fluentdTrustBundle := &v1.ConfigMap{}
-	fluentdTrustBundleName := types.NamespacedName{Name: constants.FluentdTrustedCAName, Namespace: constants.OpenshiftNS}
+	fluentdTrustBundleName := types.NamespacedName{Name: constants.CollectorTrustedCAName, Namespace: constants.OpenshiftNS}
 	if err := clusterRequest.Client.Get(context.TODO(), fluentdTrustBundleName, fluentdTrustBundle); err != nil {
 		if !errors.IsNotFound(err) {
 			return "", err

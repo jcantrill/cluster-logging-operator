@@ -223,7 +223,7 @@ func (tc *E2ETestFramework) waitForFluentDaemonSet(retryInterval, timeout time.D
 	maxtimes := 5
 	times := 0
 	return wait.PollImmediate(retryInterval, timeout, func() (bool, error) {
-		numUnavail, err := oc.Literal().From("oc -n openshift-logging get daemonset/fluentd -o jsonpath={.status.NumberUnavailable}").Run()
+		numUnavail, err := oc.Literal().From("oc -n openshift-logging get daemonset/collector -o jsonpath={.status.NumberUnavailable}").Run()
 		if err == nil {
 			if numUnavail == "" {
 				numUnavail = "0"
@@ -454,19 +454,19 @@ func (tc *E2ETestFramework) CleanFluentDBuffers() {
 			APIVersion: "apps/v1",
 		},
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      "clean-fluentd-buffers",
+			Name:      "clean-buffers",
 			Namespace: "default",
 		},
 		Spec: v1.DaemonSetSpec{
 			Selector: &metav1.LabelSelector{
 				MatchLabels: map[string]string{
-					"name": "clean-fluentd-buffers",
+					"name": "clean-buffers",
 				},
 			},
 			Template: corev1.PodTemplateSpec{
 				ObjectMeta: metav1.ObjectMeta{
 					Labels: map[string]string{
-						"name": "clean-fluentd-buffers",
+						"name": "clean-buffers",
 					},
 				},
 				Spec: corev1.PodSpec{
@@ -478,7 +478,7 @@ func (tc *E2ETestFramework) CleanFluentDBuffers() {
 					},
 					InitContainers: []corev1.Container{
 						{
-							Name:  "clean-fluentd-buffers",
+							Name:  "clean-buffers",
 							Image: "centos:centos7",
 							Args:  []string{"sh", "-c", "rm -rf /fluentd-buffers/** || rm /logs/audit/audit.log.pos || rm /logs/kube-apiserver/audit.log.pos || rm /logs/es-containers.log.pos"},
 							SecurityContext: &corev1.SecurityContext{
@@ -535,11 +535,11 @@ func (tc *E2ETestFramework) CleanFluentDBuffers() {
 		clolog.Info("DaemonSet to clean fluent buffers created")
 	}
 	_ = wait.PollImmediate(time.Second*10, time.Minute*5, func() (bool, error) {
-		desired, err2 := oc.Get().Resource("daemonset", "clean-fluentd-buffers").WithNamespace("default").OutputJsonpath("{.status.desiredNumberScheduled}").Run()
+		desired, err2 := oc.Get().Resource("daemonset", "clean-buffers").WithNamespace("default").OutputJsonpath("{.status.desiredNumberScheduled}").Run()
 		if err2 != nil {
 			return false, nil
 		}
-		current, err2 := oc.Get().Resource("daemonset", "clean-fluentd-buffers").WithNamespace("default").OutputJsonpath("{.status.currentNumberScheduled}").Run()
+		current, err2 := oc.Get().Resource("daemonset", "clean-buffers").WithNamespace("default").OutputJsonpath("{.status.currentNumberScheduled}").Run()
 		if err2 != nil {
 			return false, nil
 		}
