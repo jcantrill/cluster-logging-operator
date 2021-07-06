@@ -2,26 +2,25 @@ package fluentd
 
 import "fmt"
 
-type Set map[string]interface{}
+type Set []string
 
-func NewSet(entries ...string) Set {
-	set := map[string]interface{}{}
-	for _, k := range entries {
-		set[k] = nil
-	}
-	return set
+func NewSet(entries ...string) *Set {
+	set := Set{}
+	set.Add(entries)
+	return &set
 }
 func (s *Set) Entries() []string {
-	entries := []string{}
-	for k, _ := range *s {
-		entries = append(entries, k)
-	}
-	return entries
+	return []string(*s)
 }
-func(c Set) Add(keys []string) {
-	set := map[string]interface{}(c)
+
+func(c *Set) Add(keys []string) {
 	for _, k := range keys {
-		set[k] = nil
+		for _, e := range *c {
+			if e == k {
+				break
+			}
+		}
+		*c = append(*c, k)
 	}
 }
 
@@ -32,10 +31,11 @@ type SerializableToStringList interface {
 type Directive interface {
 	SerializableToStringList
 	Set(key string, value interface{})
+	SetAll(configs map[string]interface{})
 }
 
 type Configuration struct {
-	AllowedKeys Set
+	AllowedKeys *Set
 	Config      map[string]interface{}
 	Type        string
 }
@@ -44,6 +44,12 @@ func Match(pattern string, config Configuration) []string {
 	buf := []string{fmt.Sprintf("<match %s>",pattern)}
 	buf = append(buf, BuildBlock(config)...)
 	return append(buf, "</match>")
+}
+
+func Label(name string, config []string) []string {
+	buf := []string{fmt.Sprintf("<label %s>", name)}
+	buf = append(buf, config...)
+	return append(buf, "</label>")
 }
 
 func BuildBlock(config Configuration) []string {

@@ -165,6 +165,13 @@ type OutputSpec struct {
 	//
 	// +optional
 	Secret *OutputSecretSpec `json:"secret,omitempty"`
+
+	// AdvancedOverrides to configure the output.
+	// The default values for recognized keys for the given output type will
+	// overriden by these values.  WARNING: These changes are for advanced
+	// users
+	// +optional
+	AdvancedOverrides map[string]interface{} `json:"secret,omitempty"`
 }
 
 // OutputSecretSpec is a secret reference containing name only, no namespace.

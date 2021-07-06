@@ -1,35 +1,26 @@
-package output
+package pipeline
 
 import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	. "github.com/openshift/cluster-logging-operator/test/matchers"
 	logging "github.com/openshift/cluster-logging-operator/pkg/apis/logging/v1"
 	corev1 "k8s.io/api/core/v1"
 )
 
-var _ = Describe("Logforwarder forward output", func() {
+var _ = Describe("Logforwarder pipeline", func() {
 
 	var (
-		builder *ForwardOutputBuilder
-		secret = &corev1.Secret{
-			Data: map[string][]byte{
-				"shared_key": []byte("mykey"),
-			},
-		}
-		output = logging.OutputSpec{
-			Name: "special-output",
-			Type: logging.OutputTypeFluentdForward,
-			URL: "fluentdserver.security.example.com:24224",
-		}
+		builder *PipelineToOutputs
+		pipeline logging.PipelineSpec
 	)
 
 	BeforeEach(func() {
-		builder = NewForwardOutputBuilder(output, secret)
-		//secrets = nil
+		builder = NewPipelineToOutputsBuilder(pipeline)
 	})
 
 	Context("when building the configuration", func(){
-		It("should generate the desired forward label", func() {
+		It("should generate the desired pipeline", func() {
 			Expect(builder.AsList()).Should(
 				ConsistOf([]string{
 					"<label @SPECIAL_OUTPUT>",
@@ -66,7 +57,43 @@ var _ = Describe("Logforwarder forward output", func() {
 					"</label>",
 				}))
 		})
+
+		Context("when there are pipeline labels", func(){
+
+		})
+		Context("when configured to parse json", func(){
+
+		})
+
+		Context("when there is more then one output", func(){
+			BeforeEach(func(){
+				pipeline = logging.PipelineSpec{
+					Name:       "apps-pipeline",
+					InputRefs:  []string{"myInput"},
+					OutputRefs: []string{"apps-es-1", "apps-es-2"},
+				}
+				builder = NewPipelineToOutputsBuilder(pipeline)
+			})
+			It("should generate the desired pipeline", func() {
+				Expect(builder.String()).Should(
+				EqualTrimLines(`
+  <label @APPS_PIPELINE>
+    <match **>
+      @type copy
+      <store>
+        @type relabel
+        @label @APPS_ES_1
+      </store>
+      <store>
+        @type relabel
+        @label @APPS_ES_2
+     </store>
+    </match>
+  </label>`))
+			})
+		})
 	})
+
 
 
 

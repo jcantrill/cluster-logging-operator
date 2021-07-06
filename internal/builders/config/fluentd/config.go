@@ -1,12 +1,12 @@
 package fluentd
 
 type FluentdConfig struct {
-	Directives []Directive
+	Directives []SerializableToStringList
 }
 
 func NewConfigBuilder() *FluentdConfig {
 	return &FluentdConfig{
-		Directives: []Directive{},
+		Directives: []SerializableToStringList{},
 	}
 }
 
