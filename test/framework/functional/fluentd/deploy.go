@@ -3,7 +3,9 @@ package fluentd
 import (
 	"github.com/ViaQ/logerr/log"
 	"github.com/openshift/cluster-logging-operator/internal/components/fluentd"
+	"github.com/openshift/cluster-logging-operator/internal/constants"
 	"github.com/openshift/cluster-logging-operator/internal/runtime"
+	"github.com/openshift/cluster-logging-operator/internal/utils"
 	"github.com/openshift/cluster-logging-operator/test/client"
 	"strings"
 )
@@ -46,4 +48,8 @@ func (c *FluentdCollector) BuildCollectorContainer(b *runtime.ContainerBuilder, 
 func (c *FluentdCollector) IsStarted(logs string) bool {
 	// if fluentd started successfully return success
 	return strings.Contains(logs, "flush_thread actually running")
+}
+
+func (c *FluentdCollector) Image() string {
+	return utils.GetComponentImage(constants.FluentdName)
 }
