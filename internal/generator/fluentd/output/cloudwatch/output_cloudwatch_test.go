@@ -63,7 +63,7 @@ var _ = Describe("Generating fluentd config", func() {
     </record>
   </filter>
   
-  <filter ` + source.ApplicationTagsForMultilineEx + `>
+  <filter ` + source.ApplicationTagsComplex + `>
     @type record_modifier
     <record>
       cw_group_name application
@@ -119,7 +119,7 @@ var _ = Describe("Generating fluentd config", func() {
     </record>
   </filter>
 
-  <filter ` + source.ApplicationTagsForMultilineEx + `>
+  <filter ` + source.ApplicationTagsComplex + `>
     @type record_modifier
     <record>
       cw_group_name ${record['kubernetes']['namespace_name']}
@@ -178,7 +178,7 @@ var _ = Describe("Generating fluentd config", func() {
     </record>
   </filter>
 
-  <filter ` + source.ApplicationTagsForMultilineEx + `>
+  <filter ` + source.ApplicationTagsComplex + `>
     @type record_modifier
     <record>
       cw_group_name foo.${record['kubernetes']['namespace_id']}
@@ -236,7 +236,7 @@ var _ = Describe("Generating fluentd config", func() {
     </record>
   </filter>
   
-  <filter ` + source.ApplicationTagsForMultilineEx + `>
+  <filter ` + source.ApplicationTagsComplex + `>
     @type record_modifier
     char_encoding utf-8:utf-8
     <record>
@@ -329,7 +329,7 @@ var _ = Describe("Generating fluentd config for sts", func() {
     </record>
   </filter>
   
-  <filter ` + source.ApplicationTagsForMultilineEx + `>
+  <filter ` + source.ApplicationTagsComplex + `>
     @type record_modifier
     <record>
       cw_group_name application
@@ -394,7 +394,7 @@ var _ = Describe("Generating fluentd config for sts", func() {
   </filter>
   
 
-  <filter ` + source.ApplicationTagsForMultilineEx + `>
+  <filter ` + source.ApplicationTagsComplex + `>
     @type record_modifier
     <record>
       cw_group_name application
@@ -453,7 +453,7 @@ var _ = Describe("Generating fluentd config for sts", func() {
     </record>
   </filter>
 
-  <filter ` + source.ApplicationTagsForMultilineEx + `>
+  <filter ` + source.ApplicationTagsComplex + `>
     @type record_modifier
     <record>
       cw_group_name ${record['kubernetes']['namespace_name']}
@@ -515,7 +515,7 @@ var _ = Describe("Generating fluentd config for sts", func() {
     </record>
   </filter>
 
-  <filter ` + source.ApplicationTagsForMultilineEx + `>
+  <filter ` + source.ApplicationTagsComplex + `>
     @type record_modifier
     <record>
       cw_group_name foo.${record['kubernetes']['namespace_id']}

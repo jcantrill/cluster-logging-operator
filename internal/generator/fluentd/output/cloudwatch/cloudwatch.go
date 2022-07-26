@@ -77,7 +77,7 @@ func Conf(bufspec *logging.FluentdBufferSpec, secret *corev1.Secret, o logging.O
 					source.InfraTagsForMultilineEx, op),
 				GroupNameStreamName(fmt.Sprintf("%s%s", logGroupPrefix, logGroupName),
 					"${tag}",
-					source.ApplicationTagsForMultilineEx, op),
+					source.ApplicationTagsComplex, op),
 				GroupNameStreamName(fmt.Sprintf("%saudit", logGroupPrefix),
 					"${record['hostname']}.${tag}",
 					source.AuditTags, op),
