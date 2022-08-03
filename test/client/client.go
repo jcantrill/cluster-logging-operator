@@ -86,6 +86,14 @@ func (c *Client) Create(o crclient.Object) (err error) {
 	return c.create(o)
 }
 
+// CreateDryRun the cluster resource described by the struct o.
+func (c *Client) CreateDryRun(o crclient.Object) (err error) {
+	defer logBeginEnd("CreateDryRun", o, &err)()
+	ctx, cancel := context.WithTimeout(c.ctx, c.timeout)
+	defer cancel()
+	return c.c.Create(ctx, o, &crclient.CreateOptions{DryRun: []string{"All"}})
+}
+
 func (c *Client) create(o crclient.Object) (err error) {
 	for k, v := range c.Labels {
 		testrt.Labels(o)[k] = v

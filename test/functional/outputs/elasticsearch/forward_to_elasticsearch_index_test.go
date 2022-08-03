@@ -17,7 +17,7 @@ import (
 	"time"
 )
 
-var _ = Describe("[Functional][Outputs][ElasticSearch] forwarding to specific index", func() {
+var _ = FDescribe("[Functional][Outputs][ElasticSearch] forwarding to specific index", func() {
 
 	const (
 		elasticSearchTag   = "7.10.1"
@@ -96,6 +96,7 @@ var _ = Describe("[Functional][Outputs][ElasticSearch] forwarding to specific in
 			// Compare to expected template
 			outputTestLog := logs[0]
 			outputLogTemplate.ViaqIndexName = ""
+			outputLogTemplate.Message = ""
 			Expect(outputTestLog).To(matchers.FitLogFormatTemplate(outputLogTemplate))
 		})
 		It("should not send logs spec'd by structuredTypeName for infrastructure sources", func() {
@@ -125,6 +126,7 @@ var _ = Describe("[Functional][Outputs][ElasticSearch] forwarding to specific in
 			// Compare to expected template
 			outputTestLog := logs[0]
 			outputLogTemplate.ViaqIndexName = ""
+			outputLogTemplate.Structured = map[string]interface{}{}
 			Expect(outputTestLog).To(matchers.FitLogFormatTemplate(outputLogTemplate))
 		})
 		It("should not send logs spec'd by k8s label structuredTypeKey for infrastructure sources", func() {
@@ -153,6 +155,7 @@ var _ = Describe("[Functional][Outputs][ElasticSearch] forwarding to specific in
 			// Compare to expected template
 			outputTestLog := logs[0]
 			outputLogTemplate.ViaqIndexName = ""
+			outputLogTemplate.Structured = map[string]interface{}{}
 			Expect(outputTestLog).To(matchers.FitLogFormatTemplate(outputLogTemplate))
 		})
 		It("should send logs spec'd by k8s label structuredTypeKey", func() {
@@ -179,6 +182,7 @@ var _ = Describe("[Functional][Outputs][ElasticSearch] forwarding to specific in
 			// Compare to expected template
 			outputTestLog := logs[0]
 			outputLogTemplate.ViaqIndexName = ""
+			outputLogTemplate.Message = ""
 			Expect(outputTestLog).To(matchers.FitLogFormatTemplate(outputLogTemplate))
 		})
 		It("should send logs spec'd by openshift label structuredTypeKey", func() {
@@ -206,6 +210,7 @@ var _ = Describe("[Functional][Outputs][ElasticSearch] forwarding to specific in
 			// Compare to expected template
 			outputTestLog := logs[0]
 			outputLogTemplate.ViaqIndexName = ""
+			outputLogTemplate.Message = ""
 			Expect(outputTestLog).To(matchers.FitLogFormatTemplate(outputLogTemplate))
 		})
 		Context("and enabling sending each container log to different indices", func() {
@@ -252,6 +257,7 @@ var _ = Describe("[Functional][Outputs][ElasticSearch] forwarding to specific in
 
 		Context("if structured type name/key not configured", func() {
 			It("should send logs to app-write", func() {
+				Skip("TODO: LOG-2872 FIX ME")
 				clfb := functional.NewClusterLogForwarderBuilder(framework.Forwarder).
 					FromInput(logging.InputNameApplication).
 					ToElasticSearchOutput()
@@ -271,6 +277,7 @@ var _ = Describe("[Functional][Outputs][ElasticSearch] forwarding to specific in
 				// Compare to expected template
 				outputTestLog := logs[0]
 				outputLogTemplate.ViaqIndexName = ""
+				outputLogTemplate.Structured = map[string]interface{}{}
 				Expect(outputTestLog).To(matchers.FitLogFormatTemplate(outputLogTemplate))
 			})
 		})
@@ -284,6 +291,9 @@ var _ = Describe("[Functional][Outputs][ElasticSearch] forwarding to specific in
 						}
 					}, logging.OutputTypeElasticsearch)
 				clfb.Forwarder.Spec.Pipelines[0].Parse = "json"
+
+				Expect(framework.Test.CreateDryRun(clfb.Forwarder)).To(Fail(), "Expected an invalid structuredTypeKey to be rejected")
+				Fail("")
 				Expect(framework.Deploy()).To(BeNil())
 
 				applicationLogLine := functional.CreateAppLogFromJson(jsonLog)
@@ -299,6 +309,7 @@ var _ = Describe("[Functional][Outputs][ElasticSearch] forwarding to specific in
 				// Compare to expected template
 				outputTestLog := logs[0]
 				outputLogTemplate.ViaqIndexName = ""
+				outputLogTemplate.Structured = map[string]interface{}{}
 				Expect(outputTestLog).To(matchers.FitLogFormatTemplate(outputLogTemplate))
 			})
 		})
