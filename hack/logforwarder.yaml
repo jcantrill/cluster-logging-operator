@@ -4,9 +4,15 @@ metadata:
   name: instance 
   namespace: openshift-logging 
 spec:
+  outputs:
+  - name: myes
+    type: elasticsearch
+    elasticsearch:
+      structredTypeKey: junk
+    url: https://foo:9200
   pipelines:
    - name: application-logs 
      inputRefs: 
      - application
      outputRefs:
-     - default 
+     - myes 

@@ -6,6 +6,7 @@ import (
 	"sync"
 	"time"
 
+	loggingv1 "github.com/openshift/cluster-logging-operator/apis/logging/v1"
 	testrt "github.com/openshift/cluster-logging-operator/internal/runtime"
 
 	log "github.com/ViaQ/logerr/v2/log/static"
@@ -59,6 +60,8 @@ func New(cfg *rest.Config, timeout time.Duration, labels map[string]string) (*Cl
 	if c.c, err = crclient.New(cfg, crclient.Options{Mapper: c.mapper}); err != nil {
 		return nil, err
 	}
+	c.c.Scheme().AddKnownTypes(loggingv1.GroupVersion, &loggingv1.ClusterLogging{}, &loggingv1.ClusterLogForwarder{})
+	log.Info("knowntypes", "types", c.c.Scheme().KnownTypes(loggingv1.GroupVersion))
 	return c, nil
 }
 
@@ -91,6 +94,7 @@ func (c *Client) CreateDryRun(o crclient.Object) (err error) {
 	defer logBeginEnd("CreateDryRun", o, &err)()
 	ctx, cancel := context.WithTimeout(c.ctx, c.timeout)
 	defer cancel()
+	log.Info("knowntypes", "types", c.c.Scheme().KnownTypes(loggingv1.GroupVersion))
 	return c.c.Create(ctx, o, &crclient.CreateOptions{DryRun: []string{"All"}})
 }
 

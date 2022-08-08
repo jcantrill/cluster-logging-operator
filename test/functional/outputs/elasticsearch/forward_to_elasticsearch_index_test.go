@@ -281,7 +281,7 @@ var _ = FDescribe("[Functional][Outputs][ElasticSearch] forwarding to specific i
 				Expect(outputTestLog).To(matchers.FitLogFormatTemplate(outputLogTemplate))
 			})
 		})
-		Context("if elasticsearch structuredTypeKey wrongly configured", func() {
+		FContext("if elasticsearch structuredTypeKey wrongly configured", func() {
 			It("should send logs to app-write", func() {
 				clfb := functional.NewClusterLogForwarderBuilder(framework.Forwarder).
 					FromInput(logging.InputNameApplication).
@@ -292,7 +292,7 @@ var _ = FDescribe("[Functional][Outputs][ElasticSearch] forwarding to specific i
 					}, logging.OutputTypeElasticsearch)
 				clfb.Forwarder.Spec.Pipelines[0].Parse = "json"
 
-				Expect(framework.Test.CreateDryRun(clfb.Forwarder)).To(Fail(), "Expected an invalid structuredTypeKey to be rejected")
+				Expect(framework.Test.CreateDryRun(clfb.Forwarder)).To(Not(BeEmpty()), "Expected an invalid structuredTypeKey to be rejected")
 				Fail("")
 				Expect(framework.Deploy()).To(BeNil())
 
