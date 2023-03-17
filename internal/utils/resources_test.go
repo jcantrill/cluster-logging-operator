@@ -10,7 +10,6 @@ import (
 )
 
 var (
-	limitMemory   = resource.MustParse("120Gi")
 	requestMemory = resource.MustParse("100Gi")
 	requestCPU    = resource.MustParse("500m")
 )
