@@ -16,6 +16,7 @@ package status
 
 import (
 	"encoding/json"
+	logging "github.com/openshift/cluster-logging-operator/apis/logging/v1"
 	"sort"
 
 	corev1 "k8s.io/api/core/v1"
@@ -217,4 +218,14 @@ func (in Conditions) DeepCopy() Conditions {
 	out := new(Conditions)
 	in.DeepCopyInto(out)
 	return *out
+}
+
+var CondReady = Condition{Type: logging.ConditionReady, Status: corev1.ConditionTrue}
+
+func CondNotReady(r ConditionReason, format string, args ...interface{}) Condition {
+	return logging.NewCondition(logging.ConditionReady, corev1.ConditionFalse, r, format, args...)
+}
+
+func CondInvalid(format string, args ...interface{}) Condition {
+	return CondNotReady(logging.ReasonInvalid, format, args...)
 }

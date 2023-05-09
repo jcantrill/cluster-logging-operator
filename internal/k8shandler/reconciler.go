@@ -8,13 +8,9 @@ import (
 
 	eslogstore "github.com/openshift/cluster-logging-operator/internal/logstore/elasticsearch"
 	"github.com/openshift/cluster-logging-operator/internal/logstore/lokistack"
-	"github.com/openshift/cluster-logging-operator/internal/metrics/telemetry"
-	"github.com/openshift/cluster-logging-operator/internal/validations/clusterlogforwarder"
-
-	"github.com/openshift/cluster-logging-operator/internal/migrations"
-	"github.com/openshift/cluster-logging-operator/internal/runtime"
-
 	"github.com/openshift/cluster-logging-operator/internal/metrics"
+	"github.com/openshift/cluster-logging-operator/internal/metrics/telemetry"
+	"github.com/openshift/cluster-logging-operator/internal/migrations"
 
 	log "github.com/ViaQ/logerr/v2/log/static"
 	logging "github.com/openshift/cluster-logging-operator/apis/logging/v1"
@@ -27,7 +23,7 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 )
 
-func Reconcile(cl *logging.ClusterLogging, requestClient client.Client, reader client.Reader, r record.EventRecorder, clusterVersion, clusterID string) (instance *logging.ClusterLogging, err error) {
+func Reconcile(cl *logging.ClusterLogging, forwarder *logging.ClusterLogForwarder, requestClient client.Client, reader client.Reader, r record.EventRecorder, clusterVersion, clusterID string) (instance *logging.ClusterLogging, err error) {
 	clusterLoggingRequest := ClusterLoggingRequest{
 		Cluster:        cl,
 		Client:         requestClient,
@@ -45,52 +41,28 @@ func Reconcile(cl *logging.ClusterLogging, requestClient client.Client, reader c
 		telemetry.SetCLFMetrics(1)
 	}()
 
-	if instance, err = clusterLoggingRequest.getClusterLogging(false); err != nil {
-		return nil, err
-	}
-	clusterLoggingRequest.Cluster = instance
+	//if instance, err = clusterLoggingRequest.getClusterLogging(false); err != nil {
+	//	return nil, err
+	//}
+	//clusterLoggingRequest.Cluster = instance
 
-	if instance.GetDeletionTimestamp() != nil {
+	if cl.GetDeletionTimestamp() != nil {
 		// ClusterLogging is being deleted, remove resources that can not be garbage-collected.
 		if err := lokistack.RemoveRbac(clusterLoggingRequest.Client, clusterLoggingRequest.removeFinalizer); err != nil {
 			log.Error(err, "Error removing RBAC for accessing LokiStack.")
 		}
 	}
 
-	if !clusterLoggingRequest.isManaged() {
-		// if cluster is set to unmanaged then set managedStatus as 0
-		telemetry.Data.CLInfo.Set("managedStatus", constants.UnManagedStatus)
-		return clusterLoggingRequest.Cluster, nil
-	}
+	//if !clusterLoggingRequest.isManaged() {
+	//	// if cluster is set to unmanaged then set managedStatus as 0
+	//	telemetry.Data.CLInfo.Set("managedStatus", constants.UnManagedStatus)
+	//	return clusterLoggingRequest.Cluster, nil
+	//}
 	// CL is managed by default set it as 1
 	telemetry.Data.CLInfo.Set("managedStatus", constants.ManagedStatus)
 	updateInfofromCL(&clusterLoggingRequest)
-	forwarder, extras := clusterLoggingRequest.getLogForwarder()
-	if forwarder != nil {
-		if err := clusterlogforwarder.Validate(*forwarder); err != nil {
-			return nil, err
-		}
-		clusterLoggingRequest.ForwarderRequest = forwarder
-		clusterLoggingRequest.ForwarderSpec = forwarder.Spec
 
-		// Verify clf inputs, outputs, pipelines AFTER migration
-		status := clusterlogforwarder.ValidateInputsOutputsPipelines(
-			clusterLoggingRequest.Cluster,
-			clusterLoggingRequest.Client,
-			clusterLoggingRequest.ForwarderRequest,
-			clusterLoggingRequest.ForwarderSpec,
-			extras)
-
-		clusterLoggingRequest.ForwarderRequest.Status = *status
-
-		// Rejected if clf condition is not ready
-		// Do not create or update the collection
-		if status.Conditions.IsFalseFor(logging.ConditionReady) {
-			telemetry.Data.CLFInfo.Set("healthStatus", constants.UnHealthyStatus)
-			return clusterLoggingRequest.Cluster, errors.New("invalid clusterlogforwarder spec. No change in collection")
-		}
-
-	} else if !clusterLoggingRequest.IncludesManagedStorage() {
+	if !forwarder.Status.IsReady() && !clusterLoggingRequest.IncludesManagedStorage() {
 		// No clf and no logStore so remove the collector https://issues.redhat.com/browse/LOG-2703
 		removeCollectorAndUpdate(clusterLoggingRequest)
 		return clusterLoggingRequest.Cluster, nil
@@ -114,7 +86,7 @@ func Reconcile(cl *logging.ClusterLogging, requestClient client.Client, reader c
 	}
 
 	// Reconcile Collection
-	if err = clusterLoggingRequest.CreateOrUpdateCollection(extras); err != nil {
+	if err = clusterLoggingRequest.CreateOrUpdateCollection(); err != nil {
 		telemetry.Data.CLInfo.Set("healthStatus", constants.UnHealthyStatus)
 		telemetry.Data.CollectorErrorCount.Inc("CollectorErrorCount")
 		return clusterLoggingRequest.Cluster, fmt.Errorf("unable to create or update collection for %q: %v", clusterLoggingRequest.Cluster.Name, err)
@@ -162,7 +134,7 @@ func removeManagedStorage(clusterRequest ClusterLoggingRequest) {
 	}
 }
 
-func ReconcileForClusterLogForwarder(forwarder *logging.ClusterLogForwarder, requestClient client.Client, er record.EventRecorder, clusterID string) (err error) {
+func ReconcileForClusterLogForwarder(forwarder *logging.ClusterLogForwarder, clusterLogging *logging.ClusterLogging, requestClient client.Client, er record.EventRecorder, clusterID string) (err error) {
 	clusterLoggingRequest := ClusterLoggingRequest{
 		Client:        requestClient,
 		EventRecorder: er,
@@ -173,42 +145,27 @@ func ReconcileForClusterLogForwarder(forwarder *logging.ClusterLogForwarder, req
 		clusterLoggingRequest.ForwarderSpec = forwarder.Spec
 	}
 
-	var clusterLogging *logging.ClusterLogging
-	if clusterLogging, err = clusterLoggingRequest.getClusterLogging(false); err != nil {
-		return err
-	}
+	//TODO This is really for determining collector resources. What do we do?
 	if clusterLogging == nil {
 		return nil
 	}
 
-	extras := map[string]bool{}
-	clusterLoggingRequest.ForwarderSpec, extras = migrations.MigrateClusterLogForwarderSpec(forwarder.Spec, clusterLogging.Spec.LogStore, extras)
-	clusterLoggingRequest.Cluster = clusterLogging
-
+	//TODO Moved from reconciler#ReconcileForClusterLogForwarder
+	// Does this field need to be added to CLF?  Does it go away?
 	if clusterLogging.Spec.ManagementState == logging.ManagementStateUnmanaged {
 		telemetry.Data.CLInfo.Set("managedStatus", constants.UnManagedStatus)
 		return nil
 	}
 
-	// Verify clf inputs, outputs, pipelines AFTER migration
-	status := clusterlogforwarder.ValidateInputsOutputsPipelines(
-		clusterLoggingRequest.Cluster,
-		clusterLoggingRequest.Client,
-		clusterLoggingRequest.ForwarderRequest,
-		clusterLoggingRequest.ForwarderSpec,
-		extras)
-
-	clusterLoggingRequest.ForwarderRequest.Status = *status
-
-	// Rejected if clf condition is not ready
-	// Do not create or update the collection
-	if status.Conditions.IsFalseFor(logging.ConditionReady) {
-		telemetry.Data.CLFInfo.Set("healthStatus", constants.UnHealthyStatus)
-		return nil
-	}
+	//// Rejected if clf condition is not ready
+	//// Do not create or update the collection
+	//if status.Conditions.IsFalseFor(logging.ConditionReady) {
+	//	telemetry.Data.CLFInfo.Set("healthStatus", constants.UnHealthyStatus)
+	//	return nil
+	//}
 
 	// If valid, generate the appropriate config
-	err = clusterLoggingRequest.CreateOrUpdateCollection(extras)
+	err = clusterLoggingRequest.CreateOrUpdateCollection()
 	forwarder.Status = clusterLoggingRequest.ForwarderRequest.Status
 
 	if err != nil {
@@ -246,20 +203,6 @@ func (clusterRequest *ClusterLoggingRequest) getClusterLogging(skipMigrations bo
 	clusterLogging.Spec = migrations.MigrateCollectionSpec(clusterLogging.Spec)
 
 	return clusterLogging, nil
-}
-
-func (clusterRequest *ClusterLoggingRequest) getLogForwarder() (*logging.ClusterLogForwarder, map[string]bool) {
-	nsname := types.NamespacedName{Name: constants.SingletonName, Namespace: clusterRequest.Cluster.Namespace}
-	forwarder := runtime.NewClusterLogForwarder(clusterRequest.Cluster.Namespace, clusterRequest.Cluster.Name)
-	if err := clusterRequest.Client.Get(context.TODO(), nsname, forwarder); err != nil {
-		if !apierrors.IsNotFound(err) {
-			log.Error(err, "Encountered unexpected error getting", "forwarder", nsname)
-		}
-		forwarder.Spec = logging.ClusterLogForwarderSpec{}
-	}
-	extras := map[string]bool{}
-	forwarder.Spec, extras = migrations.MigrateClusterLogForwarderSpec(forwarder.Spec, clusterRequest.Cluster.Spec.LogStore, extras)
-	return forwarder, extras
 }
 
 func updateInfofromCL(request *ClusterLoggingRequest) {

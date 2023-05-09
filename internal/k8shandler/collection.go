@@ -24,7 +24,7 @@ import (
 )
 
 // CreateOrUpdateCollection component of the cluster
-func (clusterRequest *ClusterLoggingRequest) CreateOrUpdateCollection(extras map[string]bool) (err error) {
+func (clusterRequest *ClusterLoggingRequest) CreateOrUpdateCollection() (err error) {
 	if !clusterRequest.isManaged() {
 		return nil
 	}
@@ -68,7 +68,7 @@ func (clusterRequest *ClusterLoggingRequest) CreateOrUpdateCollection(extras map
 			return
 		}
 
-		if collectorConfig, err = clusterRequest.generateCollectorConfig(extras); err != nil {
+		if collectorConfig, err = clusterRequest.generateCollectorConfig(); err != nil {
 			log.V(9).Error(err, "clusterRequest.generateCollectorConfig")
 			return
 		}

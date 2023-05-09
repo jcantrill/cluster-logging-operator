@@ -2,6 +2,7 @@ package clusterlogging
 
 import (
 	"context"
+	"github.com/openshift/cluster-logging-operator/internal/k8s/loader"
 	"github.com/openshift/cluster-logging-operator/internal/metrics/telemetry"
 	"strings"
 	"time"
@@ -58,15 +59,13 @@ type ReconcileClusterLogging struct {
 // Result.Requeue is true, otherwise upon completion it will remove the work from the queue.
 func (r *ReconcileClusterLogging) Reconcile(ctx context.Context, request ctrl.Request) (ctrl.Result, error) {
 	log.V(3).Info("Clusterlogging reconcile request.", "namespace", request.Namespace, "name", request.Name)
+	r.Recorder.Event(loggingruntime.NewClusterLogging(request.NamespacedName.Namespace, request.NamespacedName.Name), corev1.EventTypeNormal, constants.EventReasonReconcilingLoggingCR, "Reconciling logging resource")
 
 	telemetry.SetCLMetrics(0) // Cancel previous info metric
 	defer func() { telemetry.SetCLMetrics(1) }()
 
 	// Fetch the ClusterLogging instance
-	instance := &loggingv1.ClusterLogging{}
-	loggingruntime.Initialize(instance, request.NamespacedName.Namespace, request.NamespacedName.Name)
-	r.Recorder.Event(instance, corev1.EventTypeNormal, constants.EventReasonReconcilingLoggingCR, "Reconciling logging resource")
-	err := r.Client.Get(ctx, request.NamespacedName, instance)
+	instance, err := loader.FetchClusterLogging(r.Client, request.NamespacedName.Namespace, request.NamespacedName.Name, false)
 	if err != nil {
 		if errors.IsNotFound(err) {
 			// Request object not found, could have been deleted after reconcile request.
@@ -77,6 +76,9 @@ func (r *ReconcileClusterLogging) Reconcile(ctx context.Context, request ctrl.Re
 			}
 			return ctrl.Result{}, nil
 		}
+		//TODO Add me
+		// if validationerrors.IsValidationError(err) {
+		// }
 		// Error reading the object - requeue the request.
 		return ctrl.Result{}, err
 	}
@@ -87,12 +89,16 @@ func (r *ReconcileClusterLogging) Reconcile(ctx context.Context, request ctrl.Re
 		return ctrl.Result{}, nil
 	}
 
-	if _, err = k8shandler.Reconcile(instance, r.Client, r.Reader, r.Recorder, r.ClusterVersion, r.ClusterID); err != nil {
+	clf, err := loader.FetchClusterLogForwarder(r.Client, constants.WatchNamespace, constants.SingletonName, func() loggingv1.ClusterLogging { return instance })
+	if err != nil && !errors.IsNotFound(err) {
+		return ctrl.Result{}, err
+	}
+	if _, err = k8shandler.Reconcile(&instance, &clf, r.Client, r.Reader, r.Recorder, r.ClusterVersion, r.ClusterID); err != nil {
 		telemetry.Data.CLInfo.Set("healthStatus", constants.UnHealthyStatus)
 		log.Error(err, "Error reconciling clusterlogging instance")
 	}
 
-	if result, err := r.updateStatus(instance); err != nil {
+	if result, err := r.updateStatus(&instance); err != nil {
 		return result, err
 	}
 

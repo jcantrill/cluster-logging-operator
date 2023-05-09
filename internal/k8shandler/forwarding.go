@@ -38,7 +38,7 @@ func EvaluateAnnotationsForEnabledCapabilities(forwarder *logging.ClusterLogForw
 	}
 }
 
-func (clusterRequest *ClusterLoggingRequest) generateCollectorConfig(extras map[string]bool) (config string, err error) {
+func (clusterRequest *ClusterLoggingRequest) generateCollectorConfig() (config string, err error) {
 	if clusterRequest.Cluster == nil || clusterRequest.Cluster.Spec.Collection == nil {
 		log.V(2).Info("skipping collection config generation as 'collection' section is not specified in CLO's CR")
 		return "", nil
