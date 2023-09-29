@@ -94,7 +94,7 @@ All conditions in the selector must be satisfied (logical AND) to select logs.
 |======================
 |Property|Type|Description
 
-|containerLimit|object|  *(optional)* Container limit applied to each container selected
+|containerLimit|object|  *(optional)* PodLimit applied to each pod selected
 |namespaces|array|  *(optional)* Namespaces from which to collect application logs.
 |selector|object|  *(optional)* Selector for logs from pods with matching labels.
 |======================
@@ -240,6 +240,7 @@ Output defines a destination for log messages.
 |googleCloudLogging|object|  *(optional)* 
 |splunk|object|  *(optional)* 
 |http|object|  *(optional)* 
+|tuning|string|  *(optional)* Tuning are output specific config parameters applicable to vector
 |limit|object|  *(optional)* Limit applied to the aggregated log
 |name|string|  Name used to refer to the output from a `pipeline`.
 |secret|object|  *(optional)* Secret for authentication.
