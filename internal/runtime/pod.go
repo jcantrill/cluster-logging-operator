@@ -23,7 +23,7 @@ func NewPodBuilder(pod *corev1.Pod) *PodBuilder {
 }
 
 type ContainerBuilder struct {
-	container     *corev1.Container
+	Container     *corev1.Container
 	podBuilder    *PodBuilder
 	initContainer bool
 }
@@ -38,15 +38,15 @@ func (builder *ContainerBuilder) containers() *[]corev1.Container {
 
 func (builder *ContainerBuilder) End() *PodBuilder {
 	containers := builder.containers()
-	*containers = append(*containers, *builder.container)
+	*containers = append(*containers, *builder.Container)
 	return builder.podBuilder
 }
 
 func (builder *ContainerBuilder) Update() *PodBuilder {
 	containers := builder.containers()
 	for i := range *containers {
-		if (*containers)[i].Name == builder.container.Name {
-			(*containers)[i] = *(builder.container)
+		if (*containers)[i].Name == builder.Container.Name {
+			(*containers)[i] = *(builder.Container)
 			break
 		}
 	}
@@ -54,7 +54,7 @@ func (builder *ContainerBuilder) Update() *PodBuilder {
 }
 
 func (builder *ContainerBuilder) AddVolumeMount(name, path, subPath string, readonly bool) *ContainerBuilder {
-	builder.container.VolumeMounts = append(builder.container.VolumeMounts, corev1.VolumeMount{
+	builder.Container.VolumeMounts = append(builder.Container.VolumeMounts, corev1.VolumeMount{
 		Name:      name,
 		ReadOnly:  readonly,
 		MountPath: path,
@@ -64,23 +64,23 @@ func (builder *ContainerBuilder) AddVolumeMount(name, path, subPath string, read
 }
 
 func (builder *ContainerBuilder) ResourceRequirements(resources corev1.ResourceRequirements) *ContainerBuilder {
-	builder.container.Resources = resources
+	builder.Container.Resources = resources
 	return builder
 }
 
 func (builder *ContainerBuilder) WithCmdArgs(cmdArgs []string) *ContainerBuilder {
-	builder.container.Args = cmdArgs
+	builder.Container.Args = cmdArgs
 	return builder
 }
 
 func (builder *ContainerBuilder) WithCmd(cmdAgrgs []string) *ContainerBuilder {
-	builder.container.Command = []string{cmdAgrgs[0]}
-	builder.container.Args = cmdAgrgs[1:]
+	builder.Container.Command = []string{cmdAgrgs[0]}
+	builder.Container.Args = cmdAgrgs[1:]
 	return builder
 }
 
 func (builder *ContainerBuilder) AddEnvVar(name, value string) *ContainerBuilder {
-	builder.container.Env = append(builder.container.Env, corev1.EnvVar{
+	builder.Container.Env = append(builder.Container.Env, corev1.EnvVar{
 		Name:  name,
 		Value: value,
 	})
@@ -88,7 +88,7 @@ func (builder *ContainerBuilder) AddEnvVar(name, value string) *ContainerBuilder
 }
 
 func (builder *ContainerBuilder) AddEnvVarFromFieldRef(name, fieldRef string) *ContainerBuilder {
-	builder.container.Env = append(builder.container.Env, corev1.EnvVar{
+	builder.Container.Env = append(builder.Container.Env, corev1.EnvVar{
 		Name: name,
 		ValueFrom: &corev1.EnvVarSource{
 			FieldRef: &corev1.ObjectFieldSelector{
@@ -100,7 +100,7 @@ func (builder *ContainerBuilder) AddEnvVarFromFieldRef(name, fieldRef string) *C
 }
 
 func (builder *ContainerBuilder) WithPodSecurity() *ContainerBuilder {
-	builder.container.SecurityContext = &corev1.SecurityContext{
+	builder.Container.SecurityContext = &corev1.SecurityContext{
 		AllowPrivilegeEscalation: utils.GetPtr(false),
 		RunAsNonRoot:             utils.GetPtr(true),
 		Capabilities: &corev1.Capabilities{
@@ -116,20 +116,20 @@ func (builder *ContainerBuilder) WithPodSecurity() *ContainerBuilder {
 }
 
 func (builder *ContainerBuilder) WithPrivilege() *ContainerBuilder {
-	builder.container.SecurityContext = &corev1.SecurityContext{
+	builder.Container.SecurityContext = &corev1.SecurityContext{
 		Privileged: utils.GetPtr(true),
 	}
 	return builder
 }
 
 func (builder *ContainerBuilder) WithImagePullPolicy(policy corev1.PullPolicy) *ContainerBuilder {
-	builder.container.ImagePullPolicy = policy
+	builder.Container.ImagePullPolicy = policy
 	return builder
 }
 
 func (builder *PodBuilder) AddContainer(name, image string) *ContainerBuilder {
 	containerBuilder := ContainerBuilder{
-		container: &corev1.Container{
+		Container: &corev1.Container{
 			Name:            strings.ToLower(name),
 			Image:           image,
 			Env:             []corev1.EnvVar{},
@@ -185,7 +185,7 @@ func (builder *PodBuilder) GetContainer(name string) *ContainerBuilder {
 	lowerCaseName := strings.ToLower(name)
 	for i := range builder.Pod.Spec.Containers {
 		if builder.Pod.Spec.Containers[i].Name == lowerCaseName {
-			b.container = &builder.Pod.Spec.Containers[i]
+			b.Container = &builder.Pod.Spec.Containers[i]
 			return b
 		}
 	}
@@ -193,14 +193,19 @@ func (builder *PodBuilder) GetContainer(name string) *ContainerBuilder {
 }
 
 func (builder *ContainerBuilder) WithImage(image string) *ContainerBuilder {
-	builder.container.Image = image
+	builder.Container.Image = image
 	return builder
 }
 
+func (builder *ContainerBuilder) WithRunAsUser(uid int64) *ContainerBuilder {
+	return builder.AddRunAsUser(uid)
+}
+
 func (builder *ContainerBuilder) AddRunAsUser(uid int64) *ContainerBuilder {
-	builder.container.SecurityContext = &corev1.SecurityContext{
-		RunAsUser: &uid,
+	if builder.Container.SecurityContext == nil {
+		builder.Container.SecurityContext = &corev1.SecurityContext{}
 	}
+	builder.Container.SecurityContext.RunAsUser = &uid
 	return builder
 }
 
@@ -226,7 +231,7 @@ func (builder *PodBuilder) AddLabels(labels map[string]string) *PodBuilder {
 
 func (builder *PodBuilder) AddInitContainer(name, image string) *ContainerBuilder {
 	containerBuilder := ContainerBuilder{
-		container: &corev1.Container{
+		Container: &corev1.Container{
 			Name:            strings.ToLower(name),
 			Image:           image,
 			Env:             []corev1.EnvVar{},
@@ -260,6 +265,6 @@ func (builder *PodBuilder) AddHostPathVolume(name, path string) *PodBuilder {
 }
 
 func (builder *ContainerBuilder) AddContainerPort(name string, port int32) *ContainerBuilder {
-	builder.container.Ports = append(builder.container.Ports, corev1.ContainerPort{Name: name, ContainerPort: port})
+	builder.Container.Ports = append(builder.Container.Ports, corev1.ContainerPort{Name: name, ContainerPort: port})
 	return builder
 }

@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	splunkframework "github.com/openshift/cluster-logging-operator/test/framework/functional/outputs/splunk"
 	"strings"
 	"testing"
 	"time"
@@ -134,7 +135,7 @@ func testLogForwardingToSplunk(t *testing.T, cl *loggingv1.ClusterLogging, clf *
 }
 
 func readApplicationLogs(t *testing.T, podName string) (error, []types.ApplicationLog) {
-	cmd := fmt.Sprintf("/opt/splunk/bin/splunk search \"%s\" -auth \"admin:%s\"", message, framework.AdminPassword)
+	cmd := fmt.Sprintf("/opt/splunk/bin/splunk search \"%s\" -auth \"admin:%s\"", message, splunkframework.AdminPassword)
 	output, err := oc.Exec().WithNamespace(constants.OpenshiftNS).Pod(podName).Container(framework.Splunk).WithCmd("/bin/sh", "-c", cmd).Run()
 	require.NotEmpty(t, output)
 	require.NoError(t, err)
@@ -147,7 +148,7 @@ func readApplicationLogs(t *testing.T, podName string) (error, []types.Applicati
 }
 
 func readInfraLogs(t *testing.T, podName string) (error, []types.InfraLog) {
-	cmd := fmt.Sprintf("/opt/splunk/bin/splunk search 'log_type=infrastructure' -maxout 5 -auth \"admin:%s\"", framework.AdminPassword)
+	cmd := fmt.Sprintf("/opt/splunk/bin/splunk search 'log_type=infrastructure' -maxout 5 -auth \"admin:%s\"", splunkframework.AdminPassword)
 	output, err := oc.Exec().WithNamespace(constants.OpenshiftNS).Pod(podName).Container(framework.Splunk).WithCmd("/bin/sh", "-c", cmd).Run()
 	require.NotEmpty(t, output)
 	require.NoError(t, err)

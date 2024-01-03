@@ -8,8 +8,8 @@ import (
 	"github.com/openshift/cluster-logging-operator/internal/constants"
 	"github.com/openshift/cluster-logging-operator/internal/k8shandler"
 	"github.com/openshift/cluster-logging-operator/internal/utils"
+	splunkframework "github.com/openshift/cluster-logging-operator/test/framework/functional/outputs/splunk"
 	"github.com/openshift/cluster-logging-operator/test/helpers/oc"
-	"github.com/openshift/cluster-logging-operator/test/helpers/rand"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	"k8s.io/apimachinery/pkg/util/intstr"
@@ -21,11 +21,10 @@ import (
 const (
 	SplunkStandalone = "splunk-standalone"
 	Splunk           = "splunk"
-	splunkImage      = "quay.io/openshift-logging/splunk:9.0.0"
+
 	// #nosec G101
 	splunkSecret     = "splunk-hec-secret"
 	SplunkHecService = "splunk-hec-service"
-	splunkHecPort    = 8088
 )
 
 var (
@@ -37,12 +36,9 @@ var (
 		"app.kubernetes.io/part-of":    Splunk,
 	}
 
-	HecToken      = rand.Word(16)
-	AdminPassword = rand.Word(16)
-
 	SplunkEndpoint = url.URL{
 		Scheme: "http",
-		Host:   fmt.Sprintf("%s:%d", SplunkHecService, splunkHecPort),
+		Host:   fmt.Sprintf("%s:%d", SplunkHecService, splunkframework.SplunkHecPort),
 	}
 )
 
@@ -168,7 +164,7 @@ func newSplunkStatefulSet() *apps.StatefulSet {
 					Containers: []v1.Container{
 						{
 							Name:  Splunk,
-							Image: splunkImage,
+							Image: splunkframework.SplunkImage,
 							ReadinessProbe: &v1.Probe{
 								ProbeHandler: v1.ProbeHandler{
 									Exec: &v1.ExecAction{
@@ -233,7 +229,7 @@ func newSplunkStatefulSet() *apps.StatefulSet {
 								},
 								{
 									Name:          "http-hec",
-									ContainerPort: splunkHecPort,
+									ContainerPort: splunkframework.SplunkHecPort,
 								},
 								{
 									Name:          "https-splunkd",
@@ -318,8 +314,8 @@ func newSplunkHecService() *v1.Service {
 		},
 		{
 			Name:       "http-hec",
-			Port:       splunkHecPort,
-			TargetPort: intstr.FromInt(splunkHecPort),
+			Port:       splunkframework.SplunkHecPort,
+			TargetPort: intstr.FromInt(splunkframework.SplunkHecPort),
 		},
 		{
 			Name:       "https-splunkd",
@@ -356,16 +352,16 @@ func newSplunkSecret() *v1.Secret {
 			"splunk:\n" +
 			"  hec:\n" +
 			"    ssl: false\n" +
-			"    token: \"" + string(HecToken) + "\"\n" +
-			"  password: \"" + string(AdminPassword) + "\"\n" +
+			"    token: \"" + string(splunkframework.HecToken) + "\"\n" +
+			"  password: \"" + string(splunkframework.AdminPassword) + "\"\n" +
 			"  pass4SymmKey: \"o4a9itWyG1YECvxpyVV9faUO\"\n" +
 			"  idxc_secret: \"5oPyAqIlod4sxH1Xk7fZpNe4\"\n" +
 			"  shc_secret: \"77mwFNOSUzmQLG9EGa2ZVEFq\""),
-		"hec_token":    HecToken,
+		"hec_token":    splunkframework.HecToken,
 		"idxc_secret":  []byte("5oPyAqIlod4sxH1Xk7fZpNe4"),
 		"pass4SymmKey": []byte("o4a9itWyG1YECvxpyVV9faUO"),
 		"shc_secret":   []byte("77mwFNOSUzmQLG9EGa2ZVEFq"),
-		"password":     AdminPassword,
+		"password":     splunkframework.AdminPassword,
 	}
 	secret := k8shandler.NewSecret(
 		splunkSecret,

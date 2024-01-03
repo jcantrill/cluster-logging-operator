@@ -8,5 +8,6 @@ spec:
    - name: application-logs 
      inputRefs: 
      - application
+     - audit
      outputRefs:
      - default 

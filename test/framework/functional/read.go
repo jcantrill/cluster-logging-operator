@@ -3,6 +3,7 @@ package functional
 import (
 	"context"
 	"fmt"
+	"github.com/openshift/cluster-logging-operator/test/framework/functional/outputs/splunk"
 	"strings"
 	"time"
 
@@ -95,6 +96,10 @@ func (f *CollectorFunctionalFramework) ReadLogsFrom(outputName, sourceType strin
 	var readLogs func() ([]string, error)
 
 	switch outputType {
+	case logging.OutputTypeSplunk:
+		readLogs = func() ([]string, error) {
+			return splunk.ReadLogs(f.Test.Client, f.Namespace, f.Name, sourceType)
+		}
 	case logging.OutputTypeKafka:
 		readLogs = func() ([]string, error) {
 			switch sourceType {

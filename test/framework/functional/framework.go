@@ -3,6 +3,7 @@ package functional
 import (
 	"context"
 	"fmt"
+	"github.com/openshift/cluster-logging-operator/test/framework/functional/outputs/splunk"
 	"net"
 	"os"
 	"strconv"
@@ -379,6 +380,10 @@ func (f *CollectorFunctionalFramework) addOutputContainers(b *runtime.PodBuilder
 			if err := f.AddForwardOutput(b, output); err != nil {
 				return err
 			}
+		case logging.OutputTypeSplunk:
+			if err := f.AddSplunkOutput(b, output); err != nil {
+				return err
+			}
 		case logging.OutputTypeSyslog:
 			if err := f.AddSyslogOutput(b, output); err != nil {
 				return err
@@ -410,4 +415,8 @@ func (f *CollectorFunctionalFramework) GetLogsFromCollector() (string, error) {
 		return output, err
 	}
 	return output, nil
+}
+
+func (f *CollectorFunctionalFramework) AddSplunkOutput(b *runtime.PodBuilder, output logging.OutputSpec) error {
+	return splunk.AddOutput(f.Test.Client, b, output)
 }

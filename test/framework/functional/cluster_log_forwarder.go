@@ -2,6 +2,7 @@ package functional
 
 import (
 	logging "github.com/openshift/cluster-logging-operator/apis/logging/v1"
+	"github.com/openshift/cluster-logging-operator/test/framework/functional/outputs/splunk"
 	"github.com/openshift/cluster-logging-operator/test/helpers/kafka"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/util/sets"
@@ -95,6 +96,10 @@ func (p *PipelineBuilder) ToCloudwatchOutput() *ClusterLogForwarderBuilder {
 	return p.ToOutputWithVisitor(func(output *logging.OutputSpec) {}, logging.OutputTypeCloudwatch)
 }
 
+func (p *PipelineBuilder) ToSplunkOutput() *ClusterLogForwarderBuilder {
+	return p.ToOutputWithVisitor(func(output *logging.OutputSpec) {}, logging.OutputTypeSplunk)
+}
+
 func (p *PipelineBuilder) ToKafkaOutput(visitors ...func(output *logging.OutputSpec)) *ClusterLogForwarderBuilder {
 	kafkaVisitor := func(output *logging.OutputSpec) {
 		output.Type = logging.OutputTypeKafka
@@ -143,6 +148,15 @@ func (p *PipelineBuilder) ToOutputWithVisitor(visit OutputSpecVisitor, outputNam
 	var found bool
 	if output, found = outputs[outputName]; !found {
 		switch outputName {
+		case logging.OutputTypeSplunk:
+			output = &logging.OutputSpec{
+				Name: logging.OutputTypeSplunk,
+				Type: logging.OutputTypeSplunk,
+				URL:  splunk.SplunkEndpointHTTP,
+				OutputTypeSpec: logging.OutputTypeSpec{
+					Splunk: &logging.Splunk{},
+				},
+			}
 		case logging.OutputTypeFluentdForward:
 			output = &logging.OutputSpec{
 				Name: logging.OutputTypeFluentdForward,
