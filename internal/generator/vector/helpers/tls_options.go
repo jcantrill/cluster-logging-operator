@@ -10,7 +10,7 @@ func SetTLSProfileOptions(o logging.OutputSpec, op framework.Options) {
 		if o.Name == logging.OutputNameDefault && o.Type == logging.OutputTypeElasticsearch {
 			return "", ""
 		} else {
-			return op.TLSProfileInfo(o, ",")
+			return framework.TLSProfileInfo(op, o, ",")
 		}
 	}()
 }

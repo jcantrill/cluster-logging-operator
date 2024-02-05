@@ -56,14 +56,6 @@ type ClusterLogForwarderSpec struct {
 	//+operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Forwarder Pipelines",xDescriptors={"urn:alm:descriptor:com.tectonic.ui:forwarderPipelines"}
 	Pipelines []PipelineSpec `json:"pipelines,omitempty"`
 
-	// Namespace for resources associated with the ClusterLogForwarder.
-	//
-	// Resources named in this spec (for example the ServiceAccountName) must be in this namespace.
-	// Resources created by the forwarder will be in this namespace.
-	//
-	//+required
-	Namespace string `json:"namespace"`
-
 	// ServiceAccountName is the name of a serviceaccount in the forwarders associated namespace.
 	//
 	// +optional
@@ -303,6 +295,11 @@ type FilterSpec struct {
 
 // PipelinesSpec link a set of inputs to a set of outputs.
 type PipelineSpec struct {
+	// Name of the pipeline.
+	//
+	//+required
+	Name string `json:"name"`
+
 	// OutputRefs lists the names (`output.name`) of outputs from this pipeline.
 	//
 	// The following built-in names are always available:
@@ -331,30 +328,6 @@ type PipelineSpec struct {
 	// If a filter drops a records, subsequent filters are not applied.
 	// +optional
 	FilterRefs []string `json:"filterRefs,omitempty"`
-
-	// Labels applied to log records passing through this pipeline.
-	// These labels appear in the `openshift.labels` map in the log record.
-	//
-	// +optional
-	Labels map[string]string `json:"labels,omitempty"`
-
-	// Name of the pipeline.
-	//
-	//+required
-	Name string `json:"name"`
-
-	// Parse enables parsing of log entries into structured logs
-	//
-	// Logs are parsed according to parse value, only `json` is supported as of now.
-	//
-	// +kubebuilder:validation:Enum:=json
-	// +optional
-	Parse string `json:"parse,omitempty"`
-
-	// DetectMultilineErrors enables multiline error detection of container logs
-	//
-	// +optional
-	DetectMultilineErrors bool `json:"detectMultilineErrors,omitempty"`
 }
 
 // CollectorSpec  defines scheduling and resources for the log collector.

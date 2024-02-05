@@ -41,7 +41,7 @@ func Outputs(clspec *logging.CollectionSpec, secrets map[string]*corev1.Secret, 
 			}
 		}
 		if lokistack.DefaultLokiOutputNames.Has(o.Name) {
-			outMinTlsVersion, outCiphers := op.TLSProfileInfo(o, ":")
+			outMinTlsVersion, outCiphers := TLSProfileInfo(op, o, ":")
 			op[MinTLSVersion] = outMinTlsVersion
 			op[Ciphers] = outCiphers
 		}

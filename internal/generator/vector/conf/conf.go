@@ -92,7 +92,7 @@ func Conf(clspec *logging.CollectionSpec, secrets map[string]*corev1.Secret, clf
 		sections.Elements = append(sections.Elements, o.Elements()...)
 	}
 
-	minTlsVersion, cipherSuites := op.TLSProfileInfo(logging.OutputSpec{}, ",")
+	minTlsVersion, cipherSuites := framework.TLSProfileInfo(op, logging.OutputSpec{}, ",")
 	return []framework.Section{
 		{
 			Global(namespace, forwarderName),

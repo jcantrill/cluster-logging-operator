@@ -8,7 +8,7 @@ import (
 )
 
 // TLSProfileInfo returns the minTLSVersion, ciphers as a delimited list given the available TLSSecurityProfile
-func (op Options) TLSProfileInfo(outputSpec logging.OutputSpec, separator string) (string, string) {
+func TLSProfileInfo(op Options, outputSpec logging.OutputSpec, separator string) (string, string) {
 	var tlsProfileSpec configv1.TLSProfileSpec
 	if outputSpec.TLS != nil && outputSpec.TLS.TLSSecurityProfile != nil {
 		tlsProfileSpec = tls.GetClusterTLSProfileSpec(outputSpec.TLS.TLSSecurityProfile)
