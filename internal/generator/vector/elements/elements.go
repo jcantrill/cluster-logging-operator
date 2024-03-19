@@ -2,6 +2,7 @@ package elements
 
 import (
 	"github.com/openshift/cluster-logging-operator/internal/generator/framework"
+	"github.com/openshift/cluster-logging-operator/internal/generator/vector/helpers"
 )
 
 type Route struct {
@@ -88,7 +89,7 @@ func Debug(id string, inputs string) framework.Element {
 	return framework.ConfLiteral{
 		Desc:         "Sending records to stdout for debug purposes",
 		ComponentID:  id,
-		InLabel:      inputs,
+		InLabel:      helpers.MakeInputs(inputs),
 		TemplateName: "debug",
 		TemplateStr: `
 {{define "debug" -}}

@@ -6,6 +6,7 @@ import (
 	. "github.com/onsi/gomega"
 	loggingv1 "github.com/openshift/cluster-logging-operator/api/logging/v1"
 	"github.com/openshift/cluster-logging-operator/internal/constants"
+	"github.com/openshift/cluster-logging-operator/internal/runtime"
 	"github.com/openshift/cluster-logging-operator/internal/utils"
 	"github.com/openshift/cluster-logging-operator/test/framework/functional"
 	"github.com/openshift/cluster-logging-operator/test/helpers/schema/otel"
@@ -35,9 +36,22 @@ var _ = Describe("[Functional][Normalization][Schema] OTEL", func() {
 	It("should not normalize application logs to OTEL format for HTTP sink", func() {
 		functional.NewClusterLogForwarderBuilder(framework.Forwarder).
 			FromInput(loggingv1.InputNameApplication).
-			ToHttpOutputWithSchema(constants.OTELSchema)
+			ToOutputWithVisitor(func(output *loggingv1.OutputSpec) {
+				output.Name = loggingv1.OutputTypeHttp
+				output.Type = loggingv1.OutputTypeHttp
+				output.URL = "http://localhost:8090/v1/logs"
+				output.OutputTypeSpec = loggingv1.OutputTypeSpec{
+					Http: &loggingv1.Http{
+						Method: "POST",
+						Schema: constants.OTELSchema,
+					},
+				}
+			}, loggingv1.OutputTypeHttp)
+		//ToHttpOutputWithSchema(constants.OTELSchema)
 
-		ExpectOK(framework.Deploy())
+		ExpectOK(framework.DeployWithVisitor(func(b *runtime.PodBuilder) error {
+			return framework.AddOTELCollector(b, loggingv1.OutputTypeHttp)
+		}))
 
 		appNamespace = framework.Pod.Namespace
 

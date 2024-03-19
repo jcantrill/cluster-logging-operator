@@ -8,6 +8,37 @@ import (
 	"github.com/openshift/cluster-logging-operator/internal/generator/vector/helpers"
 )
 
+type Reduce struct {
+	ComponentID string
+	Desc        string
+	Inputs      string
+}
+
+func (r Reduce) Name() string {
+	return "remapTemplate"
+}
+
+func (r Reduce) Template() string {
+	return `{{define "reduceTemplate" -}}
+{{if .Desc -}}
+# {{.Desc}}
+{{end -}}
+[transforms.{{.ComponentID}}]
+type = "reduce"
+inputs = {{.Inputs}}
+group_by = [".kubernetes.namespace_name",".kubernetes.pod_name"]
+merge_strategies
+{{end}}
+`
+}
+
+func GroupBy(id string, inputs []string) Element {
+	return Reduce{
+		ComponentID: id,
+		Inputs:      helpers.MakeInputs(inputs...),
+	}
+}
+
 func Transform(id string, inputs []string) Element {
 	return Remap{
 		Desc:        "Normalize log records to OTEL schema",

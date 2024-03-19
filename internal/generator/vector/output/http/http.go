@@ -5,7 +5,6 @@ import (
 	logging "github.com/openshift/cluster-logging-operator/api/logging/v1"
 	"github.com/openshift/cluster-logging-operator/internal/constants"
 	. "github.com/openshift/cluster-logging-operator/internal/generator/framework"
-	genhelper "github.com/openshift/cluster-logging-operator/internal/generator/helpers"
 	. "github.com/openshift/cluster-logging-operator/internal/generator/vector/elements"
 	"github.com/openshift/cluster-logging-operator/internal/generator/vector/helpers"
 	vectorhelpers "github.com/openshift/cluster-logging-operator/internal/generator/vector/helpers"
@@ -75,19 +74,18 @@ func Normalize(id string, inputs []string) Element {
 func New(id string, o logging.OutputSpec, inputs []string, secret *corev1.Secret, strategy common.ConfigStrategy, op Options) []Element {
 	normalizeID := vectorhelpers.MakeID(id, "normalize")
 	dedottedID := vectorhelpers.MakeID(id, "dedot")
-	if genhelper.IsDebugOutput(op) {
-		return []Element{
-			Normalize(normalizeID, inputs),
-			Debug(helpers.MakeID(id, "debug"), normalizeID),
-		}
-	}
 	var els []Element
 	if op.Has(constants.AnnotationEnableSchema) && o.Http != nil && o.Http.Schema == constants.OTELSchema {
 		schemaID := vectorhelpers.MakeID(id, "otel")
 		els = append(els, otel.Transform(schemaID, inputs))
-		inputs = []string{schemaID}
+
+		reduceID := vectorhelpers.MakeID(id, "reduce")
+		els = append(els, otel.GroupBy(schemaID, []string{schemaID}))
+		inputs = []string{reduceID}
 	}
 	els = append(els, Normalize(normalizeID, inputs))
+	els = append(els, Debug(helpers.MakeID(id, "debug"), normalizeID))
+	return els
 	sink := Output(id, o, []string{dedottedID}, secret, op)
 	if strategy != nil {
 		strategy.VisitSink(sink)
