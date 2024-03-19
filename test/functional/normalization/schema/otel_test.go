@@ -58,6 +58,8 @@ var _ = Describe("[Functional][Normalization][Schema] OTEL", func() {
 		// Write message to namespace
 		crioLine := functional.NewCRIOLogMessage(timestamp, "Format me to OTEL!", false)
 		Expect(framework.WriteMessagesToNamespace(crioLine, appNamespace, 1)).To(Succeed())
+		crioLine = functional.NewCRIOLogMessage(timestamp, "My second Message", false)
+		Expect(framework.WriteMessagesToNamespace(crioLine, appNamespace, 1)).To(Succeed())
 		// Read log
 		raw, err := framework.ReadRawApplicationLogsFrom(loggingv1.OutputTypeHttp)
 		Expect(err).To(BeNil(), "Expected no errors reading the logs for type")
