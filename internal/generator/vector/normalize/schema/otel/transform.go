@@ -15,7 +15,7 @@ type Reduce struct {
 }
 
 func (r Reduce) Name() string {
-	return "remapTemplate"
+	return "reduceTemplate"
 }
 
 func (r Reduce) Template() string {
@@ -26,8 +26,11 @@ func (r Reduce) Template() string {
 [transforms.{{.ComponentID}}]
 type = "reduce"
 inputs = {{.Inputs}}
-group_by = [".kubernetes.namespace_name",".kubernetes.pod_name"]
-merge_strategies
+expire_after_ms = 30000
+max_events = 500
+group_by = [".kubernetes.namespace_name",".kubernetes.pod_name",".kubernetes.container_name"]
+merge_strategies.resource = "retain"
+merge_strategies.logRecords = "array"
 {{end}}
 `
 }
@@ -39,6 +42,29 @@ func GroupBy(id string, inputs []string) Element {
 	}
 }
 
+func FormatBatch(id string, inputs []string) Element {
+	return Remap{
+		Desc:        "Remap to match otelp",
+		ComponentID: id,
+		Inputs:      helpers.MakeInputs(inputs...),
+		VRL: strings.TrimSpace(`
+
+. = {
+  "resourceLogs": [
+    {
+      "resource": {
+         "attributes": .resource.attributes,
+         "scopeLogs": [
+           {"logRecords": .logRecords}
+         ]
+      }
+    }
+  ]
+}
+`),
+	}
+}
+
 func Transform(id string, inputs []string) Element {
 	return Remap{
 		Desc:        "Normalize log records to OTEL schema",
@@ -47,37 +73,71 @@ func Transform(id string, inputs []string) Element {
 		VRL: strings.TrimSpace(`
 # Tech preview, OTEL for application logs only
 if .log_type == "application" {
-	# Convert @timestamp to nano and delete @timestamp
-	.timeUnixNano = to_unix_timestamp!(del(.@timestamp), unit:"nanoseconds")
+# Remove some fields
+meta = [
+  "kubernetes.pod_name", 
+  "kubernetes.pod_id",
+  "kubernetes.namespace_name",
+  "kubernetes.container_name",
+  "openshift.cluster_id",
+  "hostname"
+]
+replace = {
+  "pod.id": "pod.uid",
+  "cluster.id": "cluster.uid",
+  "hostname": "node.name"
+}
 
-	.severityText = del(.level)
+resource.attributes = []
+for_each(meta) -> |index,value| {
+  sub_key = value
+  path = split(value,".")
+  if length(path) > 1 {
+    sub_key = replace!(path[1],"_",".")
+  }
+  if get!(replace, [sub_key]) != null {
+    sub_key = string!(get!(replace, [sub_key]))
+  }
+  key = "k8s." + sub_key
+  a ={
+    "key": key,
+            "value": {
+              "stringValue": get!(.,path)
+            }
+          }
+  resource.attributes = append(resource.attributes, [a])
+}
 
-	# Convert syslog severity keyword to number, default to 9 (unknown)
-	.severityNumber = to_syslog_severity(.severityText) ?? 9
+for_each(object!(.kubernetes.labels)) -> |key,value|{  
+  a ={
+    "key": "k8s.pod.labels." + key,
+    "value": {
+        "stringValue": value
+    }
+  }
+  resource.attributes = append(resource.attributes, [a])
+}
+resource.attributes = append(resource.attributes, [{
+  "key": "openshift.log.type",
+  "value": {
+    "stringValue": .log_type
+  }
+  }]
+)
 
-	# resources
-	.resources.logs.file.path = del(.file)
-	.resources.host.name= del(.hostname)
-	.resources.container.name = del(.kubernetes.container_name)
-	.resources.container.id = del(.kubernetes.container_id)
-  
-	# split image name and tag into separate fields
-	container_image_slice = split!(.kubernetes.container_image, ":", limit: 2)
-	if null != container_image_slice[0] { .resources.container.image.name = container_image_slice[0] }
-	if null != container_image_slice[1] { .resources.container.image.tag = container_image_slice[1] }
-	del(.kubernetes.container_image)
-	
-	# kuberenetes
-	.resources.k8s.pod.name = del(.kubernetes.pod_name)
-	.resources.k8s.pod.uid = del(.kubernetes.pod_id)
-	.resources.k8s.pod.ip = del(.kubernetes.pod_ip)
-	.resources.k8s.pod.owner = .kubernetes.pod_owner
-	.resources.k8s.pod.annotations = del(.kubernetes.annotations)
-	.resources.k8s.pod.labels = del(.kubernetes.labels)
-	.resources.k8s.namespace.id = del(.kubernetes.namespace_id)
-	.resources.k8s.namespace.name = .kubernetes.namespace_labels."kubernetes.io/metadata.name"
-	.resources.k8s.namespace.labels = del(.kubernetes.namespace_labels)
-	.resources.attributes.log_type = del(.log_type)
+# transform the record
+r = {}
+r.timeUnixNano = to_string(to_unix_timestamp(parse_timestamp!(.@timestamp, format:"%+"), unit:"nanoseconds"))
+r.observedTimeUnixNano = to_string(to_unix_timestamp(now(), unit:"nanoseconds"))
+.severityText = del(.level)
+# Convert syslog severity keyword to number, default to 9 (unknown)
+r.severityNumber = to_syslog_severity(.severityText) ?? 9
+r.body = {"stringValue": string!(.message)}
+. = {
+  "kubernetes": .kubernetes,
+  "resource": resource,
+  "logRecords": r
+ }
 }
 `),
 	}

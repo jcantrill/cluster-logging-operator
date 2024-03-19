@@ -8,7 +8,6 @@ import (
 	. "github.com/openshift/cluster-logging-operator/internal/generator/vector/elements"
 	"github.com/openshift/cluster-logging-operator/internal/generator/vector/helpers"
 	vectorhelpers "github.com/openshift/cluster-logging-operator/internal/generator/vector/helpers"
-	"github.com/openshift/cluster-logging-operator/internal/generator/vector/normalize"
 	"github.com/openshift/cluster-logging-operator/internal/generator/vector/normalize/schema/otel"
 	"github.com/openshift/cluster-logging-operator/internal/generator/vector/output/common"
 	corev1 "k8s.io/api/core/v1"
@@ -72,21 +71,30 @@ func Normalize(id string, inputs []string) Element {
 }
 
 func New(id string, o logging.OutputSpec, inputs []string, secret *corev1.Secret, strategy common.ConfigStrategy, op Options) []Element {
-	normalizeID := vectorhelpers.MakeID(id, "normalize")
-	dedottedID := vectorhelpers.MakeID(id, "dedot")
+	schemaID := vectorhelpers.MakeID(id, "pre_otel")
+	reduceID := vectorhelpers.MakeID(id, "reduce")
+	formatID := vectorhelpers.MakeID(id, "post_otel")
 	var els []Element
-	if op.Has(constants.AnnotationEnableSchema) && o.Http != nil && o.Http.Schema == constants.OTELSchema {
-		schemaID := vectorhelpers.MakeID(id, "otel")
-		els = append(els, otel.Transform(schemaID, inputs))
-
-		reduceID := vectorhelpers.MakeID(id, "reduce")
-		els = append(els, otel.GroupBy(schemaID, []string{schemaID}))
-		inputs = []string{reduceID}
+	els = []Element{
+		otel.Transform(schemaID, inputs),
+		otel.GroupBy(reduceID, []string{schemaID}),
+		otel.FormatBatch(formatID, []string{reduceID}),
+		Debug(helpers.MakeID(id, "debug"), formatID),
 	}
-	els = append(els, Normalize(normalizeID, inputs))
-	els = append(els, Debug(helpers.MakeID(id, "debug"), normalizeID))
-	return els
-	sink := Output(id, o, []string{dedottedID}, secret, op)
+	//normalizeID := vectorhelpers.MakeID(id, "normalize")
+	//dedottedID := vectorhelpers.MakeID(id, "dedot")
+	//if op.Has(constants.AnnotationEnableSchema) && o.Http != nil && o.Http.Schema == constants.OTELSchema {
+	//	schemaID := vectorhelpers.MakeID(id, "otel")
+	//	els = append(els, otel.Transform(schemaID, inputs))
+	//
+	//	reduceID := vectorhelpers.MakeID(id, "reduce")
+	//	els = append(els, otel.GroupBy(schemaID, []string{schemaID}))
+	//	inputs = []string{reduceID}
+	//}
+	//els = append(els, Normalize(normalizeID, inputs))
+	//els = append(els, Debug(helpers.MakeID(id, "debug"), normalizeID))
+
+	sink := Output(id, o, []string{formatID}, secret, op)
 	if strategy != nil {
 		strategy.VisitSink(sink)
 	}
@@ -94,7 +102,7 @@ func New(id string, o logging.OutputSpec, inputs []string, secret *corev1.Secret
 
 		els,
 		[]Element{
-			normalize.DedotLabels(dedottedID, []string{normalizeID}),
+			//normalize.DedotLabels(dedottedID, []string{normalizeID}),
 			sink,
 			Encoding(id),
 			common.NewAcknowledgments(id, strategy),
