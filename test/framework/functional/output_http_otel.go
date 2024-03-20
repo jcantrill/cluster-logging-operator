@@ -10,9 +10,7 @@ const (
 	OTELReceiverConf = `
 exporters:
   logging:
-    verbosity: Detailed
-  file:
-    path: /tmp/app-logs
+    verbosity: detailed
 receivers:
   otlp:
     protocols:
@@ -22,9 +20,9 @@ service:
   pipelines:
     logs:
       receivers: [otlp]
-      exporters: [file]
+      exporters: [logging]
 `
-	OTELImage = "quay.io/openshift-logging/opentelemetry-collector:0.85.0"
+	OTELCollectorImage = "quay.io/openshift-logging/opentelemetry-collector:0.85.0-httpreqdump"
 )
 
 func (f *CollectorFunctionalFramework) AddOTELCollector(b *runtime.PodBuilder, outputName string) error {
@@ -39,8 +37,8 @@ func (f *CollectorFunctionalFramework) AddOTELCollector(b *runtime.PodBuilder, o
 		return err
 	}
 
-	log.V(2).Info("Adding container", "name", name, "image", OTELImage)
-	b.AddContainer(name, OTELImage).
+	log.V(2).Info("Adding container", "name", name, "image", OTELCollectorImage)
+	b.AddContainer(name, OTELCollectorImage).
 		AddVolumeMount(config.Name, "/etc/functional", "", false).
 		WithCmd([]string{"otelcol", "--config", "/etc/functional/config.yaml"}).
 		End().
