@@ -42,8 +42,9 @@ var _ = Describe("[Functional][Normalization][Schema] OTEL", func() {
 				output.URL = "http://localhost:8090/v1/logs"
 				output.OutputTypeSpec = loggingv1.OutputTypeSpec{
 					Http: &loggingv1.Http{
-						Method: "POST",
-						Schema: constants.OTELSchema,
+						Method:  "POST",
+						Schema:  constants.OTELSchema,
+						Headers: map[string]string{"Content-Type": "application/json"},
 					},
 				}
 			}, loggingv1.OutputTypeHttp)

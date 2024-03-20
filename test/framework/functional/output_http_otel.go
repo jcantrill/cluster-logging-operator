@@ -10,7 +10,7 @@ const (
 	OTELReceiverConf = `
 exporters:
   logging:
-    loglevel: debug
+    verbosity: Detailed
   file:
     path: /tmp/app-logs
 receivers:
