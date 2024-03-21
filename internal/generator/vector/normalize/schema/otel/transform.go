@@ -50,8 +50,6 @@ func FormatBatch(id string, inputs []string) Element {
 		VRL: strings.TrimSpace(`
 
 . = {
-  "resourceLogs": [
-    {
       "resource": {
          "attributes": .resource.attributes,
          "scopeLogs": [
@@ -59,8 +57,6 @@ func FormatBatch(id string, inputs []string) Element {
          ]
       }
     }
-  ]
-}
 `),
 	}
 }

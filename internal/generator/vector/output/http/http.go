@@ -36,6 +36,8 @@ type = "http"
 inputs = {{.Inputs}}
 uri = "{{.URI}}"
 method = "{{.Method}}"
+payload_prefix = "{\"resourceLogs\":"
+payload_suffix = "}"
 {{.Compression}}
 {{end}}
 `

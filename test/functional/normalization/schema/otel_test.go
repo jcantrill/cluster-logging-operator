@@ -33,7 +33,7 @@ var _ = Describe("[Functional][Normalization][Schema] OTEL", func() {
 		framework.Cleanup()
 	})
 
-	It("should not normalize application logs to OTEL format for HTTP sink", func() {
+	It("should normalize application logs to OTEL format for HTTP sink", func() {
 		functional.NewClusterLogForwarderBuilder(framework.Forwarder).
 			FromInput(loggingv1.InputNameApplication).
 			ToOutputWithVisitor(func(output *loggingv1.OutputSpec) {

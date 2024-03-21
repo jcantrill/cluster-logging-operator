@@ -3,6 +3,7 @@ package functional
 import (
 	log "github.com/ViaQ/logerr/v2/log/static"
 	"github.com/openshift/cluster-logging-operator/internal/runtime"
+	corev1 "k8s.io/api/core/v1"
 	"strings"
 )
 
@@ -10,7 +11,11 @@ const (
 	OTELReceiverConf = `
 exporters:
   logging:
-    verbosity: detailed
+    loglevel: debug
+  file_application:
+    path: /tmp/app-logs.json
+    format: json
+    flush_interval: 1s
 receivers:
   otlp:
     protocols:
@@ -20,9 +25,9 @@ service:
   pipelines:
     logs:
       receivers: [otlp]
-      exporters: [logging]
+      exporters: [file_application]
 `
-	OTELCollectorImage = "quay.io/openshift-logging/opentelemetry-collector:0.85.0-httpreqdump"
+	OTELCollectorImage = "quay.io/openshift-logging/opentelemetry-collector:0.85.0"
 )
 
 func (f *CollectorFunctionalFramework) AddOTELCollector(b *runtime.PodBuilder, outputName string) error {
@@ -41,6 +46,7 @@ func (f *CollectorFunctionalFramework) AddOTELCollector(b *runtime.PodBuilder, o
 	b.AddContainer(name, OTELCollectorImage).
 		AddVolumeMount(config.Name, "/etc/functional", "", false).
 		WithCmd([]string{"otelcol", "--config", "/etc/functional/config.yaml"}).
+		WithImagePullPolicy(corev1.PullAlways).
 		End().
 		AddConfigMapVolume(config.Name, config.Name)
 	return nil
