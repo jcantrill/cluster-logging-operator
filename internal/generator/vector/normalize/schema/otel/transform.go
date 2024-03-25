@@ -52,10 +52,10 @@ func FormatBatch(id string, inputs []string) Element {
 . = {
       "resource": {
          "attributes": .resource.attributes,
-         "scopeLogs": [
-           {"logRecords": .logRecords}
-         ]
-      }
+      },
+      "scopeLogs": [
+        {"logRecords": .logRecords}
+      ]
     }
 `),
 	}

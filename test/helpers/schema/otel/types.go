@@ -2,85 +2,76 @@ package otel
 
 import (
 	"encoding/json"
+	log "github.com/ViaQ/logerr/v2/log/static"
 )
 
-type AllOTELLog struct {
-	ContainerLog `json:",inline,omitempty"`
+type ResourceLogs struct {
+	Logs []ResourceLog `json:"resourceLogs,omitempty"`
+}
+type Resource struct {
+	Attributes Attributes `json:"attributes,omitempty"`
 }
 
-type OTELLogs []AllOTELLog
-
-type ContainerLog struct {
-	ApplicationLog `json:",inline,omitempty"`
+type ResourceLog struct {
+	Resource  Resource   `json:"resource,omitempty"`
+	ScopeLogs []ScopeLog `json:"scopeLogs,omitempty"`
 }
 
-type ApplicationLog struct {
-	Resources      Resources `json:"resources,omitempty"`
-	SeverityNumber int       `json:"severityNumber,omitempty"`
-	SeverityText   string    `json:"severityText,omitempty"`
-	TimeUnixNano   int64     `json:"timeUnixNano,omitempty"`
+type ScopeLog struct {
+	Scope      Scope       `json:"scope,omitempty"`
+	LogRecords []LogRecord `json:"logRecords,omitempty"`
 }
 
-type Resources struct {
-	Attributes map[string]string `json:"attributes,omitempty"`
-	Container  Container         `json:"container,omitempty"`
-	Host       Host              `json:"host,omitempty"`
-	K8s        K8s               `json:"k8s,omitempty"`
+type Scope struct {
+	Name       string     `json:"name,omitempty"`
+	Version    string     `json:"version,omitempty"`
+	Attributes Attributes `json:"attributes,omitempty"`
 }
 
-type Container struct {
-	Id    string `json:"id,omitempty"`
-	Name  string `json:"name,omitempty"`
-	Image Image  `json:"image,omitempty"`
+type LogRecord struct {
+	TimeUnixNano         string      `json:"timeUnixNano,omitempty"`
+	ObservedTimeUnixNano string      `json:"observedTimeUnixNano,omitempty"`
+	SeverityNumber       int         `json:"severityNumber,omitempty"`
+	SeverityText         string      `json:"severityText,omitempty"`
+	TraceID              string      `json:"traceId,omitempty"`
+	SpanID               string      `json:"spanId,omitempty"`
+	Body                 StringValue `json:"body,omitempty"`
+	Attributes           []Attribute `json:"attributes,omitempty"`
+}
+type Attributes []Attribute
+
+type Attribute struct {
+	Key   string         `json:"key,omitempty"`
+	Value AttributeValue `json:"value,omitempty"`
 }
 
-type Image struct {
-	Name string `json:"name,omitempty"`
-	Tag  string `json:"tag,omitempty"`
+type AttributeValue struct {
+	String StringValue `json:",inline,omitempty"`
+	Bool   bool        `json:"boolValue,omitempty"`
+	Int    int         `json:"intValue,omitempty"`
+	Float  float64     `json:"doubleValue,omitempty"`
+	Array  ArrayValue  `json:"arrayValue,omitempty"`
+	Map    KVListValue `json:"kvlistValue,omitempty"`
+}
+type StringValue struct {
+	String string `json:"stringValue,omitempty"`
+}
+type ArrayValue struct {
+	Values []StringValue `json:"values,omitempty"`
+}
+type KVListValue struct {
+	Values []AttributeValue `json:"values,omitempty"`
 }
 
-type Host struct {
-	Name string `json:"name,omitempty"`
-}
-
-type K8s struct {
-	Namespace Namespace `json:"namespace,omitempty"`
-	Pod       Pod       `json:"pod,omitempty"`
-	Logs      Logs      `json:"logs,omitempty"`
-}
-
-type Namespace struct {
-	Name   string            `json:"name,omitempty"`
-	Id     string            `json:"id,omitempty"`
-	Labels map[string]string `json:"labels,omitempty"`
-}
-
-type Pod struct {
-	Annotations map[string]string `json:"annotations,omitempty"`
-	Ip          string            `json:"ip,omitempty"`
-	Labels      map[string]string `json:"labels,omitempty"`
-	Name        string            `json:"name,omitempty"`
-	Owner       string            `json:"owner,omitempty"`
-	UID         string            `json:"uid,omitempty"`
-}
-
-type Logs struct {
-	File File `json:"file,omitempty"`
-}
-
-type File struct {
-	Path string `json:"path,omitempty"`
-}
-
-func ParseLogs(in string) (OTELLogs, error) {
-	logs := OTELLogs{}
+func ParseLogs(in string) (ResourceLogs, error) {
+	logs := ResourceLogs{}
 	if in == "" {
 		return logs, nil
 	}
-
+	log.V(4).Info("OTEL ParseLogs", "in", in)
 	err := json.Unmarshal([]byte(in), &logs)
 	if err != nil {
-		return nil, err
+		return logs, err
 	}
 
 	return logs, nil

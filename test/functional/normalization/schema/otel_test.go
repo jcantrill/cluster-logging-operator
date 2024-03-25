@@ -7,15 +7,14 @@ import (
 	loggingv1 "github.com/openshift/cluster-logging-operator/api/logging/v1"
 	"github.com/openshift/cluster-logging-operator/internal/constants"
 	"github.com/openshift/cluster-logging-operator/internal/runtime"
-	"github.com/openshift/cluster-logging-operator/internal/utils"
 	"github.com/openshift/cluster-logging-operator/test/framework/functional"
 	"github.com/openshift/cluster-logging-operator/test/helpers/schema/otel"
 	. "github.com/openshift/cluster-logging-operator/test/matchers"
 )
 
 const (
-	timestamp           = "2023-08-28T12:59:28.573159188+00:00"
-	timestampNano int64 = 1693227568573159188
+	timestamp     = "2023-08-28T12:59:28.573159188+00:00"
+	timestampNano = "1693227568573159188"
 )
 
 var _ = Describe("[Functional][Normalization][Schema] OTEL", func() {
@@ -33,7 +32,7 @@ var _ = Describe("[Functional][Normalization][Schema] OTEL", func() {
 		framework.Cleanup()
 	})
 
-	It("should normalize application logs to OTEL format for HTTP sink", func() {
+	It("should support application logs over OTELP with recommended kubernetes attributes", func() {
 		functional.NewClusterLogForwarderBuilder(framework.Forwarder).
 			FromInput(loggingv1.InputNameApplication).
 			ToOutputWithVisitor(func(output *loggingv1.OutputSpec) {
@@ -64,15 +63,24 @@ var _ = Describe("[Functional][Normalization][Schema] OTEL", func() {
 		// Read log
 		raw, err := framework.ReadRawApplicationLogsFrom(loggingv1.OutputTypeHttp)
 		Expect(err).To(BeNil(), "Expected no errors reading the logs for type")
-
-		logs, err := otel.ParseLogs(utils.ToJsonLogs(raw))
+		Expect(raw).ToNot(BeEmpty())
+		logs, err := otel.ParseLogs(raw[0])
 
 		Expect(err).To(BeNil(), "Expected no errors parsing the logs")
-		otelLog := logs[0].ContainerLog
-		Expect(otelLog.TimeUnixNano).ToNot(Equal(timestampNano), "Expect timestamp to not be converted into unix nano")
-		Expect(otelLog.SeverityText).To(BeEmpty(), "Expect severityText to be an empty string")
-		Expect(otelLog.SeverityNumber).ToNot(Equal(9), "Expect severityNumber to not be parsed to 9")
-		Expect(otelLog.Resources.K8s.Namespace.Name).ToNot(Equal(appNamespace), "Expect namespace name to not be nested under k8s.namespace")
+		resourceLog := logs.Logs[0]
+
+		Expect(resourceLog.Resource.NamespaceName()).ToNot(Equal(appNamespace), "Expect namespace name to not be nested under k8s.namespace")
+
+		Expect(resourceLog.ScopeLogs).ToNot(BeEmpty(), "Expected scope logs")
+		Expect(resourceLog.ScopeLogs).To(HaveLen(1), "Expected a single scope")
+		Expect(resourceLog.ScopeLogs[0].LogRecords).ToNot(BeEmpty(), "Expected log records for the scope")
+		Expect(resourceLog.ScopeLogs[0].LogRecords).To(HaveLen(2), "Expected all log records for the scope")
+
+		log := resourceLog.ScopeLogs[0].LogRecords[0]
+		Expect(log.TimeUnixNano).To(Equal(timestampNano), "Expect timestamp to be converted into unix nano")
+		Expect(log.SeverityText).To(BeEmpty(), "Expect severityText to be an empty string")
+		Expect(log.SeverityNumber).To(Equal(9), "Expect severityNumber to not be parsed to 9")
+		Expect(log.Body.String).ToNot(BeEmpty())
 	})
 
 })
