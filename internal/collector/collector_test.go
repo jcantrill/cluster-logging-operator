@@ -33,7 +33,6 @@ var _ = Describe("Factory#Daemonset#NewPodSpec", func() {
 	)
 	BeforeEach(func() {
 		factory = &Factory{
-			CollectorType: logging.LogCollectionTypeVector,
 			ImageName:     constants.VectorName,
 			Visit:         vector.CollectorVisitor,
 			ResourceNames: coreFactory.ResourceNames(*obsruntime.NewClusterLogForwarder(constants.OpenshiftNS, constants.SingletonName, runtime.Initialize)),
@@ -94,29 +93,28 @@ var _ = Describe("Factory#Daemonset#NewPodSpec", func() {
 	})
 
 	Describe("when creating the podSpec", func() {
-		//TODO: FIX ME
-		//var verifyProxyVolumesAndVolumeMounts = func(container v1.Container, podSpec v1.PodSpec, trustedca string) {
-		//	found := false
-		//	for _, elem := range container.VolumeMounts {
-		//		if elem.Name == trustedca {
-		//			found = true
-		//			Expect(elem.MountPath).To(Equal(constants.TrustedCABundleMountDir), "VolumeMounts %s: expected %s, actual %s", trustedca, constants.TrustedCABundleMountDir, elem.MountPath)
-		//			break
-		//		}
-		//	}
-		//	if !found {
-		//		Fail(fmt.Sprintf("Trusted ca-bundle VolumeMount %s not found for collector", trustedca))
-		//	}
-		//
-		//	for _, elem := range podSpec.Volumes {
-		//		if elem.Name == trustedca {
-		//			Expect(elem.VolumeSource.ConfigMap).To(Not(BeNil()), "Exp. the podSpec to have a mounted configmap for the trusted ca-bundle")
-		//			Expect(elem.VolumeSource.ConfigMap.LocalObjectReference.Name).To(Equal(trustedca), "Volume %s: ConfigMap.LocalObjectReference.Name expected %s, actual %s", trustedca, elem.VolumeSource.ConfigMap.LocalObjectReference.Name, trustedca)
-		//			return
-		//		}
-		//	}
-		//	Fail(fmt.Sprintf("Volume %s not found for collector", trustedca))
-		//}
+		var verifyProxyVolumesAndVolumeMounts = func(container v1.Container, podSpec v1.PodSpec, trustedca string) {
+			found := false
+			for _, elem := range container.VolumeMounts {
+				if elem.Name == trustedca {
+					found = true
+					Expect(elem.MountPath).To(Equal(constants.TrustedCABundleMountDir), "VolumeMounts %s: expected %s, actual %s", trustedca, constants.TrustedCABundleMountDir, elem.MountPath)
+					break
+				}
+			}
+			if !found {
+				Fail(fmt.Sprintf("Trusted ca-bundle VolumeMount %s not found for collector", trustedca))
+			}
+
+			for _, elem := range podSpec.Volumes {
+				if elem.Name == trustedca {
+					Expect(elem.VolumeSource.ConfigMap).To(Not(BeNil()), "Exp. the podSpec to have a mounted configmap for the trusted ca-bundle")
+					Expect(elem.VolumeSource.ConfigMap.LocalObjectReference.Name).To(Equal(trustedca), "Volume %s: ConfigMap.LocalObjectReference.Name expected %s, actual %s", trustedca, elem.VolumeSource.ConfigMap.LocalObjectReference.Name, trustedca)
+					return
+				}
+			}
+			Fail(fmt.Sprintf("Volume %s not found for collector", trustedca))
+		}
 
 		Context("and evaluating tolerations", func() {
 			It("should add only defaults when none are defined", func() {
@@ -505,9 +503,8 @@ var _ = Describe("Factory#CollectorResourceRequirements", func() {
 	Context("when collectorType is vector", func() {
 		BeforeEach(func() {
 			factory = &Factory{
-				CollectorType: logging.LogCollectionTypeVector,
-				ImageName:     constants.VectorName,
-				Visit:         vector.CollectorVisitor,
+				ImageName: constants.VectorName,
+				Visit:     vector.CollectorVisitor,
 			}
 		})
 		It("should not define any resources when none are specified", func() {

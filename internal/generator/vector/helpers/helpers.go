@@ -2,7 +2,6 @@ package helpers
 
 import (
 	"fmt"
-	"path/filepath"
 	"sort"
 	"strings"
 	"sync"

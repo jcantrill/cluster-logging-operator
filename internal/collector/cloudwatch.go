@@ -3,6 +3,7 @@ package collector
 import (
 	log "github.com/ViaQ/logerr/v2/log/static"
 	logging "github.com/openshift/cluster-logging-operator/api/logging/v1"
+	obs "github.com/openshift/cluster-logging-operator/api/observability/v1"
 	"github.com/openshift/cluster-logging-operator/internal/constants"
 	"github.com/openshift/cluster-logging-operator/internal/generator/helpers/security"
 	v1 "k8s.io/api/core/v1"
@@ -10,7 +11,7 @@ import (
 )
 
 // Add volumes and env vars if output type is cloudwatch and role is found in the secret
-func addWebIdentityForCloudwatch(collector *v1.Container, podSpec *v1.PodSpec, forwarderSpec logging.ClusterLogForwarderSpec, secrets map[string]*v1.Secret, collectorType logging.LogCollectionType) {
+func addWebIdentityForCloudwatch(collector *v1.Container, podSpec *v1.PodSpec, forwarderSpec obs.ClusterLogForwarderSpec, secrets map[string]*v1.Secret) {
 	if secrets == nil {
 		return
 	}
@@ -22,11 +23,7 @@ func addWebIdentityForCloudwatch(collector *v1.Container, podSpec *v1.PodSpec, f
 				if !security.HasAWSWebIdentityTokenFilePath(secret) { //assume legacy case to use SA token
 					AddWebIdentityTokenVolumes(collector, podSpec)
 				}
-				// LOG-4084 fluentd no longer setting env vars
-				if collectorType == logging.LogCollectionTypeVector {
-					log.V(3).Info("Found vector collector")
-					AddWebIdentityTokenEnvVars(collector, o, secret)
-				}
+				AddWebIdentityTokenEnvVars(collector, o, secret)
 				return
 			}
 		}
