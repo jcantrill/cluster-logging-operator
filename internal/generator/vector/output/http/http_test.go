@@ -35,25 +35,27 @@ var _ = Describe("Generate vector config", func() {
 				},
 			}
 			tlsSpec = &obs.OutputTLSSpec{
-				CA: &obs.ConfigMapOrSecretKey{
-					Secret: &corev1.LocalObjectReference{
-						Name: secretName,
-					},
-					Key: constants.TrustedCABundleKey,
-				},
-				Certificate: &obs.ConfigMapOrSecretKey{
-					Secret: &corev1.LocalObjectReference{
-						Name: secretName,
-					},
-					Key: constants.ClientCertKey,
-				},
-				Key: &obs.SecretKey{
-					Secret: &corev1.LocalObjectReference{
-						Name: secretName,
-					},
-					Key: constants.ClientPrivateKey,
-				},
 				InsecureSkipVerify: true,
+				TLSSpec: obs.TLSSpec{
+					CA: &obs.ConfigMapOrSecretKey{
+						Secret: &corev1.LocalObjectReference{
+							Name: secretName,
+						},
+						Key: constants.TrustedCABundleKey,
+					},
+					Certificate: &obs.ConfigMapOrSecretKey{
+						Secret: &corev1.LocalObjectReference{
+							Name: secretName,
+						},
+						Key: constants.ClientCertKey,
+					},
+					Key: &obs.SecretKey{
+						Secret: &corev1.LocalObjectReference{
+							Name: secretName,
+						},
+						Key: constants.ClientPrivateKey,
+					},
+				},
 			}
 			initOutput = func() obs.OutputSpec {
 				return obs.OutputSpec{
