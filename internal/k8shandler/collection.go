@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/openshift/cluster-logging-operator/internal/auth"
 	"github.com/openshift/cluster-logging-operator/internal/utils/sets"
 
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -16,8 +15,6 @@ import (
 	"github.com/openshift/cluster-logging-operator/internal/collector"
 	"github.com/openshift/cluster-logging-operator/internal/constants"
 	"github.com/openshift/cluster-logging-operator/internal/metrics"
-	"github.com/openshift/cluster-logging-operator/internal/network"
-	"github.com/openshift/cluster-logging-operator/internal/reconcile"
 	"github.com/openshift/cluster-logging-operator/internal/runtime"
 	"github.com/openshift/cluster-logging-operator/internal/utils"
 	corev1 "k8s.io/api/core/v1"
@@ -28,99 +25,101 @@ import (
 
 // CreateOrUpdateCollection component of the cluster
 func (clusterRequest *ClusterLoggingRequest) CreateOrUpdateCollection() (err error) {
-	log.V(9).Info("Entering CreateOrUpdateCollection")
-	defer func() {
-		log.V(9).Info("Leaving CreateOrUpdateCollection")
-	}()
-
-	if !clusterRequest.isManaged() {
-		return nil
-	}
-	collectorConfig := ""
-	collectorConfHash := ""
-
-	// LOG-2620: containers violate PodSecurity
-	if err = clusterRequest.addSecurityLabelsToNamespace(); err != nil {
-		log.Error(err, "Error adding labels to logging Namespace")
-		return
-	}
-
-	// Remove legacy SecurityContextConstraint named `log-collector-scc` before reconciling a new one
-	if err = auth.RemoveSecurityContextConstraint(clusterRequest.Client, "log-collector-scc"); err != nil {
-		return
-	}
-
-	if err = reconcile.SecurityContextConstraints(clusterRequest.Client, auth.NewSCC()); err != nil {
-		log.V(9).Error(err, "reconcile.SecurityContextConstraints")
-		return err
-	}
-
-	if err = auth.ReconcileServiceAccount(clusterRequest.EventRecorder, clusterRequest.Client, clusterRequest.Forwarder.Namespace, clusterRequest.ResourceNames, clusterRequest.ResourceOwner); err != nil {
-		log.V(9).Error(err, "collector.ReconcileServiceAccount")
-		return
-	}
-
-	// This also reconciles the ServiceAccount role and role bindings for the SCC
-	if err = auth.ReconcileRBAC(clusterRequest.EventRecorder, clusterRequest.Client, clusterRequest.Forwarder.Namespace, clusterRequest.ResourceNames, clusterRequest.ResourceOwner); err != nil {
-		log.V(9).Error(err, "collector.ReconcileRBAC")
-		return
-	}
-
-	// Set the output secrets if any
-	clusterRequest.SetOutputSecrets()
-
-	if collectorConfig, err = clusterRequest.generateCollectorConfig(); err != nil {
-		log.V(9).Error(err, "clusterRequest.generateCollectorConfig")
-		return err
-	}
-
-	log.V(3).Info("Generated collector config", "config", collectorConfig)
-	collectorConfHash, err = utils.CalculateMD5Hash(collectorConfig)
-	if err != nil {
-		log.Error(err, "unable to calculate MD5 hash")
-		log.V(9).Error(err, "Returning from unable to calculate MD5 hash")
-		return
-	}
-
-	factory := collector.New(collectorConfHash, clusterRequest.ClusterID, *clusterRequest.Cluster.Spec.Collection, clusterRequest.OutputSecrets, clusterRequest.Forwarder.Spec, clusterRequest.ResourceNames.CommonName, clusterRequest.ResourceNames, clusterRequest.isDaemonset, clusterRequest.LogLevel)
-
-	if err := network.ReconcileService(clusterRequest.EventRecorder, clusterRequest.Client, clusterRequest.Forwarder.Namespace, clusterRequest.ResourceNames.CommonName, constants.CollectorName, collector.MetricsPortName, clusterRequest.ResourceNames.SecretMetrics, collector.MetricsPort, clusterRequest.ResourceOwner, factory.CommonLabelInitializer); err != nil {
-		log.Error(err, "collector.ReconcileService")
-		return err
-	}
-
-	if err := factory.ReconcileInputServices(clusterRequest.EventRecorder, clusterRequest.Client, clusterRequest.Forwarder.Namespace, clusterRequest.ResourceNames.CommonName, utils.AsOwner(clusterRequest.Forwarder), factory.CommonLabelInitializer); err != nil {
-		log.Error(err, "collector.ReconcileInputServices")
-		return err
-	}
-
-	if err := metrics.ReconcileServiceMonitor(clusterRequest.EventRecorder, clusterRequest.Client, clusterRequest.Forwarder.Namespace, clusterRequest.ResourceNames.CommonName, constants.CollectorName, collector.MetricsPortName, clusterRequest.ResourceOwner); err != nil {
-
-		log.Error(err, "collector.ReconcileServiceMonitor")
-		return err
-	}
-
-	if err = factory.ReconcileCollectorConfig(clusterRequest.EventRecorder, clusterRequest.Client, clusterRequest.Reader, clusterRequest.Forwarder.Namespace, collectorConfig, clusterRequest.ResourceOwner); err != nil {
-		log.Error(err, "collector.ReconcileCollectorConfig")
-		return
-	}
-
-	if err := collector.ReconcileTrustedCABundleConfigMap(clusterRequest.EventRecorder, clusterRequest.Client, clusterRequest.Forwarder.Namespace, clusterRequest.ResourceNames.CaTrustBundle, clusterRequest.ResourceOwner); err != nil {
-		log.Error(err, "collector.ReconcileTrustedCABundleConfigMap")
-		return err
-	}
-
-	if !clusterRequest.isDaemonset {
-		if err := factory.ReconcileDeployment(clusterRequest.EventRecorder, clusterRequest.Client, clusterRequest.Forwarder.Namespace, utils.AsOwner(clusterRequest.Forwarder)); err != nil {
-			log.Error(err, "collector.ReconcileDeployment")
-			return err
-		}
-	} else {
-		if err := factory.ReconcileDaemonset(clusterRequest.EventRecorder, clusterRequest.Client, clusterRequest.Forwarder.Namespace, clusterRequest.ResourceOwner); err != nil {
-			log.Error(err, "collector.ReconcileDaemonset")
-			return err
-		}
-	}
+	//TODO: Likely remove this entire file
+	//log.V(9).Info("Entering CreateOrUpdateCollection")
+	//defer func() {
+	//	log.V(9).Info("Leaving CreateOrUpdateCollection")
+	//}()
+	//
+	//if !clusterRequest.isManaged() {
+	//	return nil
+	//}
+	//collectorConfig := ""
+	//collectorConfHash := ""
+	//
+	//// LOG-2620: containers violate PodSecurity
+	//if err = clusterRequest.addSecurityLabelsToNamespace(); err != nil {
+	//	log.Error(err, "Error adding labels to logging Namespace")
+	//	return
+	//}
+	//
+	//// Remove legacy SecurityContextConstraint named `log-collector-scc` before reconciling a new one
+	//if err = auth.RemoveSecurityContextConstraint(clusterRequest.Client, "log-collector-scc"); err != nil {
+	//	return
+	//}
+	//
+	//if err = reconcile.SecurityContextConstraints(clusterRequest.Client, auth.NewSCC()); err != nil {
+	//	log.V(9).Error(err, "reconcile.SecurityContextConstraints")
+	//	return err
+	//}
+	//
+	//if err = auth.ReconcileServiceAccount(clusterRequest.EventRecorder, clusterRequest.Client, clusterRequest.Forwarder.Namespace, clusterRequest.ResourceNames, clusterRequest.ResourceOwner); err != nil {
+	//	log.V(9).Error(err, "collector.ReconcileServiceAccount")
+	//	return
+	//}
+	//
+	//// This also reconciles the ServiceAccount role and role bindings for the SCC
+	//if err = auth.ReconcileRBAC(clusterRequest.EventRecorder, clusterRequest.Client, clusterRequest.Forwarder.Namespace, clusterRequest.ResourceNames, clusterRequest.ResourceOwner); err != nil {
+	//	log.V(9).Error(err, "collector.ReconcileRBAC")
+	//	return
+	//}
+	//
+	//// Set the output secrets if any
+	//clusterRequest.SetOutputSecrets()
+	//
+	//if collectorConfig, err = clusterRequest.generateCollectorConfig(); err != nil {
+	//	log.V(9).Error(err, "clusterRequest.generateCollectorConfig")
+	//	return err
+	//}
+	//
+	//log.V(3).Info("Generated collector config", "config", collectorConfig)
+	//collectorConfHash, err = utils.CalculateMD5Hash(collectorConfig)
+	//if err != nil {
+	//	log.Error(err, "unable to calculate MD5 hash")
+	//	log.V(9).Error(err, "Returning from unable to calculate MD5 hash")
+	//	return
+	//}
+	//
+	////TODO: Likely this entire file is removed
+	////factory := collector.New(collectorConfHash, clusterRequest.ClusterID, *clusterRequest.Cluster.Spec.Collection, clusterRequest.OutputSecrets, clusterRequest.Forwarder.Spec, clusterRequest.ResourceNames, clusterRequest.isDaemonset, clusterRequest.LogLevel)
+	//
+	//if err := network.ReconcileService(clusterRequest.EventRecorder, clusterRequest.Client, clusterRequest.Forwarder.Namespace, clusterRequest.ResourceNames.CommonName, constants.CollectorName, collector.MetricsPortName, clusterRequest.ResourceNames.SecretMetrics, collector.MetricsPort, clusterRequest.ResourceOwner, factory.CommonLabelInitializer); err != nil {
+	//	log.Error(err, "collector.ReconcileService")
+	//	return err
+	//}
+	//
+	////if err := factory.ReconcileInputServices(clusterRequest.EventRecorder, clusterRequest.Client, clusterRequest.Forwarder.Namespace, clusterRequest.ResourceNames.CommonName, utils.AsOwner(clusterRequest.Forwarder), factory.CommonLabelInitializer); err != nil {
+	////	log.Error(err, "collector.ReconcileInputServices")
+	////	return err
+	////}
+	//
+	//if err := metrics.ReconcileServiceMonitor(clusterRequest.EventRecorder, clusterRequest.Client, clusterRequest.Forwarder.Namespace, clusterRequest.ResourceNames.CommonName, constants.CollectorName, collector.MetricsPortName, clusterRequest.ResourceOwner); err != nil {
+	//
+	//	log.Error(err, "collector.ReconcileServiceMonitor")
+	//	return err
+	//}
+	//
+	////if err = factory.ReconcileCollectorConfig(clusterRequest.EventRecorder, clusterRequest.Client, clusterRequest.Reader, clusterRequest.Forwarder.Namespace, collectorConfig, clusterRequest.ResourceOwner); err != nil {
+	////	log.Error(err, "collector.ReconcileCollectorConfig")
+	////	return
+	////}
+	//
+	//if err := collector.ReconcileTrustedCABundleConfigMap(clusterRequest.EventRecorder, clusterRequest.Client, clusterRequest.Forwarder.Namespace, clusterRequest.ResourceNames.CaTrustBundle, clusterRequest.ResourceOwner); err != nil {
+	//	log.Error(err, "collector.ReconcileTrustedCABundleConfigMap")
+	//	return err
+	//}
+	//
+	//if !clusterRequest.isDaemonset {
+	//	if err := factory.ReconcileDeployment(clusterRequest.EventRecorder, clusterRequest.Client, clusterRequest.Forwarder.Namespace, utils.AsOwner(clusterRequest.Forwarder)); err != nil {
+	//		log.Error(err, "collector.ReconcileDeployment")
+	//		return err
+	//	}
+	//} else {
+	//	if err := factory.ReconcileDaemonset(clusterRequest.EventRecorder, clusterRequest.Client, clusterRequest.Forwarder.Namespace, clusterRequest.ResourceOwner); err != nil {
+	//		log.Error(err, "collector.ReconcileDaemonset")
+	//		return err
+	//	}
+	//}
 
 	return nil
 }

@@ -5,10 +5,6 @@ import (
 	"k8s.io/utils/set"
 )
 
-type LogCollectorType string
-
-const LogCollectorTypeVector LogCollectorType = "vector"
-
 func SecretsForTLS(t obsv1.TLSSpec) []string {
 	secrets := set.New[string]()
 	if t.Key != nil {
