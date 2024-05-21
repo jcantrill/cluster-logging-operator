@@ -9,8 +9,6 @@ type LogCollectorType string
 
 const LogCollectorTypeVector LogCollectorType = "vector"
 
-type CollectorSpec obsv1.CollectorSpec
-
 func SecretsForTLS(t obsv1.TLSSpec) []string {
 	secrets := set.New[string]()
 	if t.Key != nil {

@@ -45,8 +45,8 @@ func (s Secrets) AsString(key *obs.SecretKey) string {
 func (s Secrets) AsStringFromBearerToken(key *obs.BearerToken) string {
 	if key.Secret != nil {
 		return s.AsString(&obs.SecretKey{
-			Secret: key.Secret,
-			Key:    key.Key,
+			Secret: key.Secret.Secret,
+			Key:    key.Secret.Key,
 		})
 
 	}

@@ -49,33 +49,44 @@ func (outputs Outputs) SecretNames() []string {
 func SecretKeys(o obsv1.OutputSpec) []*obsv1.SecretKey {
 	switch o.Type {
 	case obsv1.OutputTypeAzureMonitor:
-		return []*obsv1.SecretKey{o.AzureMonitor.Authentication.SharedKey}
+		if o.AzureMonitor.Authentication != nil {
+			return []*obsv1.SecretKey{o.AzureMonitor.Authentication.SharedKey}
+		}
 	case obsv1.OutputTypeCloudwatch:
-		a := o.Cloudwatch.Authentication
-		return []*obsv1.SecretKey{a.AccessKeyID, a.AccessKeySecret, a.Credentials, a.RoleARN}
+		if o.Cloudwatch.Authentication != nil {
+			a := o.Cloudwatch.Authentication
+			return []*obsv1.SecretKey{a.AccessKeyID, a.AccessKeySecret, a.Credentials, a.RoleARN}
+		}
 	case obsv1.OutputTypeElasticsearch:
-		return httpAuthKeys(o.Elasticsearch.Authentication)
+		if o.Elasticsearch.Authentication != nil {
+			return httpAuthKeys(o.Elasticsearch.Authentication)
+		}
 	case obsv1.OutputTypeGoogleCloudLogging:
-		a := o.GoogleCloudLogging.Authentication
-		return []*obsv1.SecretKey{a.Credentials}
+		if o.GoogleCloudLogging.Authentication != nil {
+			a := o.GoogleCloudLogging.Authentication
+			return []*obsv1.SecretKey{a.Credentials}
+		}
 	case obsv1.OutputTypeHTTP:
 		return httpAuthKeys(o.Loki.Authentication)
 	case obsv1.OutputTypeKafka:
-		a := o.Kafka.Authentication
-		return []*obsv1.SecretKey{a.SASL.Password, a.SASL.Username}
+		if o.Kafka.Authentication != nil {
+			a := o.Kafka.Authentication
+			return []*obsv1.SecretKey{a.SASL.Password, a.SASL.Username}
+		}
 	case obsv1.OutputTypeLoki:
 		return httpAuthKeys(o.Loki.Authentication)
 	case obsv1.OutputTypeLokiStack:
 		return httpAuthKeys(o.LokiStack.Authentication)
 	case obsv1.OutputTypeSplunk:
-		return []*obsv1.SecretKey{o.Splunk.Authentication.Token}
+		if o.Splunk.Authentication != nil {
+			return []*obsv1.SecretKey{o.Splunk.Authentication.Token}
+		}
 	case obsv1.OutputTypeSyslog:
-		return []*obsv1.SecretKey{}
 	default:
 		log.V(0).Error(OutputTypeUnknown(o.Type), "Found unsupported output type while gathering secret names")
 		os.Exit(1)
 	}
-	return nil
+	return []*obsv1.SecretKey{}
 }
 
 func httpAuthKeys(auth *obsv1.HTTPAuthentication) []*obsv1.SecretKey {

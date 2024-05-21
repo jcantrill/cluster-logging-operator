@@ -51,6 +51,14 @@ func (r *ClusterLogForwarderReconciler) Reconcile(ctx context.Context, req ctrl.
 
 	// Fetch the ClusterLogForwarder instance
 	instance, err, status := obsload.FetchClusterLogForwarder(r.Client, req.NamespacedName.Namespace, req.NamespacedName.Name)
+	if instance.Spec.ManagementState == observabilityv1.ManagementStateUnmanaged {
+		return defaultRequeue, nil
+	}
+
+	//TODO: Remove deployment if unready?
+	//TODO: Remove existing deployment/daemonset
+	//TODO: Remove stale input services
+
 	if status != nil {
 		//if err := instance.Status.Synchronize(status); err != nil {
 		return defaultRequeue, err
@@ -61,9 +69,16 @@ func (r *ClusterLogForwarderReconciler) Reconcile(ctx context.Context, req ctrl.
 		return result, err
 	}
 
-	// TODO: Deploy Collector
+	//TODO: loadme
+	clusterID := ""
+	reconcileErr := CreateOrUpdateCollector(r.Client, r.Client, instance, clusterID)
+	if reconcileErr != nil {
+		log.V(2).Error(reconcileErr, "clusterlogforwarder-controller returning, error")
+	} else {
+		//TODO: Update conditions
+	}
 
-	return periodicRequeue, nil
+	return periodicRequeue, reconcileErr
 }
 
 // SetupWithManager sets up the controller with the Manager.

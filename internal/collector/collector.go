@@ -54,7 +54,7 @@ type PodLabelVisitor func(o runtime.Object)
 
 type Factory struct {
 	ConfigHash             string
-	CollectorSpec          internalobs.CollectorSpec
+	CollectorSpec          obs.CollectorSpec
 	ClusterID              string
 	ImageName              string
 	TrustedCAHash          string
@@ -84,17 +84,20 @@ func (f *Factory) Tolerations() []v1.Toleration {
 	return f.CollectorSpec.Tolerations
 }
 
-func New(confHash, clusterID string, collectorSpec internalobs.CollectorSpec, secrets map[string]*v1.Secret, forwarderSpec obs.ClusterLogForwarderSpec, instanceName string, resNames *factory.ForwarderResourceNames, isDaemonset bool, logLevel string) *Factory {
+func New(confHash, clusterID string, collectorSpec *obs.CollectorSpec, secrets map[string]*v1.Secret, forwarderSpec obs.ClusterLogForwarderSpec, resNames *factory.ForwarderResourceNames, isDaemonset bool, logLevel string) *Factory {
+	if collectorSpec == nil {
+		collectorSpec = &obs.CollectorSpec{}
+	}
 	factory := &Factory{
 		ClusterID:     clusterID,
 		ConfigHash:    confHash,
-		CollectorSpec: collectorSpec,
+		CollectorSpec: *collectorSpec,
 		ImageName:     constants.VectorName,
 		Visit:         vector.CollectorVisitor,
 		Secrets:       secrets,
 		ForwarderSpec: forwarderSpec,
 		CommonLabelInitializer: func(o runtime.Object) {
-			runtime.SetCommonLabels(o, constants.VectorName, instanceName, constants.CollectorName)
+			runtime.SetCommonLabels(o, constants.VectorName, resNames.ForwarderName, constants.CollectorName)
 		},
 		ResourceNames:   resNames,
 		PodLabelVisitor: vector.PodLogExcludeLabel,
@@ -155,7 +158,7 @@ func (f *Factory) NewPodSpec(trustedCABundle *v1.ConfigMap, spec obs.ClusterLogF
 	// TODO: Handle secret/configmap name clash for volumemounts
 	collector := f.NewCollectorContainer(spec.Inputs, secretVolumes, configmapVolumes, clusterID)
 
-	addTrustedCABundle(collector, podSpec, trustedCABundle, f.ResourceNames.CaTrustBundle)
+	addTrustedCABundle(collector, podSpec, trustedCABundle)
 
 	f.Visit(collector, podSpec, f.ResourceNames, namespace, f.LogLevel)
 
@@ -164,7 +167,6 @@ func (f *Factory) NewPodSpec(trustedCABundle *v1.ConfigMap, spec obs.ClusterLogF
 	podSpec.Containers = []v1.Container{
 		*collector,
 	}
-
 	return podSpec
 }
 
@@ -302,22 +304,22 @@ func AddSecurityContextTo(container *v1.Container) *v1.Container {
 	return container
 }
 
-func addTrustedCABundle(collector *v1.Container, podSpec *v1.PodSpec, trustedCABundleCM *v1.ConfigMap, name string) {
+func addTrustedCABundle(collector *v1.Container, podSpec *v1.PodSpec, trustedCABundleCM *v1.ConfigMap) {
 	if trustedCABundleCM != nil && hasTrustedCABundle(trustedCABundleCM) {
 		collector.VolumeMounts = append(collector.VolumeMounts,
 			v1.VolumeMount{
-				Name:      name,
+				Name:      constants.CollectorTrustedCAName,
 				ReadOnly:  true,
 				MountPath: constants.TrustedCABundleMountDir,
 			})
 
 		podSpec.Volumes = append(podSpec.Volumes,
 			v1.Volume{
-				Name: name,
+				Name: constants.CollectorTrustedCAName,
 				VolumeSource: v1.VolumeSource{
 					ConfigMap: &v1.ConfigMapVolumeSource{
 						LocalObjectReference: v1.LocalObjectReference{
-							Name: name,
+							Name: constants.CollectorTrustedCAName,
 						},
 						Items: []v1.KeyToPath{
 							{
