@@ -2,8 +2,8 @@ package collector
 
 import (
 	log "github.com/ViaQ/logerr/v2/log/static"
-	logging "github.com/openshift/cluster-logging-operator/api/logging/v1"
 	obs "github.com/openshift/cluster-logging-operator/api/observability/v1"
+	"github.com/openshift/cluster-logging-operator/internal/collector/common"
 	"github.com/openshift/cluster-logging-operator/internal/constants"
 	"github.com/openshift/cluster-logging-operator/internal/generator/helpers/security"
 	v1 "k8s.io/api/core/v1"
@@ -16,7 +16,7 @@ func addWebIdentityForCloudwatch(collector *v1.Container, podSpec *v1.PodSpec, f
 		return
 	}
 	for _, o := range forwarderSpec.Outputs {
-		if o.Type == logging.OutputTypeCloudwatch {
+		if o.Type == obs.OutputTypeCloudwatch {
 			secret := secrets[o.Name]
 			if security.HasAwsRoleArnKey(secret) || security.HasAwsCredentialsKey(secret) {
 				log.V(3).Info("Found sts key in secret")
@@ -48,7 +48,7 @@ func AddWebIdentityTokenVolumes(collector *v1.Container, podSpec *v1.PodSpec) {
 						{
 							ServiceAccountToken: &v1.ServiceAccountTokenProjection{
 								Audience: "openshift",
-								Path:     constants.AWSWebIdentityTokenFilePath,
+								Path:     constants.TokenKey,
 							},
 						},
 					},
@@ -59,10 +59,10 @@ func AddWebIdentityTokenVolumes(collector *v1.Container, podSpec *v1.PodSpec) {
 }
 
 // AddWebIdentityTokenEnvVars Appends web identity env vars based on attributes of the secret and forwarder spec
-func AddWebIdentityTokenEnvVars(collector *v1.Container, output logging.OutputSpec, secret *v1.Secret) {
-	tokenPath := path.Join(constants.AWSWebIdentityTokenMount, constants.AWSWebIdentityTokenFilePath)
+func AddWebIdentityTokenEnvVars(collector *v1.Container, output obs.OutputSpec, secret *v1.Secret) {
+	tokenPath := path.Join(constants.AWSWebIdentityTokenMount, constants.TokenKey)
 	if security.HasAWSWebIdentityTokenFilePath(secret) {
-		tokenPath = path.Join(OutputSecretPath(secret.Name), constants.AWSWebIdentityTokenFilePath)
+		tokenPath = common.SecretPath(secret.Name, constants.TokenKey)
 	}
 
 	// Necessary for vector to use sts
