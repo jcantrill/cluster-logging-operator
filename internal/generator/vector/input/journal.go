@@ -12,7 +12,7 @@ func NewJournalSource(input obs.InputSpec) ([]Element, []string) {
 	metaID := helpers.MakeID(id, "meta")
 	el := []Element{
 		source.NewJournalLog(id),
-		NewLogSourceAndType(metaID, string(obs.InfrastructureSourceNode), string(obs.InputTypeInfrastructure), id),
+		NewInternalNormalization(metaID, string(obs.InfrastructureSourceNode), string(obs.InputTypeInfrastructure), id),
 	}
 	return el, []string{metaID}
 }
