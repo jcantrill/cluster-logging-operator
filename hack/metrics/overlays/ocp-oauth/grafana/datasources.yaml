@@ -1,0 +1,18 @@
+apiVersion: 1
+datasources:
+  - access: proxy
+    editable: true
+    jsonData:
+      tlsAuthWithCACert: true
+      timeInterval: 5s
+      oauthPassThru: false
+      manageAlerts: true
+      alertmanagerUid: 8e7816ff-6815-4a38-95f4-370485165c5e
+      httpHeaderName1: 'Authorization'
+    secureJsonData:
+      tlsCACert: ${GATEWAY_SERVICE_CA}
+      httpHeaderValue1: "Bearer eyJhbGciOiJSUzI1NiIsImtpZCI6IjVKNWVhdmNaSXlXM3drQlVkMkxwRTFaSDhYRDVHWWtaaExLYVdQSmt1YUkifQ.eyJpc3MiOiJrdWJlcm5ldGVzL3NlcnZpY2VhY2NvdW50Iiwia3ViZXJuZXRlcy5pby9zZXJ2aWNlYWNjb3VudC9uYW1lc3BhY2UiOiJvcGVuc2hpZnQtbW9uaXRvcmluZyIsImt1YmVybmV0ZXMuaW8vc2VydmljZWFjY291bnQvc2VjcmV0Lm5hbWUiOiJncmFmYW5hLXRva2VuIiwia3ViZXJuZXRlcy5pby9zZXJ2aWNlYWNjb3VudC9zZXJ2aWNlLWFjY291bnQubmFtZSI6ImdyYWZhbmEiLCJrdWJlcm5ldGVzLmlvL3NlcnZpY2VhY2NvdW50L3NlcnZpY2UtYWNjb3VudC51aWQiOiJhN2M2NTA0Yi02YWNkLTQ2M2YtYjBlNS1hYzVmOGY2NDlhMzQiLCJzdWIiOiJzeXN0ZW06c2VydmljZWFjY291bnQ6b3BlbnNoaWZ0LW1vbml0b3Jpbmc6Z3JhZmFuYSJ9.TWxqA4vO680NOJD1GAsv4WXjfZvpWslnSEboaYZyoVcLOsMZYGdEyVCr9Unz0aN8feEEXMbJDxzDeLKUhipF84spfus_5SxKKm_KOSGRtFceR4E_GO-Qvj8G23vH8HmSkvluU1CukEQJzwNUnHfibEIW2fGTBek6YD5IHcYZXAsv2MPKfMejmL5aeQLn5ZPdZ5PcEbQmhu52giNybVFfW49f1n3YbYYTT8iNUy3_1rMp4EaiJkaQdTHcI17OglC47-vChZqAN_wnpGbWuTjUss6_88BiukCER0ycbpZ7SuUixQwcu9J1fNYxKMk7dboWb6LT5gDCJ5K6RQ41D8tSAfFGgqizkbMkroEV5tItiYSmSXQtowVgfathflgydzqPF_3EU50oNyYinmrs0FpYKYmZexouKFQEVd5DVyI6Ud6AHl6Sxam6H5ArNW0VzWUQGM_Y8B040D5s0LYGR4pLgN1uzY8erOreTbGQjFp_mMTjWdVdj8sieH6Fmq8dAsFF-pNz4zaDsr3XyN36qQfac3F23g1qUy0ycO6NbUYwUnAclfgobcMM0bI0Vvu6s2xvkkM80xnexZO_u6_TdHAsaMRgtHRdHijLUxyUVHYmrimybxcsbORhMwZAF6gliBpXDShpxJi-LJ7jnkXa778SwqEPhDr8utVGKYSo9F6PCEI"
+    name: Prometheus
+    uid: 73a57e8b-7679-4a18-915c-292f143448c7
+    type: prometheus
+    url: https://${CLUSTER_MONITORING_THANOS_QUERIER_OAUTH_ADDRESS}

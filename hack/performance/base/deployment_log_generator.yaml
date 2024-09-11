@@ -1,0 +1,35 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: logger
+  labels:
+    app.kubernetes.io/name: logging-benchmarking
+    app.kubernetes.io/component: loader
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: logging-benchmarking
+      app.kubernetes.io/component: loader
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: logging-benchmarking
+        app.kubernetes.io/component: loader
+    spec:
+      nodeSelector:
+        node-role.kubernetes.io/worker: ""
+        log-workload: benchmark
+      containers:
+      - name: logger
+        env:
+        - name: LOGS_PER_SECOND
+          value: "1"
+        - name: PAYLOAD_SIZE
+          value: "100"
+        image: quay.io/openshift-logging/cluster-logging-load-client:latest
+        imagePullPolicy: Always
+        args:
+        - --logs-per-second=$(LOGS_PER_SECOND)
+        - --synthetic-payload-size=$(PAYLOAD_SIZE) 
+        - --log-type=synthetic

@@ -1,0 +1,36 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: grafana
+spec:
+  template:
+    spec:
+      containers:
+        - name: grafana
+          args:
+            - -config=/etc/grafana/config.ini
+          env:
+            - name: OAUTH_CLIENT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: grafana-token
+                  key: token
+            - name: CLUSTER_ROUTES_BASE
+              value: jcantril-af2f.devcluster.openshift.com
+          readinessProbe:
+            httpGet:
+              scheme: HTTPS
+          volumeMounts:
+            - mountPath: /etc/grafana
+              name: grafana-config
+            - mountPath: /etc/tls/private
+              name: secret-grafana-tls
+      serviceAccountName: grafana
+      volumes:
+        - name: grafana-config
+          configMap:
+            name: grafana-config
+        - name: secret-grafana-tls
+          secret:
+            defaultMode: 420
+            secretName: grafana-tls

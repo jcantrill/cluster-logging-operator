@@ -1,0 +1,12 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: logger
+spec:
+  template:
+    spec:
+      containers:
+      - name: logger
+        env:
+        - name: LOGS_PER_SECOND
+          value: "500"

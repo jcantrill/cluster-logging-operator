@@ -1,0 +1,22 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: openshift-monitoring
+# Uncomment for generating manifest in grafana/loki
+# generatorOptions:
+#   disableNameSuffixHash: true
+resources:
+  - ../../base
+  - clusterrolebinding.yaml
+  - route.yaml
+  - serviceaccount.yaml
+patchesStrategicMerge:
+  - patch_deployment_env.yaml
+  - patch_deployment_oauth.yaml
+  - patch_service_tls.yaml
+configMapGenerator:
+  - name: grafana-config
+    files:
+      - grafana/config.ini
+  - name: grafana-datasources
+    files:
+      - grafana/datasources.yaml

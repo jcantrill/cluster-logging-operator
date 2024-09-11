@@ -1,0 +1,7 @@
+"authorization":
+  "resourceAttributes":
+    "apiGroup": "monitoring.coreos.com"
+    "name": "k8s"
+    "namespace": "openshift-monitoring"
+    "resource": "prometheuses"
+    "subresource": "api"

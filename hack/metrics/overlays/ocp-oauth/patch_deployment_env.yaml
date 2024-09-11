@@ -1,0 +1,17 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: grafana
+spec:
+  template:
+    spec:
+      containers:
+        - name: grafana
+          env:
+            - name: GATEWAY_SERVICE_CA
+              valueFrom:
+                configMapKeyRef:
+                  key: service-ca.crt
+                  name: openshift-service-ca.crt
+            - name: CLUSTER_MONITORING_THANOS_QUERIER_OAUTH_ADDRESS
+              value: thanos-querier.openshift-monitoring.svc.cluster.local:9091
