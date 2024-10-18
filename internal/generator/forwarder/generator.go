@@ -5,6 +5,7 @@ import (
 	"github.com/openshift/cluster-logging-operator/internal/factory"
 	"github.com/openshift/cluster-logging-operator/internal/generator/framework"
 	"github.com/openshift/cluster-logging-operator/internal/generator/vector/conf"
+	"github.com/openshift/cluster-logging-operator/internal/utils"
 
 	"github.com/openshift/cluster-logging-operator/internal/generator/helpers"
 	corev1 "k8s.io/api/core/v1"
@@ -27,5 +28,11 @@ func New() *ConfigGenerator {
 func (cg *ConfigGenerator) GenerateConf(secrets map[string]*corev1.Secret, clfspec obs.ClusterLogForwarderSpec, namespace, forwarderName string, resNames factory.ForwarderResourceNames, op framework.Options) (string, error) {
 	sections := cg.conf(secrets, clfspec, namespace, forwarderName, resNames, op)
 	conf, err := cg.g.GenerateConf(framework.MergeSections(sections)...)
+	if op.Has("logging.observability.openshift.io/experimental-forwarder-tuning") {
+		if modifier, found := utils.GetOption(op, "logging.observability.openshift.io/experimental-forwarder-tuning", func(string) string { return conf }); found {
+			conf = modifier(conf)
+		}
+
+	}
 	return cg.format(conf), err
 }
