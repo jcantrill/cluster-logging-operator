@@ -1,4 +1,4 @@
-package parser
+package tuning_config
 
 import (
 	"testing"

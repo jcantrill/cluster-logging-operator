@@ -1,8 +1,6 @@
 package observability
 
 import (
-	"github.com/openshift/cluster-logging-operator/internal/utils/parser"
-	"sigs.k8s.io/yaml"
 	"strings"
 	"time"
 
@@ -127,8 +125,8 @@ func ReconcileCollector(context internalcontext.ForwarderContext, pollInterval, 
 func GenerateConfig(k8Client client.Client, spec obs.ClusterLogForwarder, resourceNames factory.ForwarderResourceNames, secrets internalobs.Secrets, op framework.Options) (config string, err error) {
 	tlsProfile, _ := tls.FetchAPIServerTlsProfile(k8Client)
 	op[framework.ClusterTLSProfileSpec] = tls.GetClusterTLSProfileSpec(tlsProfile)
-	EvaluateAnnotationsForEnabledCapabilities(k8Client, spec.Namespace, spec.Name, spec.Annotations, op)
-	g := forwardergenerator.New()
+	EvaluateAnnotationsForEnabledCapabilities(spec.Annotations, op)
+	g := forwardergenerator.New(k8Client, spec.Annotations)
 	generatedConfig, err := g.GenerateConf(secrets, spec.Spec, spec.Namespace, spec.Name, resourceNames, op)
 
 	if err != nil {
@@ -141,7 +139,7 @@ func GenerateConfig(k8Client client.Client, spec obs.ClusterLogForwarder, resour
 }
 
 // EvaluateAnnotationsForEnabledCapabilities populates generator options with capabilities enabled by the ClusterLogForwarder
-func EvaluateAnnotationsForEnabledCapabilities(k8Client client.Client, namespace, name string, annotations map[string]string, options framework.Options) {
+func EvaluateAnnotationsForEnabledCapabilities(annotations map[string]string, options framework.Options) {
 	if annotations == nil {
 		return
 	}
@@ -150,16 +148,6 @@ func EvaluateAnnotationsForEnabledCapabilities(k8Client client.Client, namespace
 		case constants.AnnotationDebugOutput:
 			if strings.ToLower(value) == "true" {
 				options[generatorhelpers.EnableDebugOutput] = "true"
-			}
-		case "logging.observability.openshift.io/experimental-forwarder-tuning": //value is a configmap in same ns that includes data[clf.name]=<tuning>
-			if configMaps, err := FetchConfigMaps(k8Client, namespace, value); err != nil && len(configMaps) > 0 {
-				tunings := &parser.ExperimentalCLFTuning{}
-				if err = yaml.Unmarshal([]byte(configMaps[0].Data[name]), tunings); err != nil {
-					options["logging.observability.openshift.io/experimental-forwarder-tuning"] = func(tomlSource string) string {
-						toml := parser.ParseToml(tomlSource)
-						return toml.Modify(*tunings).String()
-					}
-				}
 			}
 		}
 	}

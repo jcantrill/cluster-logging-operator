@@ -5,22 +5,34 @@ import (
 	"github.com/openshift/cluster-logging-operator/internal/factory"
 	"github.com/openshift/cluster-logging-operator/internal/generator/framework"
 	"github.com/openshift/cluster-logging-operator/internal/generator/vector/conf"
-	"github.com/openshift/cluster-logging-operator/internal/utils"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"github.com/openshift/cluster-logging-operator/internal/generator/helpers"
 	corev1 "k8s.io/api/core/v1"
 )
 
-type ConfigGenerator struct {
-	g      framework.Generator
-	conf   func(secrets map[string]*corev1.Secret, clfspec obs.ClusterLogForwarderSpec, namespace, forwarderName string, resNames factory.ForwarderResourceNames, op framework.Options) []framework.Section
-	format func(conf string) string
+var (
+	configModRegistry []func(client.Client, string, string, map[string]string, string) string
+)
+
+func AddConfigModifier(m func(client.Client, string, string, map[string]string, string) string) {
+	configModRegistry = append(configModRegistry, m)
 }
 
-func New() *ConfigGenerator {
+type ConfigGenerator struct {
+	g           framework.Generator
+	conf        func(secrets map[string]*corev1.Secret, clfspec obs.ClusterLogForwarderSpec, namespace, forwarderName string, resNames factory.ForwarderResourceNames, op framework.Options) []framework.Section
+	format      func(conf string) string
+	k8sClient   client.Client
+	annotations map[string]string
+}
+
+func New(k8sClient client.Client, annotations map[string]string) *ConfigGenerator {
 	g := &ConfigGenerator{
-		format: helpers.FormatVectorToml,
-		conf:   conf.Conf,
+		format:      helpers.FormatVectorToml,
+		conf:        conf.Conf,
+		k8sClient:   k8sClient,
+		annotations: annotations,
 	}
 	return g
 }
@@ -28,11 +40,8 @@ func New() *ConfigGenerator {
 func (cg *ConfigGenerator) GenerateConf(secrets map[string]*corev1.Secret, clfspec obs.ClusterLogForwarderSpec, namespace, forwarderName string, resNames factory.ForwarderResourceNames, op framework.Options) (string, error) {
 	sections := cg.conf(secrets, clfspec, namespace, forwarderName, resNames, op)
 	conf, err := cg.g.GenerateConf(framework.MergeSections(sections)...)
-	if op.Has("logging.observability.openshift.io/experimental-forwarder-tuning") {
-		if modifier, found := utils.GetOption(op, "logging.observability.openshift.io/experimental-forwarder-tuning", func(string) string { return conf }); found {
-			conf = modifier(conf)
-		}
-
+	for _, modifier := range configModRegistry {
+		conf = modifier(cg.k8sClient, namespace, forwarderName, cg.annotations, conf)
 	}
 	return cg.format(conf), err
 }

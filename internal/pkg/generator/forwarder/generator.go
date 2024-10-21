@@ -62,7 +62,7 @@ func Generate(clfYaml string, debugOutput bool, client client.Client) (string, e
 	//k8shandler.EvaluateAnnotationsForEnabledCapabilities(forwarder.Annotations, op)
 	op[framework.ClusterTLSProfileSpec] = tls.GetClusterTLSProfileSpec(nil)
 
-	configGenerator := forwardergenerator.New()
+	configGenerator := forwardergenerator.New(client, forwarder.Annotations)
 	if configGenerator == nil {
 		return "", errors.New("unsupported collector implementation")
 	}

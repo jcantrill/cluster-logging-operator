@@ -235,7 +235,7 @@ test-functional-benchmarker-vector: bin/functional-benchmarker
 test-unit: test-forwarder-generator test-unit-api
 	RELATED_IMAGE_VECTOR=$(IMAGE_LOGGING_VECTOR) \
 	RELATED_IMAGE_LOG_FILE_METRIC_EXPORTER=$(IMAGE_LOGFILEMETRICEXPORTER) \
-	go test -coverprofile=test.cov -race ./api/... ./internal/... `go list ./test/... | grep -Ev 'test/(e2e|functional|framework|client|helpers)'`
+	go test $(BUILD_OPTS) -coverprofile=test.cov -race ./api/... ./internal/... `go list ./test/... | grep -Ev 'test/(e2e|functional|framework|client|helpers)'`
 
 .PHONY: test-unit-api
 test-unit-api:
