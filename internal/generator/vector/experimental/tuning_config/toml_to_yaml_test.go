@@ -9,7 +9,7 @@ import (
 	yaml "sigs.k8s.io/yaml"
 )
 
-var _ = Describe("testing it out", func() {
+var _ = Describe("#ParseToml", func() {
 
 	const (
 		source = `expire_metrics_secs = 60
@@ -93,13 +93,12 @@ outputs:
 `
 	)
 
-	It("", func() {
+	It("should replace generator values with overrides", func() {
 		toml := ParseToml(source)
 
 		tunings := &ExperimentalCLFTuning{}
 
 		Expect(yaml.Unmarshal([]byte(tuningYAML), tunings)).To(Succeed())
-		fmt.Println(tunings)
 
 		toml.Modify(*tunings)
 		Expect(toml.String()).To(BeComparableTo(source), fmt.Sprintf("Actual: \n%s", toml.String()))

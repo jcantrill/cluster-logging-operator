@@ -148,7 +148,7 @@ spotless: clean
 .PHONY: image
 image: .target/image
 .target/image: .target $(GEN_TIMESTAMP) $(shell find must-gather version bundle .bingo api internal -type f 2>/dev/null) Dockerfile  go.mod go.sum
-	podman build -t $(IMAGE_TAG) . -f Dockerfile
+	podman build --build-arg BUILD_OPTS='$(BUILD_OPTS)' -t $(IMAGE_TAG) . -f Dockerfile
 	touch $@
 
 # Notes:

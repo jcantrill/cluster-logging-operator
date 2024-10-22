@@ -4,6 +4,7 @@
 #
 # FROM registry.redhat.io/ubi9/go-toolset:latest AS builder
 FROM registry.ci.openshift.org/ocp/builder:rhel-9-golang-1.22-openshift-4.17 as builder
+ARG BUILD_OPTS
 
 ENV REMOTE_SOURCES=${REMOTE_SOURCES:-.}
 ENV REMOTE_SOURCES_DIR=${REMOTE_SOURCES_DIR:-.}
@@ -22,7 +23,7 @@ COPY ${APP_DIR}/cmd/main.go ./cmd/main.go
 COPY ${APP_DIR}/internal ./internal
 
 USER 0
-RUN make build
+RUN make build BUILD_OPTS="$BUILD_OPTS"
 
 FROM quay.io/openshift/origin-cli-artifacts:4.16 AS origincli
 
