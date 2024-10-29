@@ -1,6 +1,6 @@
 FROM quay.io/operator-framework/upstream-registry-builder AS registry-builder
 
-FROM registry.redhat.io/ubi8:8.5
+FROM registry.redhat.io/ubi8:8.10
 
 WORKDIR /
 COPY bundle/manifests/ /manifests
