@@ -241,6 +241,7 @@ const (
 )
 
 // HTTPAuthentication provides options for setting common authentication credentials.
+
 // This is mostly used with outputs using HTTP or a derivative as transport.
 type HTTPAuthentication struct {
 	// Token specifies a bearer token to be used for authenticating requests.
@@ -744,7 +745,7 @@ type Kafka struct {
 	Brokers []BrokerURL `json:"brokers,omitempty"`
 }
 
-// +kubebuilder:validation:XValidation:rule="self == '' || (isURL(self) && (self.startsWith('tcp://') || self.startsWith('tls://')))",message="each broker must be a valid URL with a tcp or tls scheme"
+// +kubebuilder:validation:XValidation:rule="self == ” || (isURL(self) && (self.startsWith('tcp://') || self.startsWith('tls://')))",message="each broker must be a valid URL with a tcp or tls scheme"
 type BrokerURL string
 
 type LokiTuningSpec struct {

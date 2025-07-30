@@ -5,6 +5,7 @@ import (
 	"crypto/tls"
 	"flag"
 	"fmt"
+	"github.com/openshift/cluster-logging-operator/internal/webhooks"
 	"os"
 	"runtime"
 	"sigs.k8s.io/controller-runtime/pkg/metrics/filters"
@@ -208,6 +209,16 @@ func main() {
 	}
 
 	//+kubebuilder:scaffold:builder
+
+	// Setup the PodMutator webhook
+	podMutator := &webhooks.PodMutator{
+		Client: mgr.GetClient(),
+		Scheme: mgr.GetScheme(),
+	}
+	if err = podMutator.SetupWebhookWithManager(mgr); err != nil {
+		log.Error(err, "unable to create webhook", "webhook", "PodMutator")
+		os.Exit(1)
+	}
 
 	if err := mgr.AddHealthzCheck("healthz", healthz.Ping); err != nil {
 		log.Error(err, "unable to set up health check")
