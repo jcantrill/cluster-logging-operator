@@ -2531,12 +2531,11 @@ spec:
                             If provided, it must be a valid URL with a 'tcp' or 'tls' scheme.
                             If none is provided, the target URL from the OutputSpec is used as fallback.
                           items:
+                            description: BrokerURL is a URL to a Kafka broker
                             type: string
                             x-kubernetes-validations:
-                            - message: each broker must be a valid URL with a tcp
-                                or tls scheme
-                              rule: self == ” || (isURL(self) && (self.startsWith('tcp://')
-                                || self.startsWith('tls://')))
+                            - message: must be a valid URL with a tcp or tls scheme
+                              rule: size(self) == 0 || matches(self, '(tcp|tls)://')
                           type: array
                         topic:
                           description: |-
