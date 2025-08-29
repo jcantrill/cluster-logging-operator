@@ -1,6 +1,7 @@
 package observability
 
 import (
+	"fmt"
 	"strings"
 	"time"
 
@@ -121,6 +122,12 @@ func ReconcileCollector(context internalcontext.ForwarderContext, pollInterval, 
 
 	if err := collectorFactory.ReconcileInputServices(context.Client, context.Reader, context.Forwarder.Namespace, ownerRef, collectorFactory.CommonLabelInitializer); err != nil {
 		log.Error(err, "collector.ReconcileInputServices")
+		return err
+	}
+
+	// Reconcile NetworkPolicy for the collector daemonset
+	if err := network.ReconcileNetworkPolicy(context.Client, context.Forwarder.Namespace, fmt.Sprintf("%s-%s", constants.CollectorName, resourceNames.CommonName), context.Forwarder.Name, ownerRef, collectorFactory.CommonLabelInitializer); err != nil {
+		log.Error(err, "collector.ReconcileNetworkPolicy")
 		return err
 	}
 
