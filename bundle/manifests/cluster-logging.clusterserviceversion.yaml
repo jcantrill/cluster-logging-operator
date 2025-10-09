@@ -2142,11 +2142,7 @@ spec:
           resources:
           - networkpolicies
           verbs:
-          - create
-          - delete
-          - list
-          - get
-          - watch
+          - '*'
         - apiGroups:
           - oauth.openshift.io
           resources:
