@@ -83,6 +83,10 @@ bin/forwarder-generator:
 bin/cluster-logging-operator:
 	go build $(BUILD_OPTS) -o $@ ./cmd
 
+.PHONY: bin/namespace-file-symlinker
+bin/namespace-file-symlinker:
+	go build $(BUILD_OPTS) -o $@ ./cmd/namespace-file-symlinker
+
 .PHONY: openshift-client
 openshift-client:
 	@type -p oc > /dev/null || bash hack/get-openshift-client.sh
