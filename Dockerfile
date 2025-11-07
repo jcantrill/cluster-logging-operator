@@ -15,9 +15,10 @@ COPY ${APP_DIR}/Makefile ./Makefile
 COPY ${APP_DIR}/version ./version
 COPY ${APP_DIR}/cmd/main.go ./cmd/main.go
 COPY ${APP_DIR}/internal ./internal
+COPY ${APP_DIR}/cmd/log-symlink-agent ./cmd/log-symlink-agent
 
 USER 0
-RUN make build
+RUN make build bin/log-symlink-agent
 
 FROM quay.io/openshift/origin-cli-artifacts:4.16 AS origincli
 
@@ -47,12 +48,13 @@ RUN INSTALL_PKGS=" \
     chmod og+w /tmp/ocp-clo
 
 COPY --from=builder $APP_DIR/bin/cluster-logging-operator /usr/bin/
+COPY --from=builder $APP_DIR/bin/log-symlink-agent /usr/bin/
 
 COPY --from=origincli /tmp/oc /usr/bin/oc
 
 COPY $SRC_DIR/must-gather/collection-scripts/* /usr/bin/
 
-USER 1000
+USER 0
 WORKDIR /usr/bin
 CMD ["/usr/bin/cluster-logging-operator"]
 

@@ -83,9 +83,9 @@ bin/forwarder-generator:
 bin/cluster-logging-operator:
 	go build $(BUILD_OPTS) -o $@ ./cmd
 
-.PHONY: bin/namespace-file-symlinker
-bin/namespace-file-symlinker:
-	go build $(BUILD_OPTS) -o $@ ./cmd/namespace-file-symlinker
+.PHONY: bin/log-symlink-agent
+bin/log-symlink-agent:
+	go build $(BUILD_OPTS) -o $@ ./cmd/log-symlink-agent
 
 .PHONY: openshift-client
 openshift-client:
