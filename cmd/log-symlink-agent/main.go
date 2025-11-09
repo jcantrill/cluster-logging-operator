@@ -3,6 +3,7 @@ package main
 import (
 	"errors"
 	"os"
+	"path"
 
 	"github.com/fsnotify/fsnotify"
 	"github.com/openshift/cluster-logging-operator/cmd/log-symlink-agent/config"
@@ -35,23 +36,19 @@ func main() {
 			case event, ok := <-watcher.Events:
 				if !ok {
 					log.V(3).Info("Unable to get watcher events", "ok", ok, "event", event)
-					return
+					break
 				}
-				log.V(5).Info("Received event", "event", event)
+				log.V(3).Info("Received event", "event", event, "ok", ok)
 
 				if event.Op.Has(fsnotify.Create) || event.Op.Has(fsnotify.Rename) || event.Op.Has(fsnotify.Remove) {
-					log.V(5).Info("Processing event notification", "event", event)
+					log.V(5).Info("Processing event notification", "event", event.String())
 				} else {
-					log.V(5).Info("Ignoring event", "event", event)
-					return
+					log.V(5).Info("Ignoring event", "event", event.String())
+					break
 				}
 				//create, //rename //remove
 				// assume single operation
-				logStream, err := handlers.NewLogContainerStream(options.DestPath, event.Name)
-				if err != nil {
-					log.Error(err, "Error creating containerLogStream", "path", event.Name)
-					return
-				}
+				logStream := handlers.NewLogContainerStream(options.DestPath, event.Name)
 				switch {
 				case event.Op.Has(fsnotify.Create):
 					handler.Create(logStream)
@@ -74,7 +71,7 @@ func main() {
 		log.Error(err, "Failed adding the src-path to the watcher", "path", options.SourcePath)
 	}
 
-	//initTargetDir(handler, options.SourcePath, factory)
+	initTargetDir(handler, options.SourcePath, options.DestPath, 3, 0)
 
 	<-make(chan struct{})
 }
@@ -93,16 +90,20 @@ func evaluateWatchError(err error, ok bool) {
 	log.V(1).Error(err, "watch error")
 }
 
-//func initTargetDir(handler handlers.Handler, sourcePath string, factory handlers.ContainerLogStreamFactory) {
-//	log.V(3).Info("Initializing target directory", "path", sourcePath)
-//	entries, err := os.ReadDir(sourcePath)
-//	if err != nil {
-//		panic(err)
-//	}
-//	for _, entry := range entries {
-//		if entry.IsDir() {
-//			//handler.Create(factory(path.Base(entry.Name())))
-//			handler.Create(path.Join(sourcePath, entry.Name()))
-//		}
-//	}
-//}
+func initTargetDir(handler handlers.Handler, sourcePath, destPath string, maxRecurse, currentDepth int) {
+	log.V(3).Info("Initializing target directory", "path", sourcePath)
+	if currentDepth > maxRecurse {
+		log.V(3).Info("Achieved max depth", "currentDepth", currentDepth, "maxRecurse", maxRecurse, "sourcePath", sourcePath)
+		return
+	}
+	entries, err := os.ReadDir(sourcePath)
+	if err != nil {
+		panic(err)
+	}
+	for _, entry := range entries {
+		logStream := handlers.NewLogContainerStream(destPath, path.Join(sourcePath, entry.Name()))
+		handler.Create(logStream)
+		currentDepth += 1
+		initTargetDir(handler, path.Join(sourcePath, entry.Name()), destPath, maxRecurse, currentDepth)
+	}
+}

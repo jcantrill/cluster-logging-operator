@@ -4,9 +4,10 @@ import (
 	"errors"
 	"fmt"
 	"io/fs"
-	"os"
 	"path"
 	"regexp"
+
+	internalos "github.com/openshift/cluster-logging-operator/cmd/log-symlink-agent/core/os"
 )
 
 var (
@@ -15,16 +16,17 @@ var (
 	streamIndex    = streamRE.SubexpIndex("stream")
 )
 
-func NewLogContainerStream(targetPathRoot, basePath string) (ContainerLogStream, error) {
-	log.V(5).Info("Creating ContainerLogStream", "basePath", basePath)
+func NewLogContainerStream(targetPathRoot, basePath string) ContainerLogStream {
+	log.V(5).Info("Creating ContainerLogStream object", "basePath", basePath)
 	ns := extractNamespace(basePath)
 	cls := ContainerLogStream{
 		Namespace: ns,
 		OldName:   basePath,
 		NewName:   path.Join(targetPathRoot, ns, stream(basePath)),
+		os: internalos.CoreOSPathOperator{},
 	}
-	log.V(5).Info("Created ContainerLogStream", "cls", cls)
-	return cls, nil
+	log.V(5).Info("Created ContainerLogStream object", "cls", cls)
+	return cls
 }
 
 type ContainerLogStream struct {
@@ -33,47 +35,51 @@ type ContainerLogStream struct {
 	Namespace      string
 	OldName        string
 	NewName        string
+	os             internalos.PathOperator
 }
 
 func (l ContainerLogStream) IsDir() bool {
-	if info, err := os.Stat(l.OldName); err == nil {
+	if info, err := l.os.Stat(l.OldName); err == nil {
 		l.isDir = info.IsDir()
 	} else {
-		log.V(3).Info("Failed to stat old directory", "err", err)
+		if !errors.Is(err, fs.ErrNotExist) {
+			log.V(3).Info("Failed to stat old directory", "err", err)
+		}
 	}
 	return l.isDir
 }
 
 func (l ContainerLogStream) DirEntries() (streams []ContainerLogStream) {
-	entries, err := os.ReadDir(l.OldName)
+	if !l.IsDir() {
+		return streams
+	}
+	log.V(3).Info("Reading directory entries", "path", l.OldName)
+	entries, err := l.os.ReadDir(l.OldName)
 	if err != nil {
 		panic(err)
 	}
 	for _, entry := range entries {
-		cls, err := NewLogContainerStream(l.NewName, entry.Name())
-		if err != nil {
-			log.Error(err, "Error creating containerLogStream", "path", entry.Name())
-		} else {
-			streams = append(streams, cls)
-		}
+		cls := NewLogContainerStream(l.targetPathRoot, path.Join(l.OldName, entry.Name()))
+		streams = append(streams, cls)
 	}
 	return streams
 }
 
 func (l ContainerLogStream) RemoveNew() {
-	if err := os.Remove(l.NewName); err != nil {
+	if err := l.os.Remove(l.NewName); err != nil {
 		log.V(3).Error(err, "Error removing", "path", l.NewName)
 	}
 }
+
 func (l ContainerLogStream) MakeNew() {
 	log.V(5).Info("MakeNew...", "cls", l)
 	if l.IsDir() {
-		_, err := os.Stat(l.NewName)
+		_, err := l.os.Stat(l.NewName)
 		switch {
 		case errors.Is(err, fs.ErrExist):
 			log.V(4).Info("NewName already exists", "newName", l.NewName)
 		default:
-			if err = os.MkdirAll(l.NewName, PermissionsRwxRxRx); err != nil {
+			if err = l.os.MkdirAll(l.NewName, PermissionsRwxRxRx); err != nil {
 				log.Error(err, "Failed to create NewName", "cls", l)
 				if errors.Is(err, fs.ErrPermission) {
 					panic(fmt.Sprintf("Permission error trying to create NewName: %v, cls: %v", err, l))
@@ -83,7 +89,7 @@ func (l ContainerLogStream) MakeNew() {
 		log.V(3).Info("Created", "newName", l.NewName)
 		return
 	}
-	if err := os.Link(l.OldName, l.NewName); err != nil {
+	if err := l.os.Link(l.OldName, l.NewName); err != nil {
 		switch {
 		case errors.Is(err, fs.ErrExist):
 			log.V(4).Info("Link already exists", "target", l.NewName)
@@ -104,6 +110,8 @@ func extractNamespace(path string) string {
 	}
 	panic(fmt.Sprintf("Unable to determine namespace from path: %s", path))
 }
+
+// stream extracts the log stream information from the log directory root (i.e. /var/log/pods)
 func stream(path string) string {
 	if matches := streamRE.FindStringSubmatch(path); len(matches) > streamIndex {
 		return matches[streamIndex]
