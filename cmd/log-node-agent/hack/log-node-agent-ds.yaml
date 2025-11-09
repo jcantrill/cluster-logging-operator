@@ -2,32 +2,32 @@ apiVersion: apps/v1
 kind: DaemonSet
 metadata:
   labels:
-    app.kubernetes.io/component: log-symlink-agent
-    app.kubernetes.io/instance: lsa-instance
+    app.kubernetes.io/component: log-node-agent
+    app.kubernetes.io/instance: log-node-agent
     app.kubernetes.io/managed-by: cluster-logging-operator
-    app.kubernetes.io/name: log-symlink-agent
+    app.kubernetes.io/name: log-node-agent
     app.kubernetes.io/part-of: cluster-logging
     app.kubernetes.io/version: 6.4.0
     vector.dev/exclude: "true"
-  name: log-symlink-agent
+  name: log-node-agent
   namespace: openshift-logging
 spec:
   selector:
     matchLabels:
-      app.kubernetes.io/component: log-symlink-agent
-      app.kubernetes.io/instance: lsa-instance
+      app.kubernetes.io/component: log-node-agent
+      app.kubernetes.io/instance: log-node-agent
       app.kubernetes.io/managed-by: cluster-logging-operator
-      app.kubernetes.io/name: log-symlink-agent
+      app.kubernetes.io/name: log-node-agent
       app.kubernetes.io/part-of: cluster-logging
   template:
     metadata:
       annotations:
         target.workload.openshift.io/management: '{"effect": "PreferredDuringScheduling"}'
       labels:
-        app.kubernetes.io/component: log-symlink-agent
-        app.kubernetes.io/instance: lsa-instance
+        app.kubernetes.io/component: log-node-agent
+        app.kubernetes.io/instance: log-node-agent
         app.kubernetes.io/managed-by: cluster-logging-operator
-        app.kubernetes.io/name: log-symlink-agent
+        app.kubernetes.io/name: log-node-agent
         app.kubernetes.io/part-of: cluster-logging
         app.kubernetes.io/version: 6.4.0
         vector.dev/exclude: "true"
@@ -38,7 +38,7 @@ spec:
         - --dest-path=/var/lib/openshift-logging/
         - --exclude-namespace=openshift-logging
         command:
-        - /usr/bin/log-symlink-agent
+        - /usr/bin/log-node-agent
         env:
         - name: LOG_LEVEL
           value: "3"

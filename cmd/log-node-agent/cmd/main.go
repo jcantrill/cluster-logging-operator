@@ -6,8 +6,8 @@ import (
 	"path"
 
 	"github.com/fsnotify/fsnotify"
-	"github.com/openshift/cluster-logging-operator/cmd/log-symlink-agent/config"
-	"github.com/openshift/cluster-logging-operator/cmd/log-symlink-agent/handlers"
+	"github.com/openshift/cluster-logging-operator/cmd/log-node-agent/internal/config"
+	"github.com/openshift/cluster-logging-operator/cmd/log-node-agent/internal/handlers"
 	"github.com/openshift/cluster-logging-operator/internal/utils"
 )
 
@@ -48,7 +48,7 @@ func main() {
 				}
 				//create, //rename //remove
 				// assume single operation
-				logStream := handlers.NewLogContainerStream(options.DestPath, event.Name)
+				logStream := handlers.NewContainerLogStream(options.DestPath, event.Name)
 				switch {
 				case event.Op.Has(fsnotify.Create):
 					handler.Create(logStream)
@@ -71,7 +71,7 @@ func main() {
 		log.Error(err, "Failed adding the src-path to the watcher", "path", options.SourcePath)
 	}
 
-	initTargetDir(handler, options.SourcePath, options.DestPath, 3, 0)
+	initTargetDir(handler, options.SourcePath, options.DestPath, 2, 0)
 
 	<-make(chan struct{})
 }
@@ -101,7 +101,7 @@ func initTargetDir(handler handlers.Handler, sourcePath, destPath string, maxRec
 		panic(err)
 	}
 	for _, entry := range entries {
-		logStream := handlers.NewLogContainerStream(destPath, path.Join(sourcePath, entry.Name()))
+		logStream := handlers.NewContainerLogStream(destPath, path.Join(sourcePath, entry.Name()))
 		handler.Create(logStream)
 		currentDepth += 1
 		initTargetDir(handler, path.Join(sourcePath, entry.Name()), destPath, maxRecurse, currentDepth)

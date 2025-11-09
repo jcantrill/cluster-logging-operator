@@ -7,11 +7,6 @@ import (
 	"github.com/go-logr/logr"
 )
 
-const (
-	LogStressorImage = "quay.io/openshift-logging/cluster-logging-load-client:0.2"
-	imageVector      = "quay.io/openshift-logging/vector:v0.47.0"
-)
-
 type Options struct {
 	// SourcePath is the directory to watch
 	SourcePath string
