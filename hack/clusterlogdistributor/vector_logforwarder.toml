@@ -1,0 +1,24 @@
+expire_metrics_secs = 60
+data_dir = "/var/lib/vector/openshift-logging/alogforwarder"
+
+[api]
+enabled = true
+
+# Load sensitive data from files
+[secret.kubernetes_secret]
+type = "directory"
+path = "/var/run/ocp-collector/secrets"
+
+# Logs from containers (including openshift containers)
+[sources.input_from_cld]
+#type = "opentelemetry"
+#http.address = "0.0.0.0:6000"
+#grpc.address = "0.0.0.0:6001"
+type = "vector"
+address = "0.0.0.0:6000"
+
+[sinks.console]
+type = "console"
+#inputs = ["input_from_cld.logs"]
+inputs = ["input_from_cld"]
+encoding.codec = "json"

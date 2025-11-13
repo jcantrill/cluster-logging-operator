@@ -1,0 +1,27 @@
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app.kubernetes.io/component: logforwarder
+    app.kubernetes.io/instance: alogforwarder
+    app.kubernetes.io/managed-by: cluster-logging-operator
+    app.kubernetes.io/name: cluster-log-distributor
+    app.kubernetes.io/part-of: cluster-logging
+    app.kubernetes.io/version: 6.4.0
+  name: alogforwarder
+  namespace: openshift-logging
+spec:
+  ports:
+  - port: 6000
+    protocol: TCP
+    targetPort: 6000
+  - port: 6001
+    protocol: TCP
+    targetPort: 6001
+  selector:
+    app.kubernetes.io/component: logforwarder
+    app.kubernetes.io/instance: alogforwarder
+    app.kubernetes.io/managed-by: cluster-logging-operator
+    app.kubernetes.io/name: cluster-log-distributor
+    app.kubernetes.io/part-of: cluster-logging
+    app.kubernetes.io/version: 6.4.0

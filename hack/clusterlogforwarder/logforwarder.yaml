@@ -5,7 +5,7 @@ metadata:
   namespace: openshift-logging 
 spec:
   serviceAccount:
-    name: foo
+    name: mine
   filters:
     - name: mydrop
       type: drop
