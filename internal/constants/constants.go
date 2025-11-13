@@ -80,6 +80,9 @@ const (
 	HTTPFormat         = "kubeAPIAudit"
 	SyslogReceiverPort = 10514
 
+	DefaultHTTPPort  = int32(80)
+	DefaultHTTPSPort = int32(443)
+
 	VolumeNameTrustedCA = "trusted-ca"
 
 	STDOUT = "stdout"
