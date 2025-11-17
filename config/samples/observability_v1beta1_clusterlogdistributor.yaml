@@ -1,0 +1,12 @@
+apiVersion: observability.openshift.io/v1beta1
+kind: ClusterLogDistributor
+metadata:
+  name: default
+spec:
+  managementState: Managed
+  inputs:
+    - name: infrastructure
+      includes:
+        - namespace: openshift*
+        - namespace: default
+        - namespace: kube*

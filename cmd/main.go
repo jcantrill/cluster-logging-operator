@@ -5,13 +5,14 @@ import (
 	"crypto/tls"
 	"flag"
 	"fmt"
-	internalcontext "github.com/openshift/cluster-logging-operator/internal/api/context"
-	"github.com/openshift/cluster-logging-operator/internal/collector"
 	"os"
 	"runtime"
-	"sigs.k8s.io/controller-runtime/pkg/metrics/filters"
 	"strings"
 	"time"
+
+	internalcontext "github.com/openshift/cluster-logging-operator/internal/api/context"
+	"github.com/openshift/cluster-logging-operator/internal/collector"
+	"sigs.k8s.io/controller-runtime/pkg/metrics/filters"
 
 	"k8s.io/apimachinery/pkg/api/errors"
 	"sigs.k8s.io/controller-runtime/pkg/cache"
@@ -208,6 +209,17 @@ func main() {
 		},
 	}).SetupWithManager(mgr); err != nil {
 		log.Error(err, "unable to create controller", "controller", "observability.ClusterLogForwarder")
+		os.Exit(1)
+	}
+
+	if err = (&observabilitycontroller.ClusterLogDistributorReconciler{
+		Log:          log.WithName("observability.ClusterLogDistributorController"),
+		Client:       mgr.GetClient(),
+		Scheme:       mgr.GetScheme(),
+		PollInterval: collector.DefaultPollInterval,
+		TimeOut:      collector.DefaultTimeOut,
+	}).SetupWithManager(mgr); err != nil {
+		log.Error(err, "unable to create controller", "controller", "observability.ClusterLogDistributor")
 		os.Exit(1)
 	}
 

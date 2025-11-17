@@ -30,4 +30,13 @@ resources:
   kind: ClusterLogForwarder
   path: github.com/openshift/cluster-logging-operator/api/observability/v1
   version: v1
+- api:
+    crdVersion: v1
+    namespaced: false
+  controller: true
+  domain: openshift.io
+  group: observability
+  kind: ClusterLogDistributor
+  path: github.com/openshift/cluster-logging-operator/api/observability/v1beta1
+  version: v1beta1
 version: "3"

@@ -48,6 +48,109 @@ spec:
   customresourcedefinitions:
     owned:
     - description: |-
+        ClusterLogDistributor is an API to configure forwarding logs.
+
+        You configure forwarding by specifying a list of `pipelines`,
+        which forward from a set of named inputs to a set of named outputs.
+      displayName: Cluster Log Distributor
+      kind: ClusterLogDistributor
+      name: clusterlogdistributors.observability.openshift.io
+      specDescriptors:
+      - description: |-
+          Specification of the Collector deployment to define
+          resource limits and workload placement
+        displayName: Collector Resources and Placement
+        path: collector
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
+      - description: Define scheduling rules that influence pod placement based on
+          node or pod affinity/anti-affinity constraints.
+        displayName: Affinity
+        path: collector.affinity
+      - description: |-
+          Define the maxUnavailable pod rollout strategy which defaults to 100% when not set
+
+          Value can be a number (e.g., 50) or a percentage string (e.g., "50%").
+        displayName: Max Unavailable
+        path: collector.maxUnavailable
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:text
+      - description: Define the Network Policy for the Collector
+        displayName: Network Policy
+        path: collector.networkPolicy
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:text
+      - description: Define nodes for scheduling the pods.
+        displayName: Node Selector
+        path: collector.nodeSelector
+      - description: The resource requirements for the collector
+        displayName: Collector Resource Requirements
+        path: collector.resources
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:resourceRequirements
+      - description: Define the tolerations the collector pods will accept
+        displayName: Tolerations
+        path: collector.tolerations
+      - description: Inputs are named sources of container logs to be collected.
+        displayName: Log Container Inputs
+        path: inputs
+      - description: |-
+          Excludes is the set of namespaces and containers to ignore when collecting logs.
+
+          Takes precedence over Includes option.
+        displayName: Exclude
+        path: inputs[0].excludes
+      - description: |-
+          Container spec the containers from which to collect logs
+          Supports glob patterns and presumes "*" if omitted.
+        displayName: Container Glob
+        path: inputs[0].excludes[0].container
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:text
+      - description: |-
+          Namespace specs the namespace from which to collect logs
+          Supports glob patterns and presumes "*" if omitted.
+        displayName: Namespace Glob
+        path: inputs[0].excludes[0].namespace
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:text
+      - description: Includes is the set of namespaces and containers to include when
+          collecting logs.
+        displayName: Include
+        path: inputs[0].includes
+      - description: |-
+          Container spec the containers from which to collect logs
+          Supports glob patterns and presumes "*" if omitted.
+        displayName: Container Glob
+        path: inputs[0].includes[0].container
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:text
+      - description: |-
+          Namespace specs the namespace from which to collect logs
+          Supports glob patterns and presumes "*" if omitted.
+        displayName: Namespace Glob
+        path: inputs[0].includes[0].namespace
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:text
+      - description: Name used to refer to the input of a `pipeline`.
+        displayName: Input Name
+        path: inputs[0].name
+      - description: |-
+          Selector for logs from pods with matching labels.
+
+          Only messages from pods with these labels are collected.
+
+          If absent or empty, logs are collected regardless of labels.
+        displayName: Pod Selector
+        path: inputs[0].selector
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:selector:core:v1:Pod
+      - description: Indicator if the resource is 'Managed' or 'Unmanaged' by the
+          operator.
+        displayName: Management State
+        path: managementState
+      version: v1beta1
+    - description: |-
         ClusterLogForwarder is an API to configure forwarding logs.
 
         You configure forwarding by specifying a list of `pipelines`,
