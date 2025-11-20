@@ -223,6 +223,22 @@ func main() {
 		os.Exit(1)
 	}
 
+	if err = (&observabilitycontroller.LogForwarderReconciler{
+		Log:          log.WithName("observability.LogForwarderController"),
+		Scheme:       mgr.GetScheme(),
+		PollInterval: collector.DefaultPollInterval,
+		TimeOut:      collector.DefaultTimeOut,
+		ForwarderContext: internalcontext.ForwarderContext{
+			Client:         mgr.GetClient(),
+			Reader:         mgr.GetAPIReader(),
+			ClusterID:      clusterID,
+			ClusterVersion: clusterVersion,
+		},
+	}).SetupWithManager(mgr); err != nil {
+		log.Error(err, "unable to create controller", "controller", "observability.LogForwarder")
+		os.Exit(1)
+	}
+
 	//+kubebuilder:scaffold:builder
 
 	if err := mgr.AddHealthzCheck("healthz", healthz.Ping); err != nil {

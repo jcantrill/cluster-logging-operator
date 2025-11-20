@@ -57,7 +57,7 @@ var _ = Describe("Generate vector config", func() {
 		initOptions = func() utils.Options {
 			output := initOutput()
 			return utils.Options{
-				helpers.CLFSpec: observability.ClusterLogForwarderSpec(obs.ClusterLogForwarderSpec{
+				helpers.CLFSpec: observability.NewClusterLogForwarderSpec(obs.ClusterLogForwarderSpec{
 					Outputs: []obs.OutputSpec{output},
 					Pipelines: []obs.PipelineSpec{
 						{

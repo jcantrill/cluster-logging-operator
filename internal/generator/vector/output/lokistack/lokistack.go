@@ -20,7 +20,7 @@ import (
 // New creates generate elements that represent configuration to forward logs to Loki using OpenShift Logging tenancy model
 func New(id string, o obs.OutputSpec, inputs []string, secrets observability.Secrets, strategy common.ConfigStrategy, op utils.Options) []framework.Element {
 	clfSpec, _ := utils.GetOption(op, vectorhelpers.CLFSpec, observability.ClusterLogForwarderSpec{})
-	if len(clfSpec.Inputs) == 0 || len(clfSpec.Pipelines) == 0 || len(clfSpec.Outputs) == 0 {
+	if len(clfSpec.Inputs()) == 0 || len(clfSpec.Pipelines()) == 0 || len(clfSpec.Outputs()) == 0 {
 		panic("ClusterLogForwarderSpec not found while generating LokiStack config")
 	}
 

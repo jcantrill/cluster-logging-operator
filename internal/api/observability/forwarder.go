@@ -62,12 +62,33 @@ func isAuthorized(conditions []metav1.Condition) bool {
 	return false
 }
 
-type ClusterLogForwarderSpec obs.ClusterLogForwarderSpec
+type ClusterLogForwarderSpec struct {
+	annotations map[string]string
+	clf         obs.ClusterLogForwarder
+	obs.ClusterLogForwarderSpec
+}
+
+func (spec ClusterLogForwarderSpec) Inputs() (specs []Input) {
+	for _, i := range spec.ClusterLogForwarderSpec.Inputs {
+		specs = append(specs, InputSpec{
+			V1InputSpec: &i,
+		},
+		)
+	}
+	return specs
+}
+
+func NewClusterLogForwarderSpec(clf obs.ClusterLogForwarder) *ClusterLogForwarderSpec {
+	return &ClusterLogForwarderSpec{
+		clf:                     clf,
+		ClusterLogForwarderSpec: clf.Spec,
+	}
+}
 
 func (spec ClusterLogForwarderSpec) InputSpecsTo(out obs.OutputSpec) (results []obs.InputSpec) {
-	inputs := Inputs(spec.Inputs).Map()
+	inputs := Inputs(spec.V1Inputs()).Map()
 	found := map[string]obs.InputSpec{}
-	for _, p := range spec.Pipelines {
+	for _, p := range spec.Pipelines() {
 		if sets.NewString(p.OutputRefs...).Has(out.Name) {
 			for _, ref := range p.InputRefs {
 				found[ref] = inputs[ref]
@@ -78,4 +99,27 @@ func (spec ClusterLogForwarderSpec) InputSpecsTo(out obs.OutputSpec) (results []
 		results = append(results, input)
 	}
 	return results
+}
+func (spec ClusterLogForwarderSpec) Name() string {
+	return spec.clf.Name
+}
+func (spec ClusterLogForwarderSpec) Namespace() string {
+	return spec.clf.Namespace
+}
+func (spec ClusterLogForwarderSpec) Filters() []obs.FilterSpec {
+	return spec.ClusterLogForwarderSpec.Filters
+}
+
+func (spec ClusterLogForwarderSpec) Annotations() map[string]string {
+	return spec.clf.Annotations
+}
+
+func (spec ClusterLogForwarderSpec) V1Inputs() (specs []obs.InputSpec) {
+	return spec.ClusterLogForwarderSpec.Inputs
+}
+func (spec ClusterLogForwarderSpec) Outputs() (specs []obs.OutputSpec) {
+	return spec.ClusterLogForwarderSpec.Outputs
+}
+func (spec ClusterLogForwarderSpec) Pipelines() (specs []obs.PipelineSpec) {
+	return spec.ClusterLogForwarderSpec.Pipelines
 }

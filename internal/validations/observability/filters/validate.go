@@ -6,7 +6,7 @@ import (
 )
 
 func Validate(context internalcontext.ForwarderContext) {
-	filterMap := internalobs.FilterMap(context.Forwarder.Spec)
+	filterMap := internalobs.Filters(context.Forwarder.Spec.Filters).Map()
 	for _, filter := range filterMap {
 		internalobs.SetCondition(&context.Forwarder.Status.FilterConditions, ValidateFilter(*filter))
 	}

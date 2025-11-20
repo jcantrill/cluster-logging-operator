@@ -2,12 +2,12 @@ package observability
 
 import (
 	"fmt"
-	"github.com/openshift/cluster-logging-operator/internal/collector/aws"
 	"strings"
 	"time"
 
+	"github.com/openshift/cluster-logging-operator/internal/collector/aws"
+
 	log "github.com/ViaQ/logerr/v2/log/static"
-	obs "github.com/openshift/cluster-logging-operator/api/observability/v1"
 	internalcontext "github.com/openshift/cluster-logging-operator/internal/api/context"
 	internalobs "github.com/openshift/cluster-logging-operator/internal/api/observability"
 	"github.com/openshift/cluster-logging-operator/internal/auth"
@@ -87,7 +87,7 @@ func ReconcileCollector(context internalcontext.ForwarderContext, pollInterval, 
 	}
 
 	var collectorConfig string
-	if collectorConfig, err = GenerateConfig(context.Client, *context.Forwarder, *resourceNames, context.Secrets, options); err != nil {
+	if collectorConfig, err = GenerateConfig(context.Client, internalobs.NewClusterLogForwarderSpec(*context.Forwarder), *resourceNames, context.Secrets, options); err != nil {
 		log.V(9).Error(err, "collector.GenerateConfig")
 		return err
 	}
@@ -160,12 +160,12 @@ func ReconcileCollector(context internalcontext.ForwarderContext, pollInterval, 
 	return nil
 }
 
-func GenerateConfig(k8Client client.Client, clf obs.ClusterLogForwarder, resourceNames factory.ForwarderResourceNames, secrets internalobs.Secrets, op framework.Options) (config string, err error) {
+func GenerateConfig(k8Client client.Client, clf internalobs.Forwarder, resourceNames factory.ForwarderResourceNames, secrets internalobs.Secrets, op framework.Options) (config string, err error) {
 	tlsProfile, _ := tls.FetchAPIServerTlsProfile(k8Client)
 	op[framework.ClusterTLSProfileSpec] = tls.GetClusterTLSProfileSpec(tlsProfile)
-	EvaluateAnnotationsForEnabledCapabilities(clf.Annotations, op)
+	EvaluateAnnotationsForEnabledCapabilities(clf.Annotations(), op)
 	g := forwardergenerator.New()
-	generatedConfig, err := g.GenerateConf(secrets, clf.Spec, clf.Namespace, clf.Name, resourceNames, op)
+	generatedConfig, err := g.GenerateConf(secrets, clf, clf.Namespace(), resourceNames.ForwarderName, resourceNames, op)
 
 	if err != nil {
 		log.Error(err, "Unable to generate log configuration")

@@ -55,5 +55,5 @@ func Generate(clfYaml string, debugOutput bool, client client.Client) (string, e
 	if configGenerator == nil {
 		return "", errors.New("unsupported collector implementation")
 	}
-	return configGenerator.GenerateConf(secrets, forwarder.Spec, forwarder.Namespace, forwarder.Name, *factory.ResourceNames(forwarder), op)
+	return configGenerator.GenerateConf(secrets, forwarder.Spec, forwarder.Name, *factory.ResourceNames(forwarder), op)
 }

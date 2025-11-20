@@ -40,10 +40,10 @@ type ClusterLogDistributorSpec struct {
 	// +listType:=map
 	// +listMapKey:=name
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Log Container Inputs"
-	Inputs []InputSpec `json:"inputs,omitempty"`
+	Inputs []ClusterLogDistibutorInputSpec `json:"inputs,omitempty"`
 }
 
-type InputSpec struct {
+type ClusterLogDistibutorInputSpec struct {
 	// Name used to refer to the input of a `pipeline`.
 	//
 	// +kubebuilder:validation:Pattern:="^[a-z][a-z0-9-]*[a-z0-9]$"

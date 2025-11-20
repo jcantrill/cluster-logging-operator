@@ -3,10 +3,10 @@ package observability
 import obs "github.com/openshift/cluster-logging-operator/api/observability/v1"
 
 // FilterMap returns a map of filter names to FilterSpec.
-func FilterMap(spec obs.ClusterLogForwarderSpec) map[string]*obs.FilterSpec {
+func FilterMap(filters Filters) map[string]*obs.FilterSpec {
 	m := map[string]*obs.FilterSpec{}
-	for i := range spec.Filters {
-		m[spec.Filters[i].Name] = &spec.Filters[i]
+	for i := range filters {
+		m[filters[i].Name] = &filters[i]
 	}
 	return m
 }
@@ -14,9 +14,13 @@ func FilterMap(spec obs.ClusterLogForwarderSpec) map[string]*obs.FilterSpec {
 type Filters []obs.FilterSpec
 
 // Names returns a slice of filter names
-func (filters Filters) Names() (names []string) {
-	for _, f := range filters {
+func (f Filters) Names() (names []string) {
+	for _, f := range f {
 		names = append(names, f.Name)
 	}
 	return names
+}
+
+func (f Filters) Map() map[string]*obs.FilterSpec {
+	return FilterMap(f)
 }

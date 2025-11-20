@@ -2,16 +2,17 @@ package pipelines
 
 import (
 	"fmt"
+	"strings"
+
 	obs "github.com/openshift/cluster-logging-operator/api/observability/v1"
 	internalcontext "github.com/openshift/cluster-logging-operator/internal/api/context"
 	internalobs "github.com/openshift/cluster-logging-operator/internal/api/observability"
-	"strings"
 )
 
 func Validate(context internalcontext.ForwarderContext) {
 	inputs := internalobs.Inputs(context.Forwarder.Spec.Inputs).Map()
 	outputs := internalobs.Outputs(context.Forwarder.Spec.Outputs).Map()
-	filters := internalobs.FilterMap(context.Forwarder.Spec)
+	filters := internalobs.FilterMap(internalobs.Filters(context.Forwarder.Spec.Filters))
 	var messages []string
 	for _, pipelineSpec := range context.Forwarder.Spec.Pipelines {
 		refMessages := validateRef(pipelineSpec, inputs, outputs, filters)

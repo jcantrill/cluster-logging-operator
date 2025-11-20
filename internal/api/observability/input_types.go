@@ -22,11 +22,9 @@ var (
 	InfraNSRegex = regexp.MustCompile(`^(?P<default>default)|(?P<openshift>openshift.*)|(?P<kube>kube.*)$`)
 )
 
-func MaxRecordsPerSecond(input obs.InputSpec) (int64, bool) {
-	if input.Application != nil &&
-		input.Application.Tuning != nil &&
-		input.Application.Tuning.RateLimitPerContainer != nil {
-		return Threshold(input.Application.Tuning.RateLimitPerContainer)
+func MaxRecordsPerSecond(limitSpec *obs.LimitSpec) (int64, bool) {
+	if limitSpec != nil {
+		return Threshold(limitSpec)
 	}
 	return 0, false
 }

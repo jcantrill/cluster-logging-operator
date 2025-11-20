@@ -9,6 +9,9 @@ import (
 // Config represents a configuration for vector
 type Config struct {
 
+	// Sources is the set of transform ids to transform configurations
+	Sources map[string]SourceKind `json:"sources" yaml:"sources" toml:"sources"`
+
 	// Transforms is the set of transform ids to transform configurations
 	Transforms map[string]interface{} `json:"transforms" yaml:"transforms" toml:"transforms"`
 }
@@ -28,5 +31,15 @@ func (c Config) Template() string {
 }
 
 func (c Config) String() string {
-	return strings.ReplaceAll(toml.MustMarshal(c), "[transforms]", "")
+	config := strings.ReplaceAll(toml.MustMarshal(c), "[transforms]", "")
+	config = strings.ReplaceAll(config, "[sinks]", "")
+	return strings.ReplaceAll(config, "[sources]", "")
+}
+
+type ComponentKind interface {
+	Kind() string
+}
+
+type SourceKind interface {
+	ComponentKind
 }

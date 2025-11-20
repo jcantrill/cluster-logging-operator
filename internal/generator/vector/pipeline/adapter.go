@@ -1,8 +1,10 @@
 package pipeline
 
 import (
+	"fmt"
 	obs "github.com/openshift/cluster-logging-operator/api/observability/v1"
-	"github.com/openshift/cluster-logging-operator/internal/generator/vector/filter/openshift/viaq/v1"
+	internalobs "github.com/openshift/cluster-logging-operator/internal/api/observability"
+	viaqv1 "github.com/openshift/cluster-logging-operator/internal/generator/vector/filter/openshift/viaq/v1"
 	"os"
 	"strconv"
 
@@ -20,7 +22,7 @@ type Pipeline struct {
 	index      int
 	filterMap  map[string]filter.InternalFilterSpec
 	Filters    []*PipelineFilter
-	inputSpecs []obs.InputSpec
+	inputSpecs []internalobs.Input
 }
 
 func (o *Pipeline) Elements() []framework.Element {
@@ -31,16 +33,20 @@ func (o *Pipeline) Elements() []framework.Element {
 	return elements
 }
 
-func NewPipeline(index int, p obs.PipelineSpec, inputs map[string]helpers.InputComponent, outputs map[string]*output.Output, filters map[string]*filter.InternalFilterSpec, inputSpecs []obs.InputSpec, addPostFilters func(p *Pipeline)) *Pipeline {
+func NewPipeline(index int, p obs.PipelineSpec, inputs map[string]helpers.InputComponent, outputs map[string]*output.Output, filters map[string]*filter.InternalFilterSpec, inputSpecs []internalobs.Input, addPostFilters func(p *Pipeline)) *Pipeline {
 	pipeline := &Pipeline{
 		PipelineSpec: p,
 		index:        index,
 		filterMap:    map[string]filter.InternalFilterSpec{},
-		inputSpecs:   []obs.InputSpec{},
+		inputSpecs:   []internalobs.Input{},
 	}
+	log.V(0).Info("wiring pipeline adapter inputs", "inputSpecs", inputSpecs)
 	for _, is := range inputSpecs {
+		log.V(0).Info("PipelineSpec", "inputRefs", p.InputRefs, "inputSpec", is)
 		for _, ref := range p.InputRefs {
-			if is.Name == ref {
+			log.V(0).Info("Comparing name to ref", "is.Name()", is.Name(), "ref", ref)
+			if is.Name() == ref {
+				log.V(0).Info("Found match")
 				pipeline.inputSpecs = append(pipeline.inputSpecs, is)
 			}
 		}
@@ -55,24 +61,31 @@ func NewPipeline(index int, p obs.PipelineSpec, inputs map[string]helpers.InputC
 	}
 
 	if len(pipeline.FilterRefs) > 0 {
+		log.V(0).Info("Wiring filters to outputs")
 		if len(pipeline.Filters) == 0 {
 			log.V(0).Info("Runtime error in pipelineAdapter while processing filters.  Filter spec'd but not constructed", "filterRefs", pipeline.FilterRefs)
 			os.Exit(0)
 		}
 		first := pipeline.Filters[0]
+		log.V(0).Info("Wiring pipeline to first filter", "first", first, "inputRefs", pipeline.InputRefs)
 		for _, inputRefs := range pipeline.InputRefs {
 			first.AddInputFrom(inputs[inputRefs])
 		}
 
 		last := pipeline.Filters[len(pipeline.FilterRefs)-1]
+		log.V(0).Info("Wiring outputs to last filter", "last", first, "outputRefs", pipeline.OutputRefs)
 		for _, name := range pipeline.OutputRefs {
+			log.V(0).Info("Adding input", "ref", name, "outputs", outputs, "output[name]", outputs[name])
 			outputs[name].AddInputFrom(last)
 		}
+		log.V(0).Info("outputMap", "map", outputs)
 	} else {
+		log.V(0).Info("Wiring outputs", "pipeline", pipeline, "outputRefs", pipeline.OutputRefs)
 		for _, outputRef := range pipeline.OutputRefs {
-			if output, found := outputs[outputRef]; found {
+			if o, found := outputs[outputRef]; found {
 				for _, inputRefs := range pipeline.InputRefs {
-					output.AddInputFrom(inputs[inputRefs])
+					fmt.Printf("Trying to wire output to pipelines: outputRef: %v, inputs: %v", o, inputs)
+					o.AddInputFrom(inputs[inputRefs])
 				}
 			}
 
@@ -83,13 +96,13 @@ func NewPipeline(index int, p obs.PipelineSpec, inputs map[string]helpers.InputC
 
 func AddPostFilters(p *Pipeline) {
 
-	postFilters := []string{v1.Viaq}
-	p.filterMap[v1.Viaq] = filter.InternalFilterSpec{
-		FilterSpec:        &obs.FilterSpec{Type: v1.Viaq},
+	postFilters := []string{viaqv1.Viaq}
+	p.filterMap[viaqv1.Viaq] = filter.InternalFilterSpec{
+		FilterSpec:        &obs.FilterSpec{Type: viaqv1.Viaq},
 		SuppliesTransform: true,
 		TranformFactory: func(id string, inputs ...string) framework.Element {
 			// Build all log_source VRL
-			return v1.New(id, inputs, p.inputSpecs)
+			return viaqv1.New(id, inputs, internalobs.ConvertInputsToV1InputSpecs(p.inputSpecs))
 		},
 	}
 	p.FilterRefs = append(p.FilterRefs, postFilters...)

@@ -81,7 +81,7 @@ var _ = Describe("Generate vector config", func() {
 			output := initOutput()
 			return utils.Options{
 				framework.OptionServiceAccountTokenSecretName: saTokenSecretName,
-				helpers.CLFSpec: observability.ClusterLogForwarderSpec(obs.ClusterLogForwarderSpec{
+				helpers.CLFSpec: observability.NewClusterLogForwarderSpec(obs.ClusterLogForwarderSpec{
 					Outputs: []obs.OutputSpec{output},
 					Pipelines: []obs.PipelineSpec{
 						{
@@ -103,7 +103,7 @@ var _ = Describe("Generate vector config", func() {
 			output := initOutput()
 			return utils.Options{
 				framework.OptionServiceAccountTokenSecretName: saTokenSecretName,
-				helpers.CLFSpec: observability.ClusterLogForwarderSpec(obs.ClusterLogForwarderSpec{
+				helpers.CLFSpec: observability.NewClusterLogForwarderSpec(obs.ClusterLogForwarderSpec{
 					Outputs: []obs.OutputSpec{output},
 					Pipelines: []obs.PipelineSpec{
 						{

@@ -3,6 +3,7 @@ package conf
 import (
 	"sort"
 
+	log "github.com/ViaQ/logerr/v2/log/static"
 	obs "github.com/openshift/cluster-logging-operator/api/observability/v1"
 	internalobs "github.com/openshift/cluster-logging-operator/internal/api/observability"
 
@@ -58,29 +59,31 @@ import (
        output_mykafka_dedot
 */
 //nolint:govet // using declarative style
-func Conf(secrets map[string]*corev1.Secret, clfspec obs.ClusterLogForwarderSpec, namespace, forwarderName string, resNames factory.ForwarderResourceNames, op framework.Options) []framework.Section {
-	op[helpers.CLFSpec] = internalobs.ClusterLogForwarderSpec(clfspec)
+func Conf(secrets map[string]*corev1.Secret, clfspec internalobs.Forwarder, namespace, forwarderName string, resNames factory.ForwarderResourceNames, op framework.Options) []framework.Section {
+	op[helpers.CLFSpec] = clfspec
+	op[framework.OptionForwarderName] = forwarderName
 
 	// Init inputs, outputs, pipelines
 	inputMap := map[string]*input.Input{}
 	inputCompMap := map[string]helpers.InputComponent{}
-	for _, i := range clfspec.Inputs {
-		a := input.NewInput(i, secrets, namespace, resNames, op)
-		inputMap[i.Name] = a
-		inputCompMap[i.Name] = a
+	for _, i := range clfspec.Inputs() {
+		a := input.NewInput(i, secrets, resNames, op)
+		inputMap[i.Name()] = a
+		inputCompMap[i.Name()] = a
 	}
 
 	outputMap := map[string]*output.Output{}
-	op[framework.OptionForwarderName] = forwarderName
-	for _, spec := range clfspec.Outputs {
+	for _, spec := range clfspec.Outputs() {
 		o := output.NewOutput(spec, secrets, op)
 		outputMap[spec.Name] = o
 	}
 
-	filters := filter.NewInternalFilterMap(internalobs.FilterMap(clfspec))
+	filters := filter.NewInternalFilterMap(internalobs.FilterMap(clfspec.Filters()))
 	pipelineMap := map[string]*pipeline.Pipeline{}
-	for i, p := range clfspec.Pipelines {
-		a := pipeline.NewPipeline(i, p, inputCompMap, outputMap, filters, clfspec.Inputs, pipeline.AddPostFilters)
+	log.V(0).Info("Creating pipelineMap", "pipelines", clfspec.Pipelines(), "inputComponentMap", inputCompMap, "outputMap", outputMap)
+	for i, p := range clfspec.Pipelines() {
+		log.V(0).Info("Creating Pipeline", "pipeline", p, "inputs", clfspec.Inputs())
+		a := pipeline.NewPipeline(i, p, inputCompMap, outputMap, filters, clfspec.Inputs(), pipeline.AddPostFilters)
 		pipelineMap[p.Name] = a
 	}
 

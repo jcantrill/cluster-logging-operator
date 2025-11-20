@@ -1,6 +1,8 @@
 package output
 
 import (
+	"fmt"
+
 	obs "github.com/openshift/cluster-logging-operator/api/observability/v1"
 	internalobs "github.com/openshift/cluster-logging-operator/internal/api/observability"
 	generator "github.com/openshift/cluster-logging-operator/internal/generator/framework"
@@ -38,8 +40,10 @@ func (o *Output) Elements() []generator.Element {
 // originates directly from a log source or pipeline filter
 func (o *Output) AddInputFrom(n nhelpers.InputComponent) {
 	if o == nil {
+		fmt.Println(">>>>>>>>>>> returning nil")
 		return
 	}
+	fmt.Printf("appending IDs %v\n", n.InputIDs())
 	o.inputIDs = append(o.inputIDs, n.InputIDs()...)
 }
 

@@ -81,14 +81,23 @@ rules:
   - observability.openshift.io
   resources:
   - clusterlogforwarders
-  - clusterlogdistributors
   verbs:
   - '*'
 - apiGroups:
   - observability.openshift.io
   resources:
+  - clusterlogdistributors
+  - logforwarders
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - observability.openshift.io
+  resources:
   - clusterlogforwarders/finalizers
   - clusterdistributors/finalizers
+  - logforwarders/finalizers
   verbs:
   - update
 - apiGroups:
@@ -96,6 +105,7 @@ rules:
   resources:
   - clusterlogforwarders/status
   - clusterdistributors/status
+  - logforwarders/status
   verbs:
   - get
   - patch
