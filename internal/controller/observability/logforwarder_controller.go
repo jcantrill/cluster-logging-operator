@@ -2,7 +2,6 @@ package observability
 
 import (
 	"context"
-	"fmt"
 	"time"
 
 	log "github.com/ViaQ/logerr/v2/log/static"
@@ -82,19 +81,23 @@ func (r *LogForwarderReconciler) Reconcile(_ context.Context, req ctrl.Request) 
 	//   trusted CA bundle
 	//   AWS profiles configmap
 	//   generate config
-	var collectorConfig string
-	if collectorConfig, err = GenerateConfig(r.ForwarderContext.Client, lf, lf.ResourceNames(), cxt.Secrets, options); err != nil {
-		log.V(lfDefaultLogLevel).Error(err, "collector.GenerateConfig")
+	var forwarderConfig string
+	if forwarderConfig, err = GenerateConfig(r.ForwarderContext.Client, lf, lf.ResourceNames(), cxt.Secrets, options); err != nil {
+		log.V(lfDefaultLogLevel).Error(err, "forwarder.GenerateConfig")
 		return defaultRequeue, err
 	}
-	r.Log.V(lfDefaultLogLevel).Info("Generated collector config", "config", collectorConfig)
-	fmt.Println(collectorConfig)
+	r.Log.V(lfDefaultLogLevel).Info("Generated config", "config", forwarderConfig)
+	if err = logforwarder.ReconcileConfig(r.ForwarderContext.Client, *lf, forwarderConfig, lf.ResourceNames().ConfigMap); err != nil {
+		return defaultRequeue, err
+	}
 
 	//   create deployment
-	//   create forwarder configmap
+	if err = logforwarder.ReconcileDeployment(r.ForwarderContext.Client, *lf); err != nil {
+		return defaultRequeue, err
+	}
 	//   NP
 
-	//   In service (need metrics?)
+	//   In service + metrics
 	if err = logforwarder.ReconcileService(r.ForwarderContext.Client, *lf); err != nil {
 		return defaultRequeue, err
 	}

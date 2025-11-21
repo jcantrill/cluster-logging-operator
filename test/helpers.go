@@ -20,7 +20,9 @@ import (
 	"github.com/go-logr/logr"
 	"github.com/onsi/ginkgo/v2"
 	"github.com/onsi/gomega/format"
+	"github.com/openshift/cluster-logging-operator/internal/utils"
 	utilsjson "github.com/openshift/cluster-logging-operator/internal/utils/json"
+	utilsyaml "github.com/openshift/cluster-logging-operator/internal/utils/yaml"
 	"golang.org/x/net/html"
 	"k8s.io/apimachinery/pkg/util/validation"
 	"sigs.k8s.io/yaml"
@@ -50,21 +52,17 @@ func JSONLine(v interface{}) string { return marshalString(json.Marshal(v)) }
 // or an error message.
 func YAMLString(v interface{}) string { return marshalString(yaml.Marshal(v)) }
 
-// Must panics if err is not nil.
-func Must(err error) {
-	if err != nil {
-		panic(err)
-	}
-}
-
-// Unmarshal JSON or YAML string into a value according to k8s rules.
-// Uses sigs.k8s.io/yaml.
-func Unmarshal(s string, v interface{}) error { return yaml.Unmarshal([]byte(s), v) }
-
-// MustUnmarshal unmarshals JSON or YAML into a value, panic on error.
-func MustUnmarshal(s string, v interface{}) { Must(Unmarshal(s, v)) }
-
 var (
+	// Unmarshal JSON or YAML string into a value according to k8s rules.
+	// Uses sigs.k8s.io/yaml.
+	Unmarshal = utilsyaml.Unmarshal
+
+	// Must panics if err is not nil.
+	Must = utils.Must
+
+	// MustUnmarshal unmarshals JSON or YAML into a value, panic on error.
+	MustUnmarshal = utils.MustUnmarshal
+
 	uniqueReplace = regexp.MustCompile("[^a-z0-9]+")
 )
 

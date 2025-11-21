@@ -13,6 +13,7 @@ import (
 
 	log "github.com/ViaQ/logerr/v2/log/static"
 	"github.com/openshift/cluster-logging-operator/internal/constants"
+	"github.com/openshift/cluster-logging-operator/internal/utils/yaml"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -363,3 +364,13 @@ func AddLabels(object metav1.Object, labels map[string]string) {
 	}
 	object.SetLabels(labels)
 }
+
+// Must panics if err is not nil.
+func Must(err error) {
+	if err != nil {
+		panic(err)
+	}
+}
+
+// MustUnmarshal unmarshals JSON or YAML into a value, panic on error.
+func MustUnmarshal(s string, v interface{}) { Must(yaml.Unmarshal(s, v)) }

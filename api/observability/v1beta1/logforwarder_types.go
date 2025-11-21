@@ -62,7 +62,7 @@ type LogForwarderSpec struct {
 	//
 	// +kubebuilder:validation:Optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Service Account"
-	ServiceAccount obsv1.ServiceAccount `json:"serviceAccount"`
+	ServiceAccount *obsv1.ServiceAccount `json:"serviceAccount"`
 }
 
 // Application workload log selector.
