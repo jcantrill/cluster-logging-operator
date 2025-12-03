@@ -29,17 +29,11 @@ type LogForwarderSpec struct {
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Forwarder Resources and Placement",xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
 	Forwarder *obsv1.CollectorSpec `json:"forwarder,omitempty"`
 
-	// Inputs are named filters for log messages to be forwarded.
-	//
-	// There are three built-in inputs named `application`, `infrastructure` and
-	// `audit`. You don't need to define inputs here if those are sufficient for
-	// your needs. See `inputRefs` for more.
+	// Input is the spec of logs to forward
 	//
 	// +kubebuilder:validation:Optional
-	// +listType:=map
-	// +listMapKey:=name
-	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Log Forwarder Inputs"
-	Inputs []LogForwarderInputSpec `json:"inputs,omitempty"`
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Log Forwarder Input"
+	Input LogForwarderInputSpec `json:"input,omitempty"`
 
 	// Outputs are named destinations for log messages.
 	//
@@ -47,33 +41,19 @@ type LogForwarderSpec struct {
 	// +listType:=map
 	// +listMapKey:=name
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Log Forwarder Outputs"
-	Outputs []obsv1.OutputSpec `json:"outputs"`
-
-	// Pipelines forward the messages selected by a set of inputs to a set of outputs.
-	//
-	// +kubebuilder:validation:Required
-	// +listType:=map
-	// +listMapKey:=name
-	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Log Forwarder Pipelines"
-	Pipelines []PipelineSpec `json:"pipelines"`
+	Outputs []obsv1.OutputSpec `json:"outputs,omitempty"`
 
 	// ServiceAccount points to the ServiceAccount resource used by the forwarder pods and defaults
 	// to the service account created for the namespace if not otherwise defined.
 	//
 	// +kubebuilder:validation:Optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Service Account"
-	ServiceAccount *obsv1.ServiceAccount `json:"serviceAccount"`
+	ServiceAccount *obsv1.ServiceAccount `json:"serviceAccount,omitempty"`
 }
 
 // Application workload log selector.
 // All conditions in the selector must be satisfied (logical AND) to select logs.
 type LogForwarderInputSpec struct {
-	// Name of the pipeline
-	//
-	// +kubebuilder:validation:Pattern:="^[a-z][a-z0-9-]*[a-z0-9]$"
-	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Name",xDescriptors={"urn:alm:descriptor:com.tectonic.ui:text"}
-	Name string `json:"name"`
-
 	// The spec for collecting container logs
 	//
 	// +nullable
@@ -122,22 +102,6 @@ type ContainerInputSpec struct {
 	// +kubebuilder:validation:Optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Excludes"
 	Excludes []string `json:"excludes,omitempty"`
-}
-
-// PipelineSpec links a set of inputs and transformations to a set of outputs.
-type PipelineSpec struct {
-	// Name of the pipeline
-	//
-	// +kubebuilder:validation:Pattern:="^[a-z][a-z0-9-]*[a-z0-9]$"
-	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Name",xDescriptors={"urn:alm:descriptor:com.tectonic.ui:text"}
-	Name string `json:"name"`
-
-	// OutputRefs lists the names (`output.name`) of outputs from this pipeline.
-	//
-	// +kubebuilder:validation:Required
-	// +kubebuilder:validation:MinItems:=1
-	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Outputs"
-	OutputRefs []string `json:"outputRefs"`
 }
 
 // LogForwarderStatus defines the observed state of LogForwarder

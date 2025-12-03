@@ -1,12 +1,15 @@
 package tls
 
 import (
+	"fmt"
+
 	obs "github.com/openshift/cluster-logging-operator/api/observability/v1"
 	"github.com/openshift/cluster-logging-operator/internal/api/observability"
 	"github.com/openshift/cluster-logging-operator/internal/generator/framework"
 	typehelpers "github.com/openshift/cluster-logging-operator/internal/generator/helpers"
 	"github.com/openshift/cluster-logging-operator/internal/generator/url"
 	"github.com/openshift/cluster-logging-operator/internal/generator/vector/helpers"
+	utilsjson "github.com/openshift/cluster-logging-operator/internal/utils/json"
 )
 
 const (
@@ -95,6 +98,7 @@ func setTLSProfileFromOptions(t *TLSConf, op framework.Options) {
 	if ciphers, found := op[framework.Ciphers]; found {
 		t.CipherSuites = ciphers.(string)
 	}
+	fmt.Println(utilsjson.MustMarshal(t))
 }
 
 func (t TLSConf) Name() string {

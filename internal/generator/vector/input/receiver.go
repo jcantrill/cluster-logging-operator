@@ -25,7 +25,7 @@ func NewViaqReceiverSource(spec obs.InputSpec, resNames factory.ForwarderResourc
 			NewReceiverInternalNormalization(metaID, obs.ReceiverTypeSyslog, setEnvelopeToStructured, base),
 		)
 	case obs.ReceiverTypeHTTP:
-		el, id := source.NewHttpSource(base, resNames.GenerateInputServiceName(spec.Name), spec)
+		el, id := source.NewHttpSource(base, resNames.GenerateInputServiceName(spec.Name), spec.Receiver.Port)
 		items, itemsID := source.NewItemsTransform(base, id)
 		els = append(els,
 			el,

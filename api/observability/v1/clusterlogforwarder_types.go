@@ -114,7 +114,7 @@ type CollectorSpec struct {
 	//
 	// +nullable
 	// +kubebuilder:validation:Optional
-	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Node Selector"
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Node NamespaceMatchLabels"
 	NodeSelector map[string]string `json:"nodeSelector,omitempty"`
 
 	// Define the tolerations the collector pods will accept
@@ -186,7 +186,7 @@ type PipelineSpec struct {
 	//
 	// +kubebuilder:validation:Required
 	// +kubebuilder:validation:MinItems:=1
-	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Inputs"
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="CollectionPolicy"
 	InputRefs []string `json:"inputRefs"`
 
 	// OutputRefs lists the names (`output.name`) of outputs from this pipeline.

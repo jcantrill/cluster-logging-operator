@@ -8,7 +8,7 @@ import (
 // The data model for collected logs from containers.
 //
 // +kubebuilder:object:root=true
-// +docgen:displayname=Viaq Data Model for Containers
+// +docgen:displayname=Viaq Data Model for Container
 type ContainerLog types.ContainerLog
 
 // The data model for collected logs from node journal.

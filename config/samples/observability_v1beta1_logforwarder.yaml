@@ -3,24 +3,17 @@ kind: LogForwarder
 metadata:
   name: collector
 spec:
-  inputs:
-    - name: high-priority
-      collectionPolicy:
-        distributionClass: highpriority
-      container:
-        selector:
-          priority: high
-        excludes: ["servicemesh*"]
+  input:
+    collectionPolicy:
+      distributionClass: highpriority
+    container:
+      selector:
+        priority: high
+      excludes: ["servicemesh*"]
   outputs:
   - name: namespaced-http
     type: http
     http:
-      url: http://namespaced-http:8080
+      url: http://http-receiver:8090
     tls:
       insecureSkipVerify: true
-  pipelines:
-  - name: high-priority-logs
-    inputRefs:
-    - high-priority
-    outputRefs:
-    - namespaced-http

@@ -6,6 +6,8 @@ import (
 	"github.com/openshift/cluster-logging-operator/internal/factory"
 	"github.com/openshift/cluster-logging-operator/internal/generator/framework"
 	vectorapisources "github.com/openshift/cluster-logging-operator/internal/generator/vector/api"
+	"github.com/openshift/cluster-logging-operator/internal/generator/vector/helpers"
+	"github.com/openshift/cluster-logging-operator/internal/generator/vector/output/common/tls"
 	"github.com/openshift/cluster-logging-operator/internal/generator/vector/source"
 	"k8s.io/utils/set"
 )
@@ -13,6 +15,7 @@ import (
 // NewSource creates an input adapter to generate config for ViaQ sources to collect logs excluding the
 // collector container logs from the namespace where the collector is deployed
 func NewSource(input internalobs.Input, resNames factory.ForwarderResourceNames, secrets internalobs.Secrets, op framework.Options) ([]framework.Element, []string) {
+	framework.SetTLSProfileVersionAndCiphers(op)
 	els := []framework.Element{}
 	ids := []string{}
 	switch {
@@ -120,7 +123,20 @@ func NewSource(input internalobs.Input, resNames factory.ForwarderResourceNames,
 	case input.LogType() == obs.InputTypeReceiver.String():
 		return NewViaqReceiverSource(input.AsV1InputSpec(), resNames, secrets, op)
 	case input.ComponentType() == vectorapisources.ComponentTypeVector:
-		return NewVectorSource(input)
+		name := helpers.MakeInputID(input.Name())
+		el, id := source.NewHttpSource(name, name, int32(6000))
+		tlsSpec := &obs.OutputTLSSpec{
+			InsecureSkipVerify: true,
+			TLSSpec: obs.TLSSpec{
+				CA: &obs.ValueReference{
+					Key: "tls-ca-bundle.pem",
+					ConfigMapName: "openshift-service-ca.crt",
+				},
+			},
+		}
+		tlsEL := tls.New(id, tlsSpec, secrets, op, framework.Option{Name: tls.Component, Value: "sources"})
+		els = append(els, el, tlsEL)
+		ids = append(ids, id)
 	}
 	return els, ids
 }

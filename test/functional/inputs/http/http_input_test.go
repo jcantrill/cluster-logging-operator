@@ -103,7 +103,7 @@ const (
 }`
 )
 
-var _ = Describe("[Functional][Inputs][Http] Functional tests", func() {
+var _ = Describe("[Functional][CollectionPolicy][Http] Functional tests", func() {
 
 	var (
 		framework   *functional.CollectorFunctionalFramework

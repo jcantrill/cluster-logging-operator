@@ -2,27 +2,15 @@ package observability
 
 import (
 	"context"
+
 	log "github.com/ViaQ/logerr/v2/log/static"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 
-	obs "github.com/openshift/cluster-logging-operator/api/observability/v1"
 	"github.com/openshift/cluster-logging-operator/internal/runtime"
-	obsruntime "github.com/openshift/cluster-logging-operator/internal/runtime/observability"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
-
-// FetchClusterLogForwarder returns a copy of the ClusterLogForwarder
-func FetchClusterLogForwarder(k8sClient client.Client, namespace, name string) (*obs.ClusterLogForwarder, error) {
-	key := types.NamespacedName{Name: name, Namespace: namespace}
-	proto := obsruntime.NewClusterLogForwarder(namespace, name, runtime.Initialize)
-	if err := k8sClient.Get(context.TODO(), key, proto); err != nil {
-		return proto, err
-	}
-	// Do not modify cached copy
-	return proto.DeepCopy(), nil
-}
 
 // FetchSecrets from a list of names in a given namespace
 func FetchSecrets(k8sClient client.Client, namespace string, names ...string) (secrets []*corev1.Secret, err error) {

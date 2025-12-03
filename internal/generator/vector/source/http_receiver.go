@@ -1,19 +1,18 @@
 package source
 
 import (
-	obs "github.com/openshift/cluster-logging-operator/api/observability/v1"
 	"github.com/openshift/cluster-logging-operator/internal/generator/framework"
 	"github.com/openshift/cluster-logging-operator/internal/generator/vector/elements"
 	"github.com/openshift/cluster-logging-operator/internal/generator/vector/helpers"
 )
 
-func NewHttpSource(id, inputName string, input obs.InputSpec) (framework.Element, string) {
+func NewHttpSource(id, inputName string, port int32) (framework.Element, string) {
 	return HttpReceiver{
 		ID:            id,
 		InputName:     inputName,
 		ListenAddress: helpers.ListenOnAllLocalInterfacesAddress(),
-		ListenPort:    input.Receiver.Port,
-		Format:        string(input.Receiver.HTTP.Format),
+		ListenPort:    port,
+		//Format:        string(input.Receiver.HTTP.Format),
 	}, id
 }
 
@@ -22,7 +21,7 @@ type HttpReceiver struct {
 	InputName     string
 	ListenAddress string
 	ListenPort    int32
-	Format        string
+	//Format        string
 }
 
 func (HttpReceiver) Name() string {

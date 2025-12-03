@@ -62,7 +62,7 @@ func ReconcileDeployment(k8sClient client.Client, lf internalobs.LogForwarder) (
 //		spec.NodeSelector = lf.Spec.Forwarder.NodeSelector
 //		spec.Affinity = lf.Spec.Forwarder.Affinity
 //	}
-//	spec.Containers = append(spec.Containers, newContainer(lf))
+//	spec.Container = append(spec.Container, newContainer(lf))
 //	return spec
 //}
 //

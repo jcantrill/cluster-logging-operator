@@ -79,7 +79,7 @@ func EnsureLinuxNodeSelector(selectors map[string]string) map[string]string {
 		if osType == LinuxValue {
 			return selectors
 		}
-		// Selector is provided but is not "linux"
+		// NamespaceMatchLabels is provided but is not "linux"
 		log.Info("Overriding node selector value", "OsNodeLabel", OsNodeLabel, "osType", osType, "LinuxValue", LinuxValue)
 	}
 	selectors[OsNodeLabel] = LinuxValue

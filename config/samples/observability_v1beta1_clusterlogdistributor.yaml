@@ -4,8 +4,9 @@ metadata:
   name: default
 spec:
   managementState: Managed
-  inputs:
-    - name: infrastructure
+  priority: 1
+  collectionPolicy:
+    container:
       includes:
         - namespace: openshift*
         - namespace: default

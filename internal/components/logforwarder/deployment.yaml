@@ -95,6 +95,9 @@ spec:
         - mountPath: /etc/pki/ca-trust/extracted/pem/
           name: trusted-ca
           readOnly: true
+        - mountPath: /var/run/ocp-collector/config/openshift-service-ca.crt
+          name: trusted-ca
+          readOnly: true
         - mountPath: /etc/vector
           name: config
           readOnly: true

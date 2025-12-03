@@ -13,7 +13,7 @@ package oc
 //  WithPodGetter(oc.Get().
 //	  WithNamespace("openshift-logging").
 //	  Pod().
-//	  Selector("component=elasticsearch").
+//	  NamespaceMatchLabels("component=elasticsearch").
 //	  OutputJsonpath("{.items[0].metadata.name}")).
 //  Container("elasticsearch").
 //  WithCmd("es_util", " --query=\"_cat/aliases?v&bytes=m\"")

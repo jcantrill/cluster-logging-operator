@@ -21,6 +21,7 @@ import (
 
 // ClusterLogDistributorSpec defines the desired state of ClusterLogDistributor
 type ClusterLogDistributorSpec struct {
+
 	// Indicator if the resource is 'Managed' or 'Unmanaged' by the operator.
 	//
 	// +kubebuilder:default:=Managed
@@ -34,21 +35,26 @@ type ClusterLogDistributorSpec struct {
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Collector Resources and Placement",xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
 	Collector *obsv1.CollectorSpec `json:"collector,omitempty"`
 
-	// Inputs are named sources of container logs to be collected.
+	// Priority is the priority of this ClusterLogDistributor in relation to others.
+	// A larger number will take precedence when evaluating which ClusterLogDistribor will service
+	// a LogForwarder
+	Priority int `json:"priority,omitempty"`
+
+	// CollectionPolicy is the policy that defines which logs are to be collected.
 	//
 	// +kubebuilder:validation:Required
-	// +listType:=map
-	// +listMapKey:=name
-	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Log Container Inputs"
-	Inputs []ClusterLogDistibutorInputSpec `json:"inputs,omitempty"`
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="CollectionPolicy"
+	CollectionPolicy ClusterLogDistributorCollectionPolicySpec `json:"collectionPolicy,omitempty"`
 }
 
-type ClusterLogDistibutorInputSpec struct {
-	// Name used to refer to the input of a `pipeline`.
-	//
-	// +kubebuilder:validation:Pattern:="^[a-z][a-z0-9-]*[a-z0-9]$"
-	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Input Name"
-	Name string `json:"name"`
+type ClusterLogDistributorCollectionPolicySpec struct {
+
+	// Container is the collection policy for container sources
+	// +kubebuilder:validation:Required
+	Container *ClusterLogDistributorContainerInputSpec `json:"container,omitempty"`
+}
+
+type ClusterLogDistributorContainerInputSpec struct {
 
 	// Includes is the set of namespaces and containers to include when collecting logs.
 	//
@@ -64,15 +70,16 @@ type ClusterLogDistibutorInputSpec struct {
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Exclude"
 	Excludes []obsv1.NamespaceContainerSpec `json:"excludes,omitempty"`
 
-	// Selector for logs from pods with matching labels.
+	// NamespaceMatchLabels for logs from namespaces with matching labels.
 	//
-	// Only messages from pods with these labels are collected.
+	// Only logs from pods from namespaces that match this label selector are collected.  This selector
+	// is further restricted to included or excluded namespaces.
 	//
 	// If absent or empty, logs are collected regardless of labels.
 	//
 	// +kubebuilder:validation:Optional
-	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Pod Selector",xDescriptors={"urn:alm:descriptor:com.tectonic.ui:selector:core:v1:Pod"}
-	Selector *metav1.LabelSelector `json:"selector,omitempty"`
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Pod NamespaceMatchLabels",xDescriptors={"urn:alm:descriptor:com.tectonic.ui:selector:core:v1:Pod"}
+	NamespaceMatchLabels map[string]string `json:"namespaceMatchLabels,omitempty"`
 }
 
 // ClusterLogDistributorStatus defines the observed state of ClusterLogDistributor

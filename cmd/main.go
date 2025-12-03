@@ -50,7 +50,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/manager/signals"
 	"sigs.k8s.io/controller-runtime/pkg/metrics"
 
-	"github.com/openshift/cluster-logging-operator/internal/controller/logfilemetricsexporter"
 	loggingruntime "github.com/openshift/cluster-logging-operator/internal/runtime"
 )
 
@@ -169,32 +168,32 @@ func main() {
 
 	log.Info("Registering Components.")
 
-	// The Log File Metric Exporter Controller
-	if err = (&logfilemetricsexporter.ReconcileLogFileMetricExporter{
-		Client:         mgr.GetClient(),
-		UncachedReader: mgr.GetAPIReader(),
-		Scheme:         mgr.GetScheme(),
-		ClusterVersion: clusterVersion,
-		ClusterID:      clusterID,
-	}).SetupWithManager(mgr); err != nil {
-		log.Error(err, "unable to create controller", "controller", "LogFileMetricExporter")
-		os.Exit(1)
-	}
-
-	if err = (&dashboard.ReconcileDashboards{
-		Client: mgr.GetClient(),
-		Reader: mgr.GetAPIReader(),
-	}).SetupWithManager(mgr); err != nil {
-		log.Error(err, "unable to create controller", "controller", "GrafanaDashboard")
-		os.Exit(1)
-	}
-
-	// Create initial dashboard config map on CLO install
-	if err = dashboard.ReconcileForDashboards(mgr.GetClient(), mgr.GetAPIReader()); err != nil {
-		log.Error(err, "unable to seed the initial dashboard")
-		os.Exit(1)
-	}
-
+	//// The Log File Metric Exporter Controller
+	//if err = (&logfilemetricsexporter.ReconcileLogFileMetricExporter{
+	//	Client:         mgr.GetClient(),
+	//	UncachedReader: mgr.GetAPIReader(),
+	//	Scheme:         mgr.GetScheme(),
+	//	ClusterVersion: clusterVersion,
+	//	ClusterID:      clusterID,
+	//}).SetupWithManager(mgr); err != nil {
+	//	log.Error(err, "unable to create controller", "controller", "LogFileMetricExporter")
+	//	os.Exit(1)
+	//}
+	//
+	//if err = (&dashboard.ReconcileDashboards{
+	//	Client: mgr.GetClient(),
+	//	Reader: mgr.GetAPIReader(),
+	//}).SetupWithManager(mgr); err != nil {
+	//	log.Error(err, "unable to create controller", "controller", "GrafanaDashboard")
+	//	os.Exit(1)
+	//}
+	//
+	//// Create initial dashboard config map on CLO install
+	//if err = dashboard.ReconcileForDashboards(mgr.GetClient(), mgr.GetAPIReader()); err != nil {
+	//	log.Error(err, "unable to seed the initial dashboard")
+	//	os.Exit(1)
+	//}
+	//
 	if err = (&observabilitycontroller.ClusterLogForwarderReconciler{
 		Scheme:       mgr.GetScheme(),
 		PollInterval: collector.DefaultPollInterval,

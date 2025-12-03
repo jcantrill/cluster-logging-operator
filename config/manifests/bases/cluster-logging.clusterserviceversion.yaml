@@ -56,6 +56,59 @@ spec:
       kind: ClusterLogDistributor
       name: clusterlogdistributors.observability.openshift.io
       specDescriptors:
+      - description: CollectionPolicy is the policy that defines which logs are to
+          be collected.
+        displayName: CollectionPolicy
+        path: collectionPolicy
+      - description: |-
+          Excludes is the set of namespaces and containers to ignore when collecting logs.
+
+          Takes precedence over Includes option.
+        displayName: Exclude
+        path: collectionPolicy.container.excludes
+      - description: |-
+          Container spec the containers from which to collect logs
+          Supports glob patterns and presumes "*" if omitted.
+        displayName: Container Glob
+        path: collectionPolicy.container.excludes[0].container
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:text
+      - description: |-
+          Namespace specs the namespace from which to collect logs
+          Supports glob patterns and presumes "*" if omitted.
+        displayName: Namespace Glob
+        path: collectionPolicy.container.excludes[0].namespace
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:text
+      - description: Includes is the set of namespaces and containers to include when
+          collecting logs.
+        displayName: Include
+        path: collectionPolicy.container.includes
+      - description: |-
+          Container spec the containers from which to collect logs
+          Supports glob patterns and presumes "*" if omitted.
+        displayName: Container Glob
+        path: collectionPolicy.container.includes[0].container
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:text
+      - description: |-
+          Namespace specs the namespace from which to collect logs
+          Supports glob patterns and presumes "*" if omitted.
+        displayName: Namespace Glob
+        path: collectionPolicy.container.includes[0].namespace
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:text
+      - description: |-
+          NamespaceMatchLabels for logs from namespaces with matching labels.
+
+          Only logs from pods from namespaces that match this label selector are collected.  This selector
+          is further restricted to included or excluded namespaces.
+
+          If absent or empty, logs are collected regardless of labels.
+        displayName: Pod NamespaceMatchLabels
+        path: collectionPolicy.container.namespaceMatchLabels
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:selector:core:v1:Pod
       - description: |-
           Specification of the Collector deployment to define
           resource limits and workload placement
@@ -81,7 +134,7 @@ spec:
         x-descriptors:
         - urn:alm:descriptor:com.tectonic.ui:text
       - description: Define nodes for scheduling the pods.
-        displayName: Node Selector
+        displayName: Node NamespaceMatchLabels
         path: collector.nodeSelector
       - description: The resource requirements for the collector
         displayName: Collector Resource Requirements
@@ -91,60 +144,6 @@ spec:
       - description: Define the tolerations the collector pods will accept
         displayName: Tolerations
         path: collector.tolerations
-      - description: Inputs are named sources of container logs to be collected.
-        displayName: Log Container Inputs
-        path: inputs
-      - description: |-
-          Excludes is the set of namespaces and containers to ignore when collecting logs.
-
-          Takes precedence over Includes option.
-        displayName: Exclude
-        path: inputs[0].excludes
-      - description: |-
-          Container spec the containers from which to collect logs
-          Supports glob patterns and presumes "*" if omitted.
-        displayName: Container Glob
-        path: inputs[0].excludes[0].container
-        x-descriptors:
-        - urn:alm:descriptor:com.tectonic.ui:text
-      - description: |-
-          Namespace specs the namespace from which to collect logs
-          Supports glob patterns and presumes "*" if omitted.
-        displayName: Namespace Glob
-        path: inputs[0].excludes[0].namespace
-        x-descriptors:
-        - urn:alm:descriptor:com.tectonic.ui:text
-      - description: Includes is the set of namespaces and containers to include when
-          collecting logs.
-        displayName: Include
-        path: inputs[0].includes
-      - description: |-
-          Container spec the containers from which to collect logs
-          Supports glob patterns and presumes "*" if omitted.
-        displayName: Container Glob
-        path: inputs[0].includes[0].container
-        x-descriptors:
-        - urn:alm:descriptor:com.tectonic.ui:text
-      - description: |-
-          Namespace specs the namespace from which to collect logs
-          Supports glob patterns and presumes "*" if omitted.
-        displayName: Namespace Glob
-        path: inputs[0].includes[0].namespace
-        x-descriptors:
-        - urn:alm:descriptor:com.tectonic.ui:text
-      - description: Name used to refer to the input of a `pipeline`.
-        displayName: Input Name
-        path: inputs[0].name
-      - description: |-
-          Selector for logs from pods with matching labels.
-
-          Only messages from pods with these labels are collected.
-
-          If absent or empty, logs are collected regardless of labels.
-        displayName: Pod Selector
-        path: inputs[0].selector
-        x-descriptors:
-        - urn:alm:descriptor:com.tectonic.ui:selector:core:v1:Pod
       - description: Indicator if the resource is 'Managed' or 'Unmanaged' by the
           operator.
         displayName: Management State
@@ -190,7 +189,7 @@ spec:
         x-descriptors:
         - urn:alm:descriptor:com.tectonic.ui:text
       - description: Define nodes for scheduling the pods.
-        displayName: Node Selector
+        displayName: Node NamespaceMatchLabels
         path: collector.nodeSelector
       - description: The resource requirements for the collector
         displayName: Collector Resource Requirements
@@ -2078,7 +2077,7 @@ spec:
            - `infrastructure` selects logs from openshift and kubernetes pods and some node logs.
 
            - `audit` selects node logs related to security audits.
-        displayName: Inputs
+        displayName: CollectionPolicy
         path: pipelines[0].inputRefs
       - description: Name of the pipeline
         displayName: Name
@@ -2157,7 +2156,7 @@ spec:
         x-descriptors:
         - urn:alm:descriptor:com.tectonic.ui:text
       - description: Define which Nodes the Pods are scheduled on.
-        displayName: LogFileMetricExporter Node Selector
+        displayName: LogFileMetricExporter Node NamespaceMatchLabels
         path: nodeSelector
         x-descriptors:
         - urn:alm:descriptor:com.tectonic.ui:selector:core:v1:ConfigMap
@@ -2212,7 +2211,7 @@ spec:
         x-descriptors:
         - urn:alm:descriptor:com.tectonic.ui:text
       - description: Define nodes for scheduling the pods.
-        displayName: Node Selector
+        displayName: Node NamespaceMatchLabels
         path: forwarder.nodeSelector
       - description: The resource requirements for the collector
         displayName: Collector Resource Requirements
@@ -2222,33 +2221,28 @@ spec:
       - description: Define the tolerations the collector pods will accept
         displayName: Tolerations
         path: forwarder.tolerations
-      - description: |-
-          Inputs are named filters for log messages to be forwarded.
-
-          There are three built-in inputs named `application`, `infrastructure` and
-          `audit`. You don't need to define inputs here if those are sufficient for
-          your needs. See `inputRefs` for more.
-        displayName: Log Forwarder Inputs
-        path: inputs
+      - description: Input is the spec of logs to forward
+        displayName: Log Forwarder Input
+        path: input
       - description: |-
           CollectionPolicy to apply when collecting logs.
 
           Absence of a spec will utilize no preferences when evaluating the LogForwarder
         displayName: Log Collection Policy
-        path: inputs[0].collectionPolicy
+        path: input.collectionPolicy
       - description: The spec for collecting container logs
         displayName: Container Logs Input
-        path: inputs[0].container
+        path: input.container
       - description: |-
           Excludes is the set of containers to ignore when collecting logs.
 
           Takes precedence over Includes option.
         displayName: Excludes
-        path: inputs[0].container.excludes
+        path: input.container.excludes
       - description: Includes is the set of containers to include when collecting
           logs.
         displayName: Includes
-        path: inputs[0].container.includes
+        path: input.container.includes
       - description: |-
           Selector for logs from pods with matching labels.
 
@@ -2256,14 +2250,9 @@ spec:
 
           If absent or empty, logs are collected regardless of labels.
         displayName: Pod Selector
-        path: inputs[0].container.selector
+        path: input.container.selector
         x-descriptors:
         - urn:alm:descriptor:com.tectonic.ui:selector:core:v1:Pod
-      - description: Name of the pipeline
-        displayName: Name
-        path: inputs[0].name
-        x-descriptors:
-        - urn:alm:descriptor:com.tectonic.ui:text
       - description: Outputs are named destinations for log messages.
         displayName: Log Forwarder Outputs
         path: outputs
@@ -2329,19 +2318,6 @@ spec:
       - description: Type of output sink.
         displayName: Output Type
         path: outputs[0].type
-      - description: Pipelines forward the messages selected by a set of inputs to
-          a set of outputs.
-        displayName: Log Forwarder Pipelines
-        path: pipelines
-      - description: Name of the pipeline
-        displayName: Name
-        path: pipelines[0].name
-        x-descriptors:
-        - urn:alm:descriptor:com.tectonic.ui:text
-      - description: OutputRefs lists the names (`output.name`) of outputs from this
-          pipeline.
-        displayName: Outputs
-        path: pipelines[0].outputRefs
       - description: |-
           ServiceAccount points to the ServiceAccount resource used by the forwarder pods and defaults
           to the service account created for the namespace if not otherwise defined.

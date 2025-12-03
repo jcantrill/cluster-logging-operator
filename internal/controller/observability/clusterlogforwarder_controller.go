@@ -19,6 +19,7 @@ import (
 	internalinit "github.com/openshift/cluster-logging-operator/internal/api/initialize"
 	internalobs "github.com/openshift/cluster-logging-operator/internal/api/observability"
 	"github.com/openshift/cluster-logging-operator/internal/collector"
+	"github.com/openshift/cluster-logging-operator/internal/components/clusterlogforwarder"
 	"github.com/openshift/cluster-logging-operator/internal/utils"
 	validations "github.com/openshift/cluster-logging-operator/internal/validations/observability"
 	"github.com/openshift/cluster-logging-operator/version"
@@ -62,7 +63,7 @@ func (r *ClusterLogForwarderReconciler) Reconcile(_ context.Context, req ctrl.Re
 	log.V(3).Info("reconcile", "namespace", req.NamespacedName.Namespace, "name", req.NamespacedName.Name)
 
 	cxt := r.NewForwarderContext()
-	if cxt.Forwarder, err = FetchClusterLogForwarder(cxt.Client, req.NamespacedName.Namespace, req.NamespacedName.Name); err != nil {
+	if cxt.Forwarder, err = clusterlogforwarder.FetchClusterLogForwarder(cxt.Client, req.NamespacedName.Namespace, req.NamespacedName.Name); err != nil {
 		if !errors.IsNotFound(err) {
 			// Other error, so requeue the request
 			return defaultRequeue, err

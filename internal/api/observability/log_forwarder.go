@@ -86,13 +86,12 @@ func (lf *LogForwarder) Filters() (specs []obsv1.FilterSpec) {
 }
 
 func (lf *LogForwarder) Pipelines() (specs []obsv1.PipelineSpec) {
-	for _, p := range lf.LogForwarder.Spec.Pipelines {
-		specs = append(specs, obsv1.PipelineSpec{
-			Name:       p.Name,
-			InputRefs:  []string{defaultInternalInputName},
-			OutputRefs: p.OutputRefs,
-		})
-	}
+
+	specs = append(specs, obsv1.PipelineSpec{
+		Name:       defaultInternalInputName,
+		InputRefs:  []string{defaultInternalInputName},
+		OutputRefs: Outputs(lf.Spec.Outputs).Names(),
+	})
 
 	return specs
 }

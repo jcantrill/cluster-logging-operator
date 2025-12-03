@@ -17,7 +17,7 @@ func ReconcileService(k8sClient client.Client, lf internalobs.LogForwarder) erro
 		{
 			Name:     "cld-source",
 			Protocol: corev1.ProtocolTCP,
-			Port:     6000,
+			Port:     clusterlogdistributor.DefaultLogForwarderPort,
 			TargetPort: intstr.IntOrString{
 				Type:   intstr.String,
 				StrVal: "forward-logs",

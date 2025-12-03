@@ -14,7 +14,7 @@ type Element interface {
 	Template() string
 }
 
-// Section is a collection of Elements at a high level division of configuration. e.g. Inputs, Outputs, Ingress etc. It is used to show a breakdown of generated configuration + adding a comment along with the declared section to document the meaning of the section.
+// Section is a collection of Elements at a high level division of configuration. e.g. CollectionPolicy, Outputs, Ingress etc. It is used to show a breakdown of generated configuration + adding a comment along with the declared section to document the meaning of the section.
 type Section struct {
 	Elements []Element
 	Comment  string

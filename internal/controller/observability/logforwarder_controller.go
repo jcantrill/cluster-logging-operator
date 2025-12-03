@@ -9,6 +9,7 @@ import (
 	obsv1beta1 "github.com/openshift/cluster-logging-operator/api/observability/v1beta1"
 	internalcontext "github.com/openshift/cluster-logging-operator/internal/api/context"
 	internalobs "github.com/openshift/cluster-logging-operator/internal/api/observability"
+	"github.com/openshift/cluster-logging-operator/internal/components/clusterlogdistributor"
 	"github.com/openshift/cluster-logging-operator/internal/components/logforwarder"
 	"github.com/openshift/cluster-logging-operator/internal/utils"
 	appsv1 "k8s.io/api/apps/v1"
@@ -19,6 +20,7 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
 )
 
@@ -70,11 +72,11 @@ func (r *LogForwarderReconciler) Reconcile(_ context.Context, req ctrl.Request) 
 		return defaultRequeue, nil
 	}
 	options := utils.Options{}
-
 	// Set options to any options added during initialization of CLF
 	if cxt.AdditionalContext != nil {
 		options = cxt.AdditionalContext
 	}
+
 	// validate (if needed)
 	// reconcile
 	//   eval outputs for SA token
@@ -90,16 +92,22 @@ func (r *LogForwarderReconciler) Reconcile(_ context.Context, req ctrl.Request) 
 	if err = logforwarder.ReconcileConfig(r.ForwarderContext.Client, *lf, forwarderConfig, lf.ResourceNames().ConfigMap); err != nil {
 		return defaultRequeue, err
 	}
-
-	//   create deployment
+	//
+	////   create deployment
 	if err = logforwarder.ReconcileDeployment(r.ForwarderContext.Client, *lf); err != nil {
 		return defaultRequeue, err
 	}
-	//   NP
-
-	//   In service + metrics
+	////   NP
+	//
+	////   In service + metrics
 	if err = logforwarder.ReconcileService(r.ForwarderContext.Client, *lf); err != nil {
 		return defaultRequeue, err
+	}
+
+	if cldName := logforwarder.AssignDistributor(r.ForwarderContext.Client, *lf); cldName != "" {
+		if err = r.labelLogForwarder(lf, cldName); err != nil {
+			return defaultRequeue, err
+		}
 	}
 
 	return periodicRequeue, nil
@@ -112,4 +120,18 @@ func (r *LogForwarderReconciler) fetchLogForwarder(k8sClient client.Client, objK
 		return nil, err
 	}
 	return internalobs.NewLogForwarder(*lf), err
+}
+
+func (r *LogForwarderReconciler) labelLogForwarder(lf *internalobs.LogForwarder, cldName string) error {
+	if _, err := controllerutil.CreateOrPatch(context.TODO(), r.ForwarderContext.Client, &lf.LogForwarder, func() error {
+		lf.LogForwarder.Labels = map[string]string{
+			clusterlogdistributor.LabelLogDisributorService: cldName,
+		}
+		return nil
+	}); err != nil {
+		return err
+	}
+
+	r.Log.V(lfDefaultLogLevel).Info("Patched LogForwarder", "lf", lf.LogForwarder)
+	return nil
 }

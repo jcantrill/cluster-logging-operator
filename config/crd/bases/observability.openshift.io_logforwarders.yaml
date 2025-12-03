@@ -1074,109 +1074,91 @@ spec:
                     nullable: true
                     type: array
                 type: object
-              inputs:
-                description: |-
-                  Inputs are named filters for log messages to be forwarded.
+              input:
+                description: Input is the spec of logs to forward
+                properties:
+                  collectionPolicy:
+                    description: |-
+                      CollectionPolicy to apply when collecting logs.
 
-                  There are three built-in inputs named `application`, `infrastructure` and
-                  `audit`. You don't need to define inputs here if those are sufficient for
-                  your needs. See `inputRefs` for more.
-                items:
-                  description: |-
-                    Application workload log selector.
-                    All conditions in the selector must be satisfied (logical AND) to select logs.
-                  properties:
-                    collectionPolicy:
-                      description: |-
-                        CollectionPolicy to apply when collecting logs.
+                      Absence of a spec will utilize no preferences when evaluating the LogForwarder
+                    properties:
+                      distributionClass:
+                        description: DistributionClass is the service class to use
+                          when evaluating the collection policy
+                        type: string
+                    type: object
+                  container:
+                    description: The spec for collecting container logs
+                    nullable: true
+                    properties:
+                      excludes:
+                        description: |-
+                          Excludes is the set of containers to ignore when collecting logs.
 
-                        Absence of a spec will utilize no preferences when evaluating the LogForwarder
-                      properties:
-                        distributionClass:
-                          description: DistributionClass is the service class to use
-                            when evaluating the collection policy
+                          Takes precedence over Includes option.
+                        items:
                           type: string
-                      type: object
-                    container:
-                      description: The spec for collecting container logs
-                      nullable: true
-                      properties:
-                        excludes:
-                          description: |-
-                            Excludes is the set of containers to ignore when collecting logs.
+                        type: array
+                      includes:
+                        description: Includes is the set of containers to include
+                          when collecting logs.
+                        items:
+                          type: string
+                        type: array
+                      selector:
+                        description: |-
+                          Selector for logs from pods with matching labels.
 
-                            Takes precedence over Includes option.
-                          items:
-                            type: string
-                          type: array
-                        includes:
-                          description: Includes is the set of containers to include
-                            when collecting logs.
-                          items:
-                            type: string
-                          type: array
-                        selector:
-                          description: |-
-                            Selector for logs from pods with matching labels.
+                          Only messages from pods with these labels are collected.
 
-                            Only messages from pods with these labels are collected.
-
-                            If absent or empty, logs are collected regardless of labels.
-                          properties:
-                            matchExpressions:
-                              description: matchExpressions is a list of label selector
-                                requirements. The requirements are ANDed.
-                              items:
-                                description: |-
-                                  A label selector requirement is a selector that contains values, a key, and an operator that
-                                  relates the key and values.
-                                properties:
-                                  key:
-                                    description: key is the label key that the selector
-                                      applies to.
-                                    type: string
-                                  operator:
-                                    description: |-
-                                      operator represents a key's relationship to a set of values.
-                                      Valid operators are In, NotIn, Exists and DoesNotExist.
-                                    type: string
-                                  values:
-                                    description: |-
-                                      values is an array of string values. If the operator is In or NotIn,
-                                      the values array must be non-empty. If the operator is Exists or DoesNotExist,
-                                      the values array must be empty. This array is replaced during a strategic
-                                      merge patch.
-                                    items:
-                                      type: string
-                                    type: array
-                                required:
-                                - key
-                                - operator
-                                type: object
-                              type: array
-                            matchLabels:
-                              additionalProperties:
-                                type: string
+                          If absent or empty, logs are collected regardless of labels.
+                        properties:
+                          matchExpressions:
+                            description: matchExpressions is a list of label selector
+                              requirements. The requirements are ANDed.
+                            items:
                               description: |-
-                                matchLabels is a map of {key,value} pairs. A single {key,value} in the matchLabels
-                                map is equivalent to an element of matchExpressions, whose key field is "key", the
-                                operator is "In", and the values array contains only "value". The requirements are ANDed.
+                                A label selector requirement is a selector that contains values, a key, and an operator that
+                                relates the key and values.
+                              properties:
+                                key:
+                                  description: key is the label key that the selector
+                                    applies to.
+                                  type: string
+                                operator:
+                                  description: |-
+                                    operator represents a key's relationship to a set of values.
+                                    Valid operators are In, NotIn, Exists and DoesNotExist.
+                                  type: string
+                                values:
+                                  description: |-
+                                    values is an array of string values. If the operator is In or NotIn,
+                                    the values array must be non-empty. If the operator is Exists or DoesNotExist,
+                                    the values array must be empty. This array is replaced during a strategic
+                                    merge patch.
+                                  items:
+                                    type: string
+                                  type: array
+                              required:
+                              - key
+                              - operator
                               type: object
-                          type: object
-                          x-kubernetes-map-type: atomic
-                      type: object
-                    name:
-                      description: Name of the pipeline
-                      pattern: ^[a-z][a-z0-9-]*[a-z0-9]$
-                      type: string
-                  required:
-                  - container
-                  - name
-                  type: object
-                type: array
-                x-kubernetes-list-map-keys:
-                - name
-                x-kubernetes-list-type: map
+                            type: array
+                          matchLabels:
+                            additionalProperties:
+                              type: string
+                            description: |-
+                              matchLabels is a map of {key,value} pairs. A single {key,value} in the matchLabels
+                              map is equivalent to an element of matchExpressions, whose key field is "key", the
+                              operator is "In", and the values array contains only "value". The requirements are ANDed.
+                            type: object
+                        type: object
+                        x-kubernetes-map-type: atomic
+                    type: object
+                required:
+                - container
+                type: object
               outputs:
                 description: Outputs are named destinations for log messages.
                 items:
@@ -3540,32 +3522,6 @@ spec:
                 x-kubernetes-list-map-keys:
                 - name
                 x-kubernetes-list-type: map
-              pipelines:
-                description: Pipelines forward the messages selected by a set of inputs
-                  to a set of outputs.
-                items:
-                  description: PipelineSpec links a set of inputs and transformations
-                    to a set of outputs.
-                  properties:
-                    name:
-                      description: Name of the pipeline
-                      pattern: ^[a-z][a-z0-9-]*[a-z0-9]$
-                      type: string
-                    outputRefs:
-                      description: OutputRefs lists the names (`output.name`) of outputs
-                        from this pipeline.
-                      items:
-                        type: string
-                      minItems: 1
-                      type: array
-                  required:
-                  - name
-                  - outputRefs
-                  type: object
-                type: array
-                x-kubernetes-list-map-keys:
-                - name
-                x-kubernetes-list-type: map
               serviceAccount:
                 description: |-
                   ServiceAccount points to the ServiceAccount resource used by the forwarder pods and defaults
@@ -3581,7 +3537,6 @@ spec:
                 type: object
             required:
             - outputs
-            - pipelines
             type: object
           status:
             description: LogForwarderStatus defines the observed state of LogForwarder

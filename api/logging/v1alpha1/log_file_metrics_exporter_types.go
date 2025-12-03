@@ -16,7 +16,7 @@ type LogFileMetricExporterSpec struct {
 	// Define which Nodes the Pods are scheduled on.
 	// +nullable
 	// +optional
-	//+operator-sdk:csv:customresourcedefinitions:type=spec,displayName="LogFileMetricExporter Node Selector",xDescriptors={"urn:alm:descriptor:com.tectonic.ui:selector:core:v1:ConfigMap"}
+	//+operator-sdk:csv:customresourcedefinitions:type=spec,displayName="LogFileMetricExporter Node NamespaceMatchLabels",xDescriptors={"urn:alm:descriptor:com.tectonic.ui:selector:core:v1:ConfigMap"}
 	NodeSelector map[string]string `json:"nodeSelector,omitempty"`
 
 	// Define the tolerations the Pods will accept

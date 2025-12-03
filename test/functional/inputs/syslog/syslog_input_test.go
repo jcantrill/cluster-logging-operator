@@ -20,7 +20,7 @@ const (
 	sysLogInputName = `syslog-source`
 )
 
-var _ = Describe("[Functional][Inputs][SysLog] Functional tests", func() {
+var _ = Describe("[Functional][CollectionPolicy][SysLog] Functional tests", func() {
 
 	const (
 		host  = "acme.com"
