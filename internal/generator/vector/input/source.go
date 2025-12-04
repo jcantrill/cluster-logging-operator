@@ -129,7 +129,7 @@ func NewSource(input internalobs.Input, resNames factory.ForwarderResourceNames,
 			InsecureSkipVerify: true,
 			TLSSpec: obs.TLSSpec{
 				CA: &obs.ValueReference{
-					Key: "tls-ca-bundle.pem",
+					Key:           "tls-ca-bundle.pem",
 					ConfigMapName: "openshift-service-ca.crt",
 				},
 			},

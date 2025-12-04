@@ -3,6 +3,7 @@ package clusterlogdistributor
 import (
 	"fmt"
 
+	log "github.com/ViaQ/logerr/v2/log/static"
 	obsv1beta1 "github.com/openshift/cluster-logging-operator/api/observability/v1beta1"
 	"github.com/openshift/cluster-logging-operator/internal/constants"
 	"github.com/openshift/cluster-logging-operator/internal/factory"
@@ -27,17 +28,24 @@ func ServiceAccount(k8sClient client.Client, cld obsv1beta1.ClusterLogDistributo
 		Namespace: constants.OpenshiftNS,
 		Name:      sa.Name,
 	}
-	roleRef := rbacv1.RoleRef{
-		APIGroup: "rbac.authorization.k8s.io",
-		Kind:     "ClusterRole",
-		Name:     "collect-application-logs",
-	}
-	clusterrolebinding := obsruntime.NewClusterRoleBinding(fmt.Sprintf("%s-collect-application-logs", name), roleRef, subject)
-	err = reconcile.ClusterRoleBinding(k8sClient, clusterrolebinding.Name, func() *rbacv1.ClusterRoleBinding {
-		return clusterrolebinding
-	})
-	if !errors.IsAlreadyExists(err) {
-		return err
+	log.V(cldDefaultLogLevel).Info("creating permissions", "cld", cld.Name)
+	for _, role := range []string{"collect-application-logs", "collect-infrastructure-logs"} {
+
+		roleRef := rbacv1.RoleRef{
+			APIGroup: "rbac.authorization.k8s.io",
+			Kind:     "ClusterRole",
+			Name:     role,
+		}
+		clusterrolebinding := obsruntime.NewClusterRoleBinding(fmt.Sprintf("%s-%s", name, role), roleRef, subject)
+		log.V(cldDefaultLogLevel).Info("creating clusterrolebinding", "name", clusterrolebinding.Name)
+		err = reconcile.ClusterRoleBinding(k8sClient, clusterrolebinding.Name, func() *rbacv1.ClusterRoleBinding {
+			return clusterrolebinding
+		})
+		if err != nil && !errors.IsAlreadyExists(err) {
+			log.Error(err, "error creating clusterrolebinding", "name", clusterrolebinding.Name)
+			return err
+		}
+		log.V(cldDefaultLogLevel).Info("created clusterrolebinding", "name", clusterrolebinding.Name)
 	}
 	return nil
 }

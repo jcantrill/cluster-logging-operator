@@ -1089,7 +1089,8 @@ spec:
                         type: string
                     type: object
                   container:
-                    description: The spec for collecting container logs
+                    description: |
+                      The spec for collecting container logs
                     nullable: true
                     properties:
                       excludes:

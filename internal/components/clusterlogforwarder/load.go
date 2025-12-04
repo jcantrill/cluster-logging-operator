@@ -10,12 +10,12 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-// FetchClusterLogForwarder returns a copy of the ClusterLogForwarder
-func FetchClusterLogForwarder(k8sClient client.Client, namespace, name string) (*obs.ClusterLogForwarder, error) {
+// Fetch returns a copy of the ClusterLogForwarder
+func Fetch(k8sClient client.Client, namespace, name string) (*obs.ClusterLogForwarder, error) {
 	key := types.NamespacedName{Name: name, Namespace: namespace}
 	proto := obsruntime.NewClusterLogForwarder(namespace, name, runtime.Initialize)
 	if err := k8sClient.Get(context.TODO(), key, proto); err != nil {
-		return proto, err
+		return nil, err
 	}
 	// Do not modify cached copy
 	return proto.DeepCopy(), nil

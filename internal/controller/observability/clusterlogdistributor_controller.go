@@ -2,7 +2,6 @@ package observability
 
 import (
 	"context"
-	"fmt"
 	"time"
 
 	"github.com/go-logr/logr"
@@ -12,7 +11,6 @@ import (
 	"github.com/openshift/cluster-logging-operator/internal/components/clusterlogdistributor"
 	"github.com/openshift/cluster-logging-operator/internal/components/logforwarder"
 
-	//rbacv1 "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -21,8 +19,12 @@ import (
 
 const (
 	cldDefaultLogLevel = 0
-	cldLabelComponent  = "distributor"
-	cldLabelName       = "clusterlogdistributor"
+)
+
+var (
+	cldRequeue = ctrl.Result{
+		RequeueAfter: time.Minute * 1,
+	}
 )
 
 type ClusterLogDistributorReconciler struct {
@@ -46,17 +48,17 @@ func (r *ClusterLogDistributorReconciler) Reconcile(cxt context.Context, req ctr
 
 	var cld *obsv1beta1.ClusterLogDistributor
 	if cld, err = r.LoadClusterLogDistributor(req.Name); err != nil {
-		return defaultRequeue, err
+		return cldRequeue, err
 	}
 
 	// load LogForwarders
 	var logforwarders []internalobs.LogForwarder
 	if logforwarders, err = logforwarder.List(r.Client, map[string]string{clusterlogdistributor.LabelLogDisributorService: cld.Name}); err != nil {
-		return defaultRequeue, err
+		return cldRequeue, err
 	}
 
 	if err = clusterlogdistributor.ReconcileClusterLogForwarderForDistributor(r.Client, *cld, logforwarders); err != nil {
-		return defaultRequeue, err
+		return cldRequeue, err
 	}
 	// match LogForwarders to ClusterLogDistributors
 	//    update LF.Status with CLD information
@@ -64,7 +66,7 @@ func (r *ClusterLogDistributorReconciler) Reconcile(cxt context.Context, req ctr
 
 	//set status/transfer some status from CLF
 
-	return defaultRequeue, nil
+	return cldRequeue, nil
 }
 
 func (r *ClusterLogDistributorReconciler) LoadClusterLogDistributor(name string) (*obsv1beta1.ClusterLogDistributor, error) {
@@ -75,8 +77,4 @@ func (r *ClusterLogDistributorReconciler) LoadClusterLogDistributor(name string)
 	}
 	r.Log.V(cldDefaultLogLevel).Info("loaded", "clusterlogdistributor", cld)
 	return cld, nil
-}
-
-func cldObjectName(cld obsv1beta1.ClusterLogDistributor) string {
-	return fmt.Sprintf("cld-%s", cld.Name)
 }

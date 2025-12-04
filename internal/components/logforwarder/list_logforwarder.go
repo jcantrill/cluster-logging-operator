@@ -9,7 +9,7 @@ import (
 )
 
 func List(k8sClient client.Client, labels client.MatchingLabels) (res []internalobs.LogForwarder, err error) {
-	list :=  &obsv1beta1.LogForwarderList{}
+	list := &obsv1beta1.LogForwarderList{}
 	if err = k8sClient.List(context.TODO(), list, labels); err != nil {
 		return nil, err
 	}

@@ -2230,7 +2230,8 @@ spec:
           Absence of a spec will utilize no preferences when evaluating the LogForwarder
         displayName: Log Collection Policy
         path: input.collectionPolicy
-      - description: The spec for collecting container logs
+      - description: |
+          The spec for collecting container logs
         displayName: Container Logs Input
         path: input.container
       - description: |-

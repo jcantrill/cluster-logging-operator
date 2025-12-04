@@ -1,13 +1,14 @@
 apiVersion: observability.openshift.io/v1beta1
 kind: ClusterLogDistributor
 metadata:
-  name: application
+  name: infra
 spec:
   managementState: Managed
-  priority: 1
+  priority: 10
   collectionPolicy:
     container:
-      excludes:
+      includes:
+        - namespace: userinfra*
         - namespace: openshift*
         - namespace: default
         - namespace: kube*

@@ -81,12 +81,12 @@ metadata:
           "apiVersion": "observability.openshift.io/v1beta1",
           "kind": "ClusterLogDistributor",
           "metadata": {
-            "name": "default"
+            "name": "application"
           },
           "spec": {
             "collectionPolicy": {
               "container": {
-                "includes": [
+                "excludes": [
                   {
                     "namespace": "openshift*"
                   },
@@ -119,19 +119,18 @@ metadata:
                   "servicemesh*"
                 ],
                 "selector": {
-                  "priority": "high"
+                  "matchLabels": {
+                    "priority": "high"
+                  }
                 }
               }
             },
             "outputs": [
               {
                 "http": {
-                  "url": "http://namespaced-http:8080"
+                  "url": "http://http-receiver:8090"
                 },
                 "name": "namespaced-http",
-                "tls": {
-                  "insecureSkipVerify": true
-                },
                 "type": "http"
               }
             ]
@@ -142,7 +141,7 @@ metadata:
     categories: OpenShift Optional, Logging & Tracing, Observability
     certified: "false"
     containerImage: quay.io/openshift-logging/cluster-logging-operator:latest
-    createdAt: "2025-12-02T16:41:22Z"
+    createdAt: "2025-12-04T19:00:36Z"
     description: The Red Hat OpenShift Logging Operator for OCP provides a means for
       configuring and managing log collection and forwarding.
     features.operators.openshift.io/cnf: "false"
@@ -2367,7 +2366,8 @@ spec:
           Absence of a spec will utilize no preferences when evaluating the LogForwarder
         displayName: Log Collection Policy
         path: input.collectionPolicy
-      - description: The spec for collecting container logs
+      - description: |
+          The spec for collecting container logs
         displayName: Container Logs Input
         path: input.container
       - description: |-

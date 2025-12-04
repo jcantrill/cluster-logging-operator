@@ -27,7 +27,7 @@ func AssignDistributor(k8sClient client.Client, lf internalobs.LogForwarder) str
 	log.V(0).Info("Assigning a distributor for LogForwarder", "logforwarder", lf)
 	distributors := loadClusterLogDistributors(k8sClient)
 	if len(distributors) == 0 {
-		log.V(0).Info("No ClusterLogDistributors available to evaluate for LogForwarder", "namespace", lf.Namespace, "logforwarder", lf.Name)
+		log.V(0).Info("No ClusterLogDistributors available to evaluate for LogForwarder", "namespace", lf.Namespace(), "logforwarder", lf.Name())
 		return ""
 	}
 	sort.Slice(distributors, func(i, j int) bool {
@@ -80,19 +80,21 @@ func loadClusterLogDistributors(k8sClient client.Client) (clds []obsv1beta1.Clus
 }
 
 func namespaceMatchesSelector(k8sClient client.Client, matchLabels client.MatchingLabels, lf internalobs.LogForwarder) bool {
-	if matchLabels == nil {
-		matchLabels = client.MatchingLabels{}
-	}
-	matchLabels[LabelKubernetesMetaDataName] = lf.LogForwarder.Namespace
 	log.V(0).Info("Listing namespaces", lf.LogForwarder.Namespace, "matchLabels", matchLabels)
+	if matchLabels == nil {
+		// this will return all namespaces
+		return false
+	}
 	namespaces := &corev1.NamespaceList{}
 	if err := k8sClient.List(context.TODO(), namespaces, matchLabels); err != nil {
 		log.Error(err, "Unable to evaluate LogForwarder namespace for matching label selectors", "namespace", lf.Namespace(), "logforwarder", lf.Name(), "matchLabels", matchLabels)
 		return false
 	}
-	if len(namespaces.Items) == 1 {
-		log.V(0).Info("Matched ClusterLogDistributor matchlabels to LogForwarder namesspace", "namespace", lf.Namespace(), "logforwarder", lf.Name(), "matchLabels", matchLabels)
-		return true
+	for _, ns := range namespaces.Items {
+		if ns.Name == lf.LogForwarder.Namespace {
+			log.V(0).Info("Matched ClusterLogDistributor matchlabels to LogForwarder namespace", "namespace", lf.Namespace(), "logforwarder", lf.Name(), "matchLabels", matchLabels)
+			return true
+		}
 	}
 	return false
 }

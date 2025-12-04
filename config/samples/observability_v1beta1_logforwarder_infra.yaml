@@ -2,17 +2,15 @@ apiVersion: observability.openshift.io/v1beta1
 kind: LogForwarder
 metadata:
   name: collector
+  namespace: userinfra
 spec:
   input:
     collectionPolicy:
       distributionClass: highpriority
     container:
-      selector:
-        matchLabels:
-          priority: high
-      excludes: ["servicemesh*"]
+      includes: ["*"]
   outputs:
   - name: namespaced-http
     type: http
     http:
-      url: http://http-receiver:8090
+      url: http://http-receiver.openshift-logging.svc:8090

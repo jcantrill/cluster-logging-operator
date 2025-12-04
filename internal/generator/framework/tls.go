@@ -29,11 +29,10 @@ func SetTLSProfileOptionsFrom(op utils.Options, o obs.OutputSpec) {
 	op[MinTLSVersion], op[Ciphers] = TLSProfileInfo(op, o, ",")
 }
 
-
 func SetTLSProfileVersionAndCiphers(op utils.Options) {
 	if _, ok := op[ClusterTLSProfileSpec]; ok {
 		clusterSpec := op[ClusterTLSProfileSpec].(configv1.TLSProfileSpec)
-		op[MinTLSVersion] =tls.MinTLSVersion(clusterSpec)
-		op[Ciphers] = strings.Join(tls.TLSCiphers(clusterSpec),",")
+		op[MinTLSVersion] = tls.MinTLSVersion(clusterSpec)
+		op[Ciphers] = strings.Join(tls.TLSCiphers(clusterSpec), ",")
 	}
 }

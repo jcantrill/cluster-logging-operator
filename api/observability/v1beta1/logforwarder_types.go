@@ -58,6 +58,7 @@ type LogForwarderInputSpec struct {
 	//
 	// +nullable
 	// +kubebuilder:validation:Required
+	// TODO: absence means collect everything in ns
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Container Logs Input"
 	Container *ContainerInputSpec `json:"container,omitempty"`
 

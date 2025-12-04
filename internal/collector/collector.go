@@ -202,7 +202,8 @@ func (f *Factory) NewCollectorContainer(inputs internalobs.Inputs, outputs inter
 		},
 	}
 	collector.Env = []v1.EnvVar{
-		{Name: "COLLECTOR_CONF_HASH", Value: f.ConfigHash},
+		// TODO: Remove because of the addition of watch parameters
+		//{Name: "COLLECTOR_CONF_HASH", Value: f.ConfigHash},
 		{Name: "K8S_NODE_NAME", ValueFrom: &v1.EnvVarSource{FieldRef: &v1.ObjectFieldSelector{APIVersion: "v1", FieldPath: "spec.nodeName"}}},
 		{Name: "NODE_IPV4", ValueFrom: &v1.EnvVarSource{FieldRef: &v1.ObjectFieldSelector{APIVersion: "v1", FieldPath: "status.hostIP"}}},
 		{Name: "OPENSHIFT_CLUSTER_ID", Value: clusterID},

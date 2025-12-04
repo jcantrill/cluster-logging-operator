@@ -24,14 +24,16 @@ func ReconcileClusterLogForwarderForDistributor(k8sClient client.Client, cld obs
 		return err
 	}
 	var clf *obsv1.ClusterLogForwarder
-	clf, err = clusterlogforwarder.FetchClusterLogForwarder(k8sClient, constants.OpenshiftNS, cldObjectName(cld))
+	clf, err = clusterlogforwarder.Fetch(k8sClient, constants.OpenshiftNS, cldObjectName(cld))
 	if err != nil && !errors.IsNotFound(err) {
 		return err
 	}
 	log.V(cldDefaultLogLevel).Info("fetched", "clusterlogforwarder", clf)
+	clf = initClusterLogForwarder(clf, cld, forwarders)
 	var result controllerutil.OperationResult
+	log.V(cldDefaultLogLevel).Info("controllerutil.CreateOrUpdate...", "clusterlogforwarder", clf)
 	result, err = controllerutil.CreateOrUpdate(context.TODO(), k8sClient, clf, func() error {
-		initClusterLogForwarder(clf, cld, forwarders)
+		clf = initClusterLogForwarder(clf, cld, forwarders)
 		return nil
 	})
 	if err != nil {
@@ -42,9 +44,10 @@ func ReconcileClusterLogForwarderForDistributor(k8sClient client.Client, cld obs
 	return nil
 }
 
-func initClusterLogForwarder(clf *obsv1.ClusterLogForwarder, cld obsv1beta1.ClusterLogDistributor, forwarders []internalobs.LogForwarder) {
+func initClusterLogForwarder(clf *obsv1.ClusterLogForwarder, cld obsv1beta1.ClusterLogDistributor, forwarders []internalobs.LogForwarder) *obsv1.ClusterLogForwarder {
 	clfName := cldObjectName(cld)
 	if clf == nil {
+		log.V(cldDefaultLogLevel).Info("Initializing new clusterlogforwarder")
 		clf = observability.NewClusterLogForwarder(constants.OpenshiftNS, clfName, obsruntime.Initialize, func(clf *obsv1.ClusterLogForwarder) {
 			clf.Spec = obsv1.ClusterLogForwarderSpec{
 				ServiceAccount: obsv1.ServiceAccount{
@@ -65,8 +68,8 @@ func initClusterLogForwarder(clf *obsv1.ClusterLogForwarder, cld obsv1beta1.Clus
 			Name: name,
 			Type: obsv1.InputTypeApplication,
 			Application: &obsv1.Application{
-				Includes: newNamespaceContainerSpec(f.Spec.Input.Container.Includes),
-				Excludes: newNamespaceContainerSpec(f.Spec.Input.Container.Excludes),
+				Includes: newNamespaceContainerSpecs(f.Namespace(), f.Spec.Input.Container.Includes, "*"),
+				Excludes: newNamespaceContainerSpecs(f.Namespace(), f.Spec.Input.Container.Excludes, ""),
 				Selector: f.Spec.Input.Container.Selector,
 			},
 		}
@@ -80,9 +83,9 @@ func initClusterLogForwarder(clf *obsv1.ClusterLogForwarder, cld obsv1beta1.Clus
 					URL: fmt.Sprintf("http://%s.%s.svc:%d", f.DeployedName(), f.Namespace(), DefaultLogForwarderPort),
 				},
 			},
-			TLS: &obsv1.OutputTLSSpec{
-				InsecureSkipVerify: true,
-			},
+			//TLS: &obsv1.OutputTLSSpec{
+			//	InsecureSkipVerify: true,
+			//},
 		}
 		clf.Spec.Outputs = append(clf.Spec.Outputs, output)
 
@@ -93,12 +96,17 @@ func initClusterLogForwarder(clf *obsv1.ClusterLogForwarder, cld obsv1beta1.Clus
 		}
 		clf.Spec.Pipelines = append(clf.Spec.Pipelines, pipeline)
 	}
-
+	log.V(cldDefaultLogLevel).Info("Initialized clf for cld", "clusterlogforwarder", clf, "cld", cld.Name)
+	return clf
 }
 
-func newNamespaceContainerSpec(containers []string) (res []obsv1.NamespaceContainerSpec) {
+func newNamespaceContainerSpecs(ns string, containers []string, all string) (res []obsv1.NamespaceContainerSpec) {
+	if all != "" {
+		containers = append(containers, "*")
+	}
 	for _, container := range containers {
 		res = append(res, obsv1.NamespaceContainerSpec{
+			Namespace: ns,
 			Container: container,
 		})
 	}

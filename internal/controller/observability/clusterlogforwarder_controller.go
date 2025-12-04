@@ -63,7 +63,7 @@ func (r *ClusterLogForwarderReconciler) Reconcile(_ context.Context, req ctrl.Re
 	log.V(3).Info("reconcile", "namespace", req.NamespacedName.Namespace, "name", req.NamespacedName.Name)
 
 	cxt := r.NewForwarderContext()
-	if cxt.Forwarder, err = clusterlogforwarder.FetchClusterLogForwarder(cxt.Client, req.NamespacedName.Namespace, req.NamespacedName.Name); err != nil {
+	if cxt.Forwarder, err = clusterlogforwarder.Fetch(cxt.Client, req.NamespacedName.Namespace, req.NamespacedName.Name); err != nil {
 		if !errors.IsNotFound(err) {
 			// Other error, so requeue the request
 			return defaultRequeue, err
