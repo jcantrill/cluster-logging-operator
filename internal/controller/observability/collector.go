@@ -140,12 +140,12 @@ func ReconcileCollector(context internalcontext.ForwarderContext, pollInterval, 
 	}
 
 	// Reconcile resources to support metrics gathering
-	if err := network.ReconcileService(context.Client, context.Forwarder.Namespace, resourceNames.CommonName, context.Forwarder.Name, constants.CollectorName, collector.MetricsPortName, resourceNames.SecretMetrics, collector.MetricsPort, ownerRef, collectorFactory.CommonLabelInitializer); err != nil {
+	if err := network.ReconcileService(context.Client, context.Forwarder.Namespace, resourceNames.CommonName, context.Forwarder.Name, constants.CollectorName, constants.MetricsPortName, resourceNames.SecretMetrics, constants.MetricsPort, ownerRef, collectorFactory.CommonLabelInitializer); err != nil {
 		log.Error(err, "collector.ReconcileService")
 		return err
 	}
 	metricsSelector := metrics.BuildSelector(constants.CollectorName, resourceNames.CommonName)
-	if err := metrics.ReconcileServiceMonitor(context.Client, context.Forwarder.Namespace, resourceNames.CommonName, ownerRef, metricsSelector, collector.MetricsPortName); err != nil {
+	if err := metrics.ReconcileServiceMonitor(context.Client, context.Forwarder.Namespace, resourceNames.CommonName, ownerRef, metricsSelector, constants.MetricsPortName); err != nil {
 		log.Error(err, "collector.ReconcileServiceMonitor")
 		return err
 	}

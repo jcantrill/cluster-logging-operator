@@ -200,7 +200,6 @@ func parsePortProtocolFromURL(urlStr string) *factory.PortProtocol {
 	return &factory.PortProtocol{Port: port, Protocol: protocol}
 }
 
-<<<<<<< HEAD
 // getDefaultOutputPort returns the default port for a given output type based on the URL scheme or the default port for the output type.
 func getDefaultOutputPort(outputType obs.OutputType, urlStr string) int32 {
 	// Parse URL to determine scheme for kafka and http/https to return appropriate default port

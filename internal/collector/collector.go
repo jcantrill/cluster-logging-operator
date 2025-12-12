@@ -23,8 +23,6 @@ import (
 const (
 	defaultAudience                 = "openshift"
 	clusterLoggingPriorityClassName = "system-node-critical"
-	MetricsPort                     = int32(24231)
-	MetricsPortName                 = "metrics"
 	metricsVolumeName               = "metrics"
 	metricsVolumePath               = "/etc/collector/metrics"
 	saTokenVolumeName               = "sa-token"
@@ -178,8 +176,8 @@ func (f *Factory) NewCollectorContainer(inputs internalobs.Inputs, outputs inter
 	collector := runtime.NewContainer(constants.CollectorName, utils.GetComponentImage(f.ImageName), v1.PullIfNotPresent, f.CollectorSpec.Resources)
 	collector.Ports = []v1.ContainerPort{
 		{
-			Name:          MetricsPortName,
-			ContainerPort: MetricsPort,
+			Name:          constants.MetricsPortName,
+			ContainerPort: constants.MetricsPort,
 			Protocol:      v1.ProtocolTCP,
 		},
 	}
