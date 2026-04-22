@@ -32,10 +32,10 @@ var _ = Describe("Reconcile ServiceMonitor", func() {
 		}
 
 		reqClient = fake.NewClientBuilder().
-			WithScheme(scheme.Scheme).
-			WithObjects(namespace).
-			WithStatusSubresource(&monitoringv1.ServiceMonitor{}).
-			Build()
+				WithScheme(scheme.Scheme).
+				WithObjects(namespace).
+				WithStatusSubresource(&monitoringv1.ServiceMonitor{}).
+				Build()
 		owner       = metav1.OwnerReference{}
 		portName    = "test-port"
 		serviceName = "test-service"

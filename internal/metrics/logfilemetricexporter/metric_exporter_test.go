@@ -42,10 +42,10 @@ var _ = Describe("Reconcile LogFileMetricExporter", func() {
 		}
 
 		reqClient = fake.NewClientBuilder().
-			WithScheme(scheme.Scheme).
-			WithObjects(namespace).
-			WithStatusSubresource(&monitoringv1.ServiceMonitor{}).
-			Build()
+				WithScheme(scheme.Scheme).
+				WithObjects(namespace).
+				WithStatusSubresource(&monitoringv1.ServiceMonitor{}).
+				Build()
 
 		reader = reqClient.(client.Reader)
 
