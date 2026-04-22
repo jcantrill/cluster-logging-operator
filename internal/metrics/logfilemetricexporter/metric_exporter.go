@@ -71,8 +71,8 @@ func Reconcile(lfmeInstance *loggingv1alpha1.LogFileMetricExporter,
 	}
 
 	metricsSelector := metrics.BuildSelector(constants.LogfilesmetricexporterName, lfmeInstance.Name)
-	if err := metrics.ReconcileServiceMonitor(requestClient, lfmeInstance.Namespace, resNames.CommonName, owner, metricsSelector, constants.MetricsPortName); err != nil {
-		log.Error(err, "logfilemetricexporter.ReconcileServiceMonitor")
+	if err := metrics.ReconcileLogFileMetricExporterServiceMonitor(requestClient, lfmeInstance.Namespace, resNames.CommonName, owner, metricsSelector, constants.MetricsPortName); err != nil {
+		log.Error(err, "logfilemetricexporter.ReconcileLogFileMetricExporterServiceMonitor")
 		return err
 	}
 
