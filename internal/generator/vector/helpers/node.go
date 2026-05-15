@@ -14,30 +14,7 @@ type ComponentReceiver interface {
 	AddInputFrom(n InputComponent)
 }
 
-// MakeID given a list of components
-func MakeID(parts ...string) string {
-	return FormatComponentID(strings.Join(parts, "_"))
-}
-
 // MakeRouteInputID appends sourceType to rerouteId for input ids
 func MakeRouteInputID(rerouteId, sourceType string) string {
 	return strings.ToLower(strings.Join([]string{rerouteId, sourceType}, "."))
-}
-
-// MakeInputID for components that logically represent clf.input
-func MakeInputID(parts ...string) string {
-	parts = append([]string{"input"}, parts...)
-	return MakeID(parts...)
-}
-
-// MakePipelineID for components that logically represent clf.pipeline (e.g. filters)
-func MakePipelineID(parts ...string) string {
-	parts = append([]string{"pipeline"}, parts...)
-	return MakeID(parts...)
-}
-
-// MakeOutPutID for components that logically represent clf.output
-func MakeOutputID(parts ...string) string {
-	parts = append([]string{"output"}, parts...)
-	return MakeID(parts...)
 }

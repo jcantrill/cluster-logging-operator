@@ -3,12 +3,12 @@ package input
 import (
 	obs "github.com/openshift/cluster-logging-operator/api/observability/v1"
 	internalobs "github.com/openshift/cluster-logging-operator/internal/api/observability"
+	commoncontainer "github.com/openshift/cluster-logging-operator/internal/generator/common/container"
 	helpers2 "github.com/openshift/cluster-logging-operator/internal/generator/helpers"
 	"github.com/openshift/cluster-logging-operator/internal/generator/vector/adapters"
 	"github.com/openshift/cluster-logging-operator/internal/generator/vector/api"
 	"github.com/openshift/cluster-logging-operator/internal/generator/vector/api/sources"
 	"github.com/openshift/cluster-logging-operator/internal/generator/vector/api/types"
-	"github.com/openshift/cluster-logging-operator/internal/generator/vector/helpers"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/utils/set"
 )
@@ -17,7 +17,7 @@ import (
 // returns an identifier id, source, transforms, and sets the list of ids to use for downstream components.
 func NewContainerSource(spec *adapters.Input, includes, excludes []string, logType obs.InputType, logSource interface{}) (id string, source types.Source, tfs api.Transforms) {
 	tfs = api.Transforms{}
-	base := helpers.MakeInputID(spec.Name, "container")
+	base := helpers2.MakeInputID(spec.Name, "container")
 	var selector *metav1.LabelSelector
 	maxMsgSize := int64(0)
 	if spec.Application != nil {
@@ -37,9 +37,9 @@ func NewContainerSource(spec *adapters.Input, includes, excludes []string, logTy
 		}
 	}
 
-	metaID := helpers.MakeID(base, "meta")
+	metaID := helpers2.MakeID(base, "meta")
 	source = sources.NewKubernetesLogs(func(kl *sources.KubernetesLogs) {
-		kl.MaxReadBytes = 3145728
+		kl.MaxReadBytes = commoncontainer.MaxReadBytes
 		kl.GlobMinimumCooldownMillis = 15000
 		kl.AutoPartialMerge = true
 		kl.MaxMergedLineBytes = uint64(maxMsgSize)
@@ -64,7 +64,7 @@ func NewContainerSource(spec *adapters.Input, includes, excludes []string, logTy
 
 	//TODO: DETERMINE IF key field is correct and actually works
 	if threshold, hasPolicy := internalobs.MaxRecordsPerSecond(spec.InputSpec); hasPolicy {
-		throttleID := helpers.MakeID(base, "throttle")
+		throttleID := helpers2.MakeID(base, "throttle")
 		id = throttleID
 		tfs.Add(throttleID, AddThrottleToInput(metaID, threshold))
 	}

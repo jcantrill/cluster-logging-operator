@@ -1,10 +1,8 @@
-package input
+package container
 
-import (
-	"github.com/openshift/cluster-logging-operator/internal/generator/otelc/api/receivers/operators"
-)
+import "github.com/openshift/cluster-logging-operator/internal/generator/otelc/api/receivers/operators"
 
-// NewCRIOOperators creates a complete operator pipeline for parsing CRI-O container logs
+// NewOperators creates a complete operator pipeline for parsing CRI-O container logs
 // and mapping them to non-deprecated attributes as defined in:
 // https://github.com/rhobs/observability-data-model/blob/main/cluster-logging.md
 //
@@ -12,7 +10,7 @@ import (
 // Example: 2023-03-15T10:30:45.123456789+00:00 stdout F log message here
 //
 // File path format: /var/log/pods/<namespace>_<pod_name>_<uid>/<container_name>/<restart_count>.log
-func NewCRIOOperators() []operators.Operator {
+func NewOperators(clusterUID, nodeName, logSource, logType string) []operators.Operator {
 	return []operators.Operator{
 		// Step 1: Parse CRI-O format
 		{
@@ -112,12 +110,11 @@ func NewCRIOOperators() []operators.Operator {
 
 		// Step 9: Move restart count to resource attributes (k8s.container.restart_count)
 		{
-			Type:   operators.OperatorTypeMove,
-			ID:     "move_restart_count_to_resource",
+			Type:   operators.OperatorTypeRemove,
+			ID:     "remove_restartcount",
 			Output: "remove_logtag",
 			Config: map[string]interface{}{
-				"from": "attributes.restart_count",
-				"to":   "resource[\"k8s.container.restart_count\"]",
+				"field": "attributes.restart_count",
 			},
 		},
 
@@ -139,36 +136,14 @@ func NewCRIOOperators() []operators.Operator {
 				"field": "attributes.time",
 			},
 		},
-	}
-}
-
-// NewCRIOOperatorsWithNodeName creates CRI-O operators with k8s.node.name resource attribute
-// nodeName should be obtained from environment variable or Kubernetes downward API
-func NewCRIOOperatorsWithNodeName(nodeName string) []operators.Operator {
-	ops := NewCRIOOperators()
-
-	// Insert node name operator after removing time (last operator)
-	nodeOperator := operators.Operator{
-		Type: operators.OperatorTypeAdd,
-		ID:   "add_node_name",
-		Config: map[string]interface{}{
-			"field": "resource[\"k8s.node.name\"]",
-			"value": nodeName,
+		{
+			Type: operators.OperatorTypeAdd,
+			ID:   "add_node_name",
+			Config: map[string]interface{}{
+				"field": "resource[\"k8s.node.name\"]",
+				"value": nodeName,
+			},
 		},
-	}
-
-	return append(ops, nodeOperator)
-}
-
-// NewCRIOOperatorsWithOpenShiftLabels creates CRI-O operators with OpenShift-specific attributes
-// clusterUID is the OpenShift cluster identifier
-// logSource is typically "container"
-// logType is typically "application", "infrastructure", or "audit"
-func NewCRIOOperatorsWithOpenShiftLabels(clusterUID, logSource, logType string) []operators.Operator {
-	ops := NewCRIOOperators()
-
-	// Add OpenShift-specific resource attributes
-	openshiftOperators := []operators.Operator{
 		{
 			Type:   operators.OperatorTypeAdd,
 			ID:     "add_cluster_uid",
@@ -191,11 +166,9 @@ func NewCRIOOperatorsWithOpenShiftLabels(clusterUID, logSource, logType string) 
 			Type: operators.OperatorTypeAdd,
 			ID:   "add_log_type",
 			Config: map[string]interface{}{
-				"field": "resource[\"openshift.log.type\"]",
+				"field": `resource["openshift.log.type"]`,
 				"value": logType,
 			},
 		},
 	}
-
-	return append(ops, openshiftOperators...)
 }

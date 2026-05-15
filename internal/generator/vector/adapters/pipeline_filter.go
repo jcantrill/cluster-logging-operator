@@ -3,6 +3,7 @@ package adapters
 import (
 	"sort"
 
+	helpers2 "github.com/openshift/cluster-logging-operator/internal/generator/helpers"
 	"github.com/openshift/cluster-logging-operator/internal/generator/vector/api/types"
 	"github.com/openshift/cluster-logging-operator/internal/generator/vector/helpers"
 )
@@ -26,7 +27,7 @@ func (pf *PipelineFilter) AddInputFrom(n helpers.InputComponent) {
 }
 
 func NewPipelineFilter(pipelineName, filterRef string, spec InternalFilterSpec) *PipelineFilter {
-	ids := []string{helpers.MakePipelineID(pipelineName, filterRef)}
+	ids := []string{helpers2.MakePipelineID(pipelineName, filterRef)}
 	return &PipelineFilter{
 		ids:     ids,
 		Factory: spec.Factory,

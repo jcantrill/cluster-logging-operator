@@ -7,6 +7,7 @@ import (
 
 	obs "github.com/openshift/cluster-logging-operator/api/observability/v1"
 	"github.com/openshift/cluster-logging-operator/internal/api/observability"
+	helpers2 "github.com/openshift/cluster-logging-operator/internal/generator/helpers"
 	"github.com/openshift/cluster-logging-operator/internal/generator/url"
 	"github.com/openshift/cluster-logging-operator/internal/generator/vector/adapters"
 	"github.com/openshift/cluster-logging-operator/internal/generator/vector/api"
@@ -60,7 +61,7 @@ func New(id string, o *adapters.Output, inputs []string, secrets observability.S
 	}
 	sources := logSources(opSources)
 	tfs := api.Transforms{}
-	rerouteID := helpers.MakeID(id, "reroute") // "output_my_id_reroute
+	rerouteID := helpers2.MakeID(id, "reroute") // "output_my_id_reroute
 
 	// Skip trace context extraction remap for outputs migrated from lokistack.
 	// This is because the trace context extraction remap is already applied in the lokistack output.
@@ -68,20 +69,20 @@ func New(id string, o *adapters.Output, inputs []string, secrets observability.S
 		tfs[rerouteID] = RouteBySource(inputs, sources)
 	} else {
 		// Push all logs bound for OTLP through trace context extraction remap first if not from lokistack
-		transformTraceContextID := helpers.MakeID(id, "trace", "context")
+		transformTraceContextID := helpers2.MakeID(id, "trace", "context")
 		tfs[transformTraceContextID] = TransformTraceContext(inputs)
 		tfs[rerouteID] = RouteBySource([]string{transformTraceContextID}, sources)
 	}
-	tfs[helpers.MakeID(rerouteID, transforms.Unmatched)] = metrics.NewUnmatched(rerouteID, op, nil)
+	tfs[helpers2.MakeID(rerouteID, transforms.Unmatched)] = metrics.NewUnmatched(rerouteID, op, nil)
 
 	groupBySourceInputs := []string{}
 	groupByHostInputs := []string{}
 	reduceInputs := []string{}
 	// Container
 	if sources.Has(logSourceContainer) {
-		transformContainerID := helpers.MakeID(id, logSourceContainer)                       // "output_my_id_container"
+		transformContainerID := helpers2.MakeID(id, logSourceContainer)                      // "output_my_id_container"
 		transformContainerInputID := helpers.MakeRouteInputID(rerouteID, logSourceContainer) // "output_my_id_reroute.container"
-		reduceContainerID := helpers.MakeID(id, "groupby", "container")
+		reduceContainerID := helpers2.MakeID(id, "groupby", "container")
 		tfs[transformContainerID] = TransformContainer([]string{transformContainerInputID})
 		// Group by cluster_id, namespace_name, pod_name, container_name
 		tfs[reduceContainerID] = GroupByContainer(transformContainerID)
@@ -90,7 +91,7 @@ func New(id string, o *adapters.Output, inputs []string, secrets observability.S
 	}
 	if sources.Has(logSourceNode) {
 		// Journal
-		transformNodeID := helpers.MakeID(id, logSourceNode)
+		transformNodeID := helpers2.MakeID(id, logSourceNode)
 		transformNodeRouteID := helpers.MakeRouteInputID(rerouteID, logSourceNode)
 		tfs[transformNodeID] = TransformJournal([]string{transformNodeRouteID})
 
@@ -99,26 +100,26 @@ func New(id string, o *adapters.Output, inputs []string, secrets observability.S
 
 	if sources.Has(logSourceAuditd) {
 		// Audit
-		transformAuditHostID := helpers.MakeID(id, logSourceAuditd)
+		transformAuditHostID := helpers2.MakeID(id, logSourceAuditd)
 		transformAuditHostRouteID := helpers.MakeRouteInputID(rerouteID, logSourceAuditd)
 		tfs[transformAuditHostID] = TransformAuditHost([]string{transformAuditHostRouteID})
 		groupByHostInputs = append(groupByHostInputs, transformAuditHostID)
 	}
 	if sources.Has(logSourceKubeAPI) {
-		transformAuditKubeID := helpers.MakeID(id, logSourceKubeAPI)
+		transformAuditKubeID := helpers2.MakeID(id, logSourceKubeAPI)
 		transformAuditKubeRouteID := helpers.MakeRouteInputID(rerouteID, logSourceKubeAPI)
 		tfs[transformAuditKubeID] = TransformAuditKube([]string{transformAuditKubeRouteID})
 		groupBySourceInputs = append(groupBySourceInputs, transformAuditKubeID)
 	}
 	if sources.Has(logSourceOpenshiftAPI) {
 
-		transformAuditOpenshiftID := helpers.MakeID(id, logSourceOpenshiftAPI)
+		transformAuditOpenshiftID := helpers2.MakeID(id, logSourceOpenshiftAPI)
 		transformAuditOpenshiftRouteID := helpers.MakeRouteInputID(rerouteID, logSourceOpenshiftAPI)
 		tfs[transformAuditOpenshiftID] = TransformAuditOpenshift([]string{transformAuditOpenshiftRouteID})
 		groupBySourceInputs = append(groupBySourceInputs, transformAuditOpenshiftID)
 	}
 	if sources.Has(logSourceOvn) {
-		transformAuditOvnID := helpers.MakeID(id, logSourceOvn)
+		transformAuditOvnID := helpers2.MakeID(id, logSourceOvn)
 		transformAuditOvnRouteID := helpers.MakeRouteInputID(rerouteID, logSourceOvn)
 		tfs[transformAuditOvnID] = TransformAuditOvn([]string{transformAuditOvnRouteID})
 		groupBySourceInputs = append(groupBySourceInputs, transformAuditOvnID)
@@ -126,19 +127,19 @@ func New(id string, o *adapters.Output, inputs []string, secrets observability.S
 
 	// Group by cluster_id, log_source
 	if len(groupBySourceInputs) > 0 {
-		reduceSourceID := helpers.MakeID(id, "groupby", "source")
+		reduceSourceID := helpers2.MakeID(id, "groupby", "source")
 		tfs[reduceSourceID] = GroupBySource(groupBySourceInputs...)
 		reduceInputs = append(reduceInputs, reduceSourceID)
 	}
 	// Group by cluster_id, hostname
 	if len(groupByHostInputs) > 0 {
-		reduceHostID := helpers.MakeID(id, "groupby", "host")
+		reduceHostID := helpers2.MakeID(id, "groupby", "host")
 		tfs[reduceHostID] = GroupByHost(groupByHostInputs...)
 		reduceInputs = append(reduceInputs, reduceHostID)
 	}
 
 	// Normalize all into resource and scopeLogs objects
-	formatResourceLogsID := helpers.MakeID(id, "resource", "logs")
+	formatResourceLogsID := helpers2.MakeID(id, "resource", "logs")
 	tfs[formatResourceLogsID] = FormatResourceLog(reduceInputs)
 
 	return id, sinks.NewOpenTelemetry(o.OTLP.URL, func(s *sinks.OpenTelemetry) {

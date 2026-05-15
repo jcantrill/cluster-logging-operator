@@ -5,18 +5,18 @@ type OperatorType string
 
 // Parser Operators - extract structured data from log entries
 const (
-	OperatorTypeRegexParser      OperatorType = "regex_parser"
-	OperatorTypeJSONParser       OperatorType = "json_parser"
-	OperatorTypeJSONArrayParser  OperatorType = "json_array_parser"
-	OperatorTypeCSVParser        OperatorType = "csv_parser"
-	OperatorTypeSyslogParser     OperatorType = "syslog_parser"
-	OperatorTypeSeverityParser   OperatorType = "severity_parser"
-	OperatorTypeTimeParser       OperatorType = "time_parser"
-	OperatorTypeTraceParser      OperatorType = "trace_parser"
-	OperatorTypeURIParser        OperatorType = "uri_parser"
-	OperatorTypeKeyValueParser   OperatorType = "key_value_parser"
-	OperatorTypeContainer        OperatorType = "container"
-	OperatorTypeScopeNameParser  OperatorType = "scope_name_parser"
+	OperatorTypeRegexParser     OperatorType = "regex_parser"
+	OperatorTypeJSONParser      OperatorType = "json_parser"
+	OperatorTypeJSONArrayParser OperatorType = "json_array_parser"
+	OperatorTypeCSVParser       OperatorType = "csv_parser"
+	OperatorTypeSyslogParser    OperatorType = "syslog_parser"
+	OperatorTypeSeverityParser  OperatorType = "severity_parser"
+	OperatorTypeTimeParser      OperatorType = "time_parser"
+	OperatorTypeTraceParser     OperatorType = "trace_parser"
+	OperatorTypeURIParser       OperatorType = "uri_parser"
+	OperatorTypeKeyValueParser  OperatorType = "key_value_parser"
+	OperatorTypeContainer       OperatorType = "container"
+	OperatorTypeScopeNameParser OperatorType = "scope_name_parser"
 )
 
 // Transformer Operators - modify log data
@@ -47,12 +47,12 @@ const (
 
 // Input Operators (typically not used in filelog operators array, but defined for completeness)
 const (
-	OperatorTypeFileInput      OperatorType = "file_input"
-	OperatorTypeJournaldInput  OperatorType = "journald_input"
-	OperatorTypeStdin          OperatorType = "stdin"
-	OperatorTypeSyslogInput    OperatorType = "syslog_input"
-	OperatorTypeTCPInput       OperatorType = "tcp_input"
-	OperatorTypeUDPInput       OperatorType = "udp_input"
+	OperatorTypeFileInput       OperatorType = "file_input"
+	OperatorTypeJournaldInput   OperatorType = "journald_input"
+	OperatorTypeStdin           OperatorType = "stdin"
+	OperatorTypeSyslogInput     OperatorType = "syslog_input"
+	OperatorTypeTCPInput        OperatorType = "tcp_input"
+	OperatorTypeUDPInput        OperatorType = "udp_input"
 	OperatorTypeWindowsEventLog OperatorType = "windows_eventlog_input"
 )
 

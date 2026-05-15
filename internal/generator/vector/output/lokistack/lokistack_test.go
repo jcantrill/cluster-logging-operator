@@ -10,6 +10,7 @@ import (
 	"github.com/openshift/cluster-logging-operator/internal/api/observability"
 	"github.com/openshift/cluster-logging-operator/internal/constants"
 	"github.com/openshift/cluster-logging-operator/internal/generator/framework"
+	helpers2 "github.com/openshift/cluster-logging-operator/internal/generator/helpers"
 	"github.com/openshift/cluster-logging-operator/internal/generator/vector/adapters"
 	"github.com/openshift/cluster-logging-operator/internal/generator/vector/api"
 	"github.com/openshift/cluster-logging-operator/internal/generator/vector/helpers"
@@ -145,7 +146,7 @@ var _ = Describe("Generate vector config", func() {
 			visit(&outputSpec)
 		}
 		adapter = adapters.NewOutput(outputSpec)
-		sinks, transforms := New(helpers.MakeOutputID(outputSpec.Name), adapter, []string{"pipeline_fake"}, secrets, op)
+		sinks, transforms := New(helpers2.MakeOutputID(outputSpec.Name), adapter, []string{"pipeline_fake"}, secrets, op)
 		Expect(exp).To(EqualConfigFrom(api.NewConfig(func(c *api.Config) {
 			c.AddSinks(sinks)
 			c.AddTransforms(transforms)

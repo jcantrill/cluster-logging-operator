@@ -7,6 +7,7 @@ import (
 	"github.com/openshift/cluster-logging-operator/internal/api/observability"
 	"github.com/openshift/cluster-logging-operator/internal/constants"
 	"github.com/openshift/cluster-logging-operator/internal/generator/framework"
+	helpers2 "github.com/openshift/cluster-logging-operator/internal/generator/helpers"
 	"github.com/openshift/cluster-logging-operator/internal/generator/vector/adapters"
 	"github.com/openshift/cluster-logging-operator/internal/generator/vector/api"
 	"github.com/openshift/cluster-logging-operator/internal/generator/vector/api/sinks"
@@ -20,10 +21,10 @@ import (
 )
 
 func New(id string, o *adapters.Output, inputs []string, secrets observability.Secrets, op utils.Options) (_ string, sink types.Sink, tfs api.Transforms) {
-	componentID := helpers.MakeID(id, "index")
+	componentID := helpers2.MakeID(id, "index")
 	tfs = api.Transforms{}
 	if o.Elasticsearch.Version == 6 {
-		addID := helpers.MakeID(id, "add_id")
+		addID := helpers2.MakeID(id, "add_id")
 		tfs[addID] = transforms.NewRemap(`._id = encode_base64(uuid_v4())
 if exists(.kubernetes.event.metadata.uid) {
   ._id = .kubernetes.event.metadata.uid

@@ -5,6 +5,7 @@ import (
 
 	obs "github.com/openshift/cluster-logging-operator/api/observability/v1"
 	"github.com/openshift/cluster-logging-operator/internal/api/observability"
+	helpers2 "github.com/openshift/cluster-logging-operator/internal/generator/helpers"
 	"github.com/openshift/cluster-logging-operator/internal/generator/vector/adapters"
 	"github.com/openshift/cluster-logging-operator/internal/generator/vector/api"
 	"github.com/openshift/cluster-logging-operator/internal/generator/vector/api/sinks"
@@ -27,8 +28,8 @@ func New(id string, o *adapters.Output, inputs []string, secrets observability.S
 	if o.GoogleCloudLogging == nil {
 		return "", nil, nil
 	}
-	componentID := helpers.MakeID(id, "log_id")
-	gclSeverityID := helpers.MakeID(id, "normalize_severity")
+	componentID := helpers2.MakeID(id, "log_id")
+	gclSeverityID := helpers2.MakeID(id, "normalize_severity")
 	tfs[gclSeverityID] = NormalizeSeverity(componentID)
 	tfs[componentID] = commontemplate.NewTemplateRemap(inputs, o.GoogleCloudLogging.LogId, componentID)
 	g := o.GoogleCloudLogging

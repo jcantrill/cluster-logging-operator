@@ -7,6 +7,7 @@ import (
 	log "github.com/ViaQ/logerr/v2/log/static"
 	obs "github.com/openshift/cluster-logging-operator/api/observability/v1"
 	"github.com/openshift/cluster-logging-operator/internal/api/observability"
+	"github.com/openshift/cluster-logging-operator/internal/generator/helpers"
 	"github.com/openshift/cluster-logging-operator/internal/generator/vector/adapters"
 	"github.com/openshift/cluster-logging-operator/internal/generator/vector/api"
 	"github.com/openshift/cluster-logging-operator/internal/generator/vector/api/transforms"
@@ -30,19 +31,19 @@ func New(id string, o *adapters.Output, inputs []string, secrets observability.S
 
 	// Add trace context extraction remap if data model is OpenTelemetry as top level remap
 	if o.LokiStack != nil && o.LokiStack.DataModel == obs.LokiStackDataModelOpenTelemetry {
-		transformTraceContextID := vectorhelpers.MakeID(id, "trace", "context")
+		transformTraceContextID := helpers.MakeID(id, "trace", "context")
 		tfs[transformTraceContextID] = otlp.TransformTraceContext(inputs)
 		inputs = []string{transformTraceContextID}
 	}
 
 	inputSpecs := clfSpec.InputSpecsTo(o.OutputSpec)
 	tenants := determineTenants(inputSpecs)
-	routeID := vectorhelpers.MakeID(id, "route")
+	routeID := helpers.MakeID(id, "route")
 	tfs[routeID] = transforms.NewRoute(func(r *transforms.Route) {
 		r.Routes = buildRoutes(tenants)
 	}, inputs...)
 
-	tfs[vectorhelpers.MakeID(routeID, transforms.Unmatched)] = metrics.NewUnmatched(routeID, op, map[string]string{
+	tfs[helpers.MakeID(routeID, transforms.Unmatched)] = metrics.NewUnmatched(routeID, op, map[string]string{
 		"output_type": strings.ToLower(obs.OutputTypeLokiStack.String()),
 	})
 
@@ -97,7 +98,7 @@ func buildRoutes(tenants *sets.String) map[string]string {
 func generateSinkForTenant(id, routeID, inputType string, o obs.OutputSpec, inputSpecs []obs.InputSpec,
 	secrets observability.Secrets, op utils.Options) (string, types.Sink, api.Transforms) {
 
-	outputID := vectorhelpers.MakeID(id, inputType)
+	outputID := helpers.MakeID(id, inputType)
 	migratedOutput := GenerateOutput(o, inputType)
 	log.V(4).Info("migrated lokistack output", "spec", migratedOutput)
 

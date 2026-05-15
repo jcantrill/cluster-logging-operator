@@ -91,7 +91,7 @@ func ExampleFileLog_withRetry() {
 	//     max_elapsed_time: 5m
 }
 
-func ExampleOTLPHTTP() {
+func ExampleOtlpHttp() {
 	// Create OtlpHttp exporter for Loki
 	otlphttp := exporters.NewOtlpHttp("", "http://loki:3100/otlp")
 	otlphttp.Encoding = "proto"
@@ -126,7 +126,7 @@ func ExampleOTLPHTTP() {
 	//     encoding: proto
 }
 
-func ExampleOTLPHTTP_withQueueAndRetry() {
+func ExampleOtlpHttp_withQueueAndRetry() {
 	// Create OtlpHttp exporter with queue and retry settings
 	otlphttp := exporters.NewOtlpHttp("", "http://loki:3100/otlp")
 	otlphttp.SendingQueue = &types.QueueSettings{

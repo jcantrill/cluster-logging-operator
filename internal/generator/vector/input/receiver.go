@@ -6,6 +6,7 @@ import (
 	obs "github.com/openshift/cluster-logging-operator/api/observability/v1"
 	"github.com/openshift/cluster-logging-operator/internal/api/observability"
 	"github.com/openshift/cluster-logging-operator/internal/factory"
+	helpers2 "github.com/openshift/cluster-logging-operator/internal/generator/helpers"
 	"github.com/openshift/cluster-logging-operator/internal/generator/vector/adapters"
 	"github.com/openshift/cluster-logging-operator/internal/generator/vector/api"
 	"github.com/openshift/cluster-logging-operator/internal/generator/vector/api/sources"
@@ -19,8 +20,8 @@ import (
 
 func NewViaqReceiverSource(spec *adapters.Input, resNames factory.ForwarderResourceNames, secrets observability.Secrets, op utils.Options) (id string, source types.Source, tfs api.Transforms) {
 	tfs = api.Transforms{}
-	base := helpers.MakeInputID(spec.Name)
-	metaID := helpers.MakeID(base, "meta")
+	base := helpers2.MakeInputID(spec.Name)
+	metaID := helpers2.MakeID(base, "meta")
 
 	serverTls := tls.NewTlsEnabled(spec, secrets, op)
 	switch spec.Receiver.Type {
@@ -31,7 +32,7 @@ func NewViaqReceiverSource(spec *adapters.Input, resNames factory.ForwarderResou
 		spec.Ids = append(spec.Ids, metaID)
 		return base, server, tfs
 	case obs.ReceiverTypeHTTP:
-		itemsID := helpers.MakeID(base, "items")
+		itemsID := helpers2.MakeID(base, "items")
 		tfs[itemsID] = newItemsTransform(base, base)
 		server := sources.NewHttpServer(helpers.ListenOnAllLocalInterfacesAddress(), spec.Receiver.Port)
 		server.TLS = serverTls

@@ -6,6 +6,7 @@ import (
 
 	log "github.com/ViaQ/logerr/v2/log/static"
 	obs "github.com/openshift/cluster-logging-operator/api/observability/v1"
+	helpers2 "github.com/openshift/cluster-logging-operator/internal/generator/helpers"
 	"github.com/openshift/cluster-logging-operator/internal/generator/vector/api"
 	"github.com/openshift/cluster-logging-operator/internal/generator/vector/api/types"
 	v1 "github.com/openshift/cluster-logging-operator/internal/generator/vector/filter/openshift/viaq/v1"
@@ -114,7 +115,7 @@ func AddSystemFilters(p *Pipeline) {
 
 func (p *Pipeline) Name() string {
 	if p.PipelineSpec.Name == "" {
-		return helpers.MakeID("pipeline", strconv.Itoa(p.index))
+		return helpers2.MakeID("pipeline", strconv.Itoa(p.index))
 	}
 	return p.PipelineSpec.Name
 }
@@ -122,7 +123,7 @@ func (p *Pipeline) Name() string {
 func (p *Pipeline) initFilter(index int, filterRef string) {
 	names := sets.NewString()
 	if f, ok := p.filterMap[filterRef]; ok {
-		filterID := helpers.MakeID(filterRef, strconv.Itoa(index))
+		filterID := helpers2.MakeID(filterRef, strconv.Itoa(index))
 		if pf := NewPipelineFilter(p.Name(), filterID, f); pf != nil {
 			names.Insert(pf.ID())
 			if len(p.Filters) > 0 {

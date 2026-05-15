@@ -23,7 +23,6 @@ const (
 var quoteRegex = regexp.MustCompile(`^".+"$`)
 
 var (
-	Replacer         = strings.NewReplacer(" ", "_", "-", "_", ".", "_")
 	listenAllAddress string
 	listenAllOnce    sync.Once
 )
@@ -34,10 +33,6 @@ func TrimSpaces(in []string) []string {
 		o[i] = strings.TrimSpace(s)
 	}
 	return o
-}
-
-func FormatComponentID(name string) string {
-	return strings.ToLower(Replacer.Replace(name))
 }
 
 func ListenOnAllLocalInterfacesAddress() string {
