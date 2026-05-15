@@ -4,14 +4,14 @@ import (
 	"github.com/openshift/cluster-logging-operator/internal/generator/otelc/api/types"
 )
 
-// OTLPHTTP represents the OpenTelemetry Collector OTLP HTTP exporter configuration
+// OtlpHttp represents the OpenTelemetry Collector OTLP HTTP exporter configuration
 // This is the recommended way to send logs to Loki v3+ using native OTLP ingestion
 // See: https://grafana.com/docs/loki/latest/send-data/otel/
 // See: https://github.com/open-telemetry/opentelemetry-collector/tree/main/exporter/otlphttpexporter
-type OTLPHTTP struct {
-	// exporterType is used internally to identify the exporter type
+type OtlpHttp struct {
+	// id is the exporter identifier in the format "type" or "type/name"
 	// It is not serialized to YAML
-	exporterType types.ExporterType
+	id string
 
 	// Endpoint is the target URL for the OTLP HTTP exporter
 	// For Loki v3+, use: http://loki:3100/otlp
@@ -59,15 +59,24 @@ type OTLPHTTP struct {
 	RetryOnFailure *types.RetrySettings `yaml:"retry_on_failure,omitempty"`
 }
 
-func (e *OTLPHTTP) ExporterType() types.ExporterType {
-	return types.ExporterTypeOTLPHTTP
+// ID returns the exporter identifier in the format "type" or "type/name"
+func (e *OtlpHttp) ID() string {
+	return e.id
 }
 
-// NewOTLPHTTP creates a new OTLPHTTP exporter with the given endpoint
+// ExporterType extracts the exporter type from the ID
+func (e *OtlpHttp) ExporterType() types.ExporterType {
+	componentType, _ := types.ParseComponentID(e.id)
+	return types.ExporterType(componentType)
+}
+
+// NewOtlpHttp creates a new OtlpHttp exporter with the given name and endpoint
+// If name is empty, the exporter ID will be just the type ("otlphttp")
+// If name is provided, the exporter ID will be "otlphttp/name"
 // For Loki v3+, use the OTLP endpoint: http://loki:3100/otlp
-func NewOTLPHTTP(endpoint string) *OTLPHTTP {
-	return &OTLPHTTP{
-		exporterType: types.ExporterTypeOTLPHTTP,
-		Endpoint:     endpoint,
+func NewOtlpHttp(name, endpoint string) *OtlpHttp {
+	return &OtlpHttp{
+		id:       types.MakeComponentID(string(types.ExporterTypeOTLPHTTP), name),
+		Endpoint: endpoint,
 	}
 }

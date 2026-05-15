@@ -13,7 +13,7 @@ import (
 
 func ExampleFileLog() {
 	// Create a new FileLog receiver
-	fileLog := receivers.NewFileLog("/var/log/app/*.log", "/var/log/service/*.log")
+	fileLog := receivers.NewFileLog("", "/var/log/app/*.log", "/var/log/service/*.log")
 	fileLog.StartAt = "beginning"
 	fileLog.Encoding = "utf-8"
 	fileLog.MaxConcurrentFiles = 256
@@ -67,7 +67,7 @@ func ExampleFileLog() {
 
 func ExampleFileLog_withRetry() {
 	// Create a FileLog receiver with retry configuration
-	fileLog := receivers.NewFileLog("/var/log/*.log")
+	fileLog := receivers.NewFileLog("", "/var/log/*.log")
 	fileLog.RetryOnFailure = &receivers.RetryOnFailure{
 		Enabled:         true,
 		InitialInterval: "1s",
@@ -92,8 +92,8 @@ func ExampleFileLog_withRetry() {
 }
 
 func ExampleOTLPHTTP() {
-	// Create OTLPHTTP exporter for Loki
-	otlphttp := exporters.NewOTLPHTTP("http://loki:3100/otlp")
+	// Create OtlpHttp exporter for Loki
+	otlphttp := exporters.NewOtlpHttp("", "http://loki:3100/otlp")
 	otlphttp.Encoding = "proto"
 	otlphttp.Compression = "gzip"
 	otlphttp.Headers = map[string]string{
@@ -127,8 +127,8 @@ func ExampleOTLPHTTP() {
 }
 
 func ExampleOTLPHTTP_withQueueAndRetry() {
-	// Create OTLPHTTP exporter with queue and retry settings
-	otlphttp := exporters.NewOTLPHTTP("http://loki:3100/otlp")
+	// Create OtlpHttp exporter with queue and retry settings
+	otlphttp := exporters.NewOtlpHttp("", "http://loki:3100/otlp")
 	otlphttp.SendingQueue = &types.QueueSettings{
 		Enabled:      true,
 		NumConsumers: 5,

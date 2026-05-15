@@ -10,9 +10,9 @@ import (
 )
 
 var _ = Describe("Exporters", func() {
-	Context("OTLPHTTP Exporter", func() {
+	Context("OtlpHttp Exporter", func() {
 		It("should marshal to YAML correctly", func() {
-			exporter := exporters.NewOTLPHTTP("http://loki:3100/otlp")
+			exporter := exporters.NewOtlpHttp("", "http://loki:3100/otlp")
 			exporter.Encoding = "proto"
 			exporter.Compression = "gzip"
 			exporter.Timeout = "30s"
@@ -53,7 +53,7 @@ retry_on_failure:
   max_interval: 30s
   max_elapsed_time: 5m
 `
-			var exporter exporters.OTLPHTTP
+			var exporter exporters.OtlpHttp
 			err := yaml.Unmarshal([]byte(yamlData), &exporter)
 			Expect(err).To(BeNil())
 			Expect(exporter.Endpoint).To(Equal("http://loki:3100/otlp"))
@@ -95,7 +95,7 @@ otlphttp/production:
 
 			lokiExporter, ok := exportersMap["otlphttp/loki"]
 			Expect(ok).To(BeTrue())
-			otlpLoki, ok := lokiExporter.(*exporters.OTLPHTTP)
+			otlpLoki, ok := lokiExporter.(*exporters.OtlpHttp)
 			Expect(ok).To(BeTrue())
 			Expect(otlpLoki.Endpoint).To(Equal("http://loki:3100/otlp"))
 			Expect(otlpLoki.Encoding).To(Equal("proto"))
@@ -103,7 +103,7 @@ otlphttp/production:
 
 			prodExporter, ok := exportersMap["otlphttp/production"]
 			Expect(ok).To(BeTrue())
-			otlpProd, ok := prodExporter.(*exporters.OTLPHTTP)
+			otlpProd, ok := prodExporter.(*exporters.OtlpHttp)
 			Expect(ok).To(BeTrue())
 			Expect(otlpProd.Endpoint).To(Equal("http://loki-prod:3100/otlp"))
 			Expect(otlpProd.Encoding).To(Equal("json"))

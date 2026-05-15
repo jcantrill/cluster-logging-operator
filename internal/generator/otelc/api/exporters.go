@@ -30,7 +30,7 @@ func (exporterMap *Exporters) UnmarshalYAML(value *yaml.Node) error {
 func decodeExporter(exporterType, exporterID string, node *yaml.Node) (types.Exporter, error) {
 	switch types.ExporterType(exporterType) {
 	case types.ExporterTypeOTLPHTTP:
-		var e exporters.OTLPHTTP
+		var e exporters.OtlpHttp
 		if err := node.Decode(&e); err != nil {
 			return nil, fmt.Errorf("failed to unmarshal otlphttp exporter %s: %w", exporterID, err)
 		}

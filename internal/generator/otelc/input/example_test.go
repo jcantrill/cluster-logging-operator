@@ -11,7 +11,7 @@ import (
 
 func ExampleNewCRIOOperators() {
 	// Create a FileLog receiver for container logs
-	fileLog := receivers.NewFileLog("/var/log/pods/*/*/*.log")
+	fileLog := receivers.NewFileLog("", "/var/log/pods/*/*/*.log")
 	fileLog.StartAt = "end"
 	fileLog.IncludeFilePath = true
 
@@ -98,7 +98,7 @@ func ExampleNewCRIOOperators() {
 
 func ExampleNewCRIOOperatorsWithOpenShiftLabels() {
 	// Create a FileLog receiver for OpenShift container logs
-	fileLog := receivers.NewFileLog("/var/log/pods/*/*/*.log")
+	fileLog := receivers.NewFileLog("", "/var/log/pods/*/*/*.log")
 	fileLog.StartAt = "end"
 
 	// Add CRI-O operators with OpenShift-specific attributes

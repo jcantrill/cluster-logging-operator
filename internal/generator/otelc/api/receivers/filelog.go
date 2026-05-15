@@ -8,9 +8,9 @@ import (
 // FileLog represents the OpenTelemetry Collector filelog receiver configuration
 // See: https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/receiver/filelogreceiver
 type FileLog struct {
-	// ReceiverType is used internally to identify the receiver type
+	// id is the receiver identifier in the format "type" or "type/name"
 	// It is not serialized to YAML
-	receiverType types.ReceiverType
+	id string
 
 	// File selection
 	Include          []string `yaml:"include"`                      // Required: list of file glob patterns
@@ -118,14 +118,23 @@ type RetryOnFailure struct {
 	MaxElapsedTime  string `yaml:"max_elapsed_time,omitempty"` // Duration (default: "5m")
 }
 
-func (r *FileLog) ReceiverType() types.ReceiverType {
-	return types.ReceiverTypeFileLog
+// ID returns the receiver identifier in the format "type" or "type/name"
+func (r *FileLog) ID() string {
+	return r.id
 }
 
-// NewFileLog creates a new FileLog receiver with the given include patterns
-func NewFileLog(include ...string) *FileLog {
+// ReceiverType extracts the receiver type from the ID
+func (r *FileLog) ReceiverType() types.ReceiverType {
+	componentType, _ := types.ParseComponentID(r.id)
+	return types.ReceiverType(componentType)
+}
+
+// NewFileLog creates a new FileLog receiver with the given name and include patterns
+// If name is empty, the receiver ID will be just the type ("file_log")
+// If name is provided, the receiver ID will be "file_log/name"
+func NewFileLog(name string, include ...string) *FileLog {
 	return &FileLog{
-		receiverType: types.ReceiverTypeFileLog,
-		Include:      include,
+		id:      types.MakeComponentID(string(types.ReceiverTypeFileLog), name),
+		Include: include,
 	}
 }

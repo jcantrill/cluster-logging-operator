@@ -148,7 +148,7 @@ var _ = Describe("CRI-O Container Input Operators", func() {
 	Context("Complete FileLog Receiver with CRI-O Operators", func() {
 		It("should create a valid configuration", func() {
 			// Create a FileLog receiver with CRI-O operators
-			fileLog := receivers.NewFileLog("/var/log/pods/*/*/*.log")
+			fileLog := receivers.NewFileLog("", "/var/log/pods/*/*/*.log")
 			fileLog.Exclude = []string{"/var/log/pods/*/otel-collector/*.log"}
 			fileLog.StartAt = "end"
 			fileLog.IncludeFilePath = true

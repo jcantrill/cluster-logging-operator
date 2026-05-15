@@ -11,7 +11,7 @@ import (
 var _ = Describe("Receivers", func() {
 	Context("FileLog Receiver", func() {
 		It("should marshal to YAML correctly", func() {
-			receiver := receivers.NewFileLog("/var/log/*.log")
+			receiver := receivers.NewFileLog("", "/var/log/*.log")
 			receiver.StartAt = "beginning"
 			receiver.Encoding = "utf-8"
 			receiver.MaxConcurrentFiles = 512
