@@ -1,6 +1,7 @@
 package receivers
 
 import (
+	"github.com/openshift/cluster-logging-operator/internal/generator/otelc/api/receivers/operators"
 	"github.com/openshift/cluster-logging-operator/internal/generator/otelc/api/types"
 )
 
@@ -76,7 +77,7 @@ type FileLog struct {
 	Resource   map[string]interface{} `yaml:"resource,omitempty"`   // Key-value pairs added to entry resource
 
 	// Operators (array of operator configurations)
-	Operators []Operator `yaml:"operators,omitempty"`
+	Operators []operators.Operator `yaml:"operators,omitempty"`
 }
 
 // Multiline configuration for multi-line log entries
@@ -88,8 +89,8 @@ type Multiline struct {
 
 // Header metadata parsing configuration
 type Header struct {
-	Pattern           string     `yaml:"pattern"`            // Required: regex
-	MetadataOperators []Operator `yaml:"metadata_operators"` // Required: list of operators
+	Pattern           string               `yaml:"pattern"`            // Required: regex
+	MetadataOperators []operators.Operator `yaml:"metadata_operators"` // Required: list of operators
 }
 
 // OrderingCriteria controls file processing order
@@ -115,15 +116,6 @@ type RetryOnFailure struct {
 	InitialInterval string `yaml:"initial_interval,omitempty"` // Duration (default: "1s")
 	MaxInterval     string `yaml:"max_interval,omitempty"`     // Duration (default: "30s")
 	MaxElapsedTime  string `yaml:"max_elapsed_time,omitempty"` // Duration (default: "5m")
-}
-
-// Operator represents a log processing operator
-// The actual operator configuration is flexible and depends on the operator type
-type Operator struct {
-	Type   string                 `yaml:"type"`             // Required: operator type (e.g., "json_parser", "regex_parser")
-	ID     string                 `yaml:"id,omitempty"`     // Optional unique ID
-	Output string                 `yaml:"output,omitempty"` // Optional operator ID to send output
-	Config map[string]interface{} `yaml:",inline"`          // Operator-specific configuration fields
 }
 
 func (r *FileLog) ReceiverType() types.ReceiverType {

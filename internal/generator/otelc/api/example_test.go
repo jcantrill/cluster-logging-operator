@@ -6,6 +6,7 @@ import (
 	"github.com/openshift/cluster-logging-operator/internal/generator/otelc/api"
 	"github.com/openshift/cluster-logging-operator/internal/generator/otelc/api/exporters"
 	"github.com/openshift/cluster-logging-operator/internal/generator/otelc/api/receivers"
+	"github.com/openshift/cluster-logging-operator/internal/generator/otelc/api/receivers/operators"
 	"github.com/openshift/cluster-logging-operator/internal/generator/otelc/api/types"
 	"gopkg.in/yaml.v3"
 )
@@ -27,9 +28,9 @@ func ExampleFileLog() {
 	}
 
 	// Add operators for log processing
-	fileLog.Operators = []receivers.Operator{
+	fileLog.Operators = []operators.Operator{
 		{
-			Type: "json_parser",
+			Type: operators.OperatorTypeJSONParser,
 			ID:   "json_parse",
 		},
 	}

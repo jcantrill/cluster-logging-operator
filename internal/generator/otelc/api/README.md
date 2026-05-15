@@ -4,11 +4,17 @@ This package provides Go structs for generating OpenTelemetry Collector configur
 
 ## Structure
 
+### API Package
 - `types/` - Core types and interfaces for receivers and exporters
 - `receivers/` - Receiver implementations (currently: FileLog)
+  - `receivers/operators/` - Generic operator types for log processing pipelines
 - `receivers.go` - Collection and unmarshaling logic for receivers
 - `exporters/` - Exporter implementations (currently: OTLPHTTP)
 - `exporters.go` - Collection and unmarshaling logic for exporters
+
+### Related Packages
+- `internal/generator/otelc/input/` - Input-specific operator pipelines (e.g., CRI-O container logs)
+  - See [input package README](../input/README.md) for details
 
 ## Supported Receivers
 
