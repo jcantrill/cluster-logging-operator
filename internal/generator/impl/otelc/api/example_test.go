@@ -3,11 +3,11 @@ package api_test
 import (
 	"fmt"
 
-	"github.com/openshift/cluster-logging-operator/internal/generator/otelc/api"
-	"github.com/openshift/cluster-logging-operator/internal/generator/otelc/api/exporters"
-	"github.com/openshift/cluster-logging-operator/internal/generator/otelc/api/receivers"
-	"github.com/openshift/cluster-logging-operator/internal/generator/otelc/api/receivers/operators"
-	"github.com/openshift/cluster-logging-operator/internal/generator/otelc/api/types"
+	api2 "github.com/openshift/cluster-logging-operator/internal/generator/impl/otelc/api"
+	"github.com/openshift/cluster-logging-operator/internal/generator/impl/otelc/api/exporters"
+	"github.com/openshift/cluster-logging-operator/internal/generator/impl/otelc/api/receivers"
+	operators2 "github.com/openshift/cluster-logging-operator/internal/generator/impl/otelc/api/receivers/operators"
+	"github.com/openshift/cluster-logging-operator/internal/generator/impl/otelc/api/types"
 	"gopkg.in/yaml.v3"
 )
 
@@ -28,15 +28,15 @@ func ExampleFileLog() {
 	}
 
 	// Add operators for log processing
-	fileLog.Operators = []operators.Operator{
+	fileLog.Operators = []operators2.Operator{
 		{
-			Type: operators.OperatorTypeJSONParser,
+			Type: operators2.OperatorTypeJSONParser,
 			ID:   "json_parse",
 		},
 	}
 
 	// Create receivers collection
-	receiversMap := api.Receivers{
+	receiversMap := api2.Receivers{
 		"file_log/app": fileLog,
 	}
 
@@ -104,7 +104,7 @@ func ExampleOtlpHttp() {
 	}
 
 	// Create exporters collection
-	exportersMap := api.Exporters{
+	exportersMap := api2.Exporters{
 		"otlphttp/loki": otlphttp,
 	}
 

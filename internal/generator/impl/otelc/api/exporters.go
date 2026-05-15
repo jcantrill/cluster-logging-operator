@@ -3,8 +3,8 @@ package api
 import (
 	"fmt"
 
-	"github.com/openshift/cluster-logging-operator/internal/generator/otelc/api/exporters"
-	"github.com/openshift/cluster-logging-operator/internal/generator/otelc/api/types"
+	"github.com/openshift/cluster-logging-operator/internal/generator/impl/otelc/api/exporters"
+	"github.com/openshift/cluster-logging-operator/internal/generator/impl/otelc/api/types"
 	"gopkg.in/yaml.v3"
 )
 

@@ -1,8 +1,8 @@
 package receivers
 
 import (
-	"github.com/openshift/cluster-logging-operator/internal/generator/otelc/api/receivers/operators"
-	"github.com/openshift/cluster-logging-operator/internal/generator/otelc/api/types"
+	"github.com/openshift/cluster-logging-operator/internal/generator/impl/otelc/api/receivers/operators"
+	types2 "github.com/openshift/cluster-logging-operator/internal/generator/impl/otelc/api/types"
 )
 
 // FileLog represents the OpenTelemetry Collector filelog receiver configuration
@@ -124,9 +124,9 @@ func (r *FileLog) ID() string {
 }
 
 // ReceiverType extracts the receiver type from the ID
-func (r *FileLog) ReceiverType() types.ReceiverType {
-	componentType, _ := types.ParseComponentID(r.id)
-	return types.ReceiverType(componentType)
+func (r *FileLog) ReceiverType() types2.ReceiverType {
+	componentType, _ := types2.ParseComponentID(r.id)
+	return types2.ReceiverType(componentType)
 }
 
 // NewFileLog creates a new FileLog receiver with the given name and include patterns
@@ -134,7 +134,7 @@ func (r *FileLog) ReceiverType() types.ReceiverType {
 // If name is provided, the receiver ID will be "file_log/name"
 func NewFileLog(name string, include ...string) *FileLog {
 	return &FileLog{
-		id:      types.MakeComponentID(string(types.ReceiverTypeFileLog), name),
+		id:      types2.MakeComponentID(string(types2.ReceiverTypeFileLog), name),
 		Include: include,
 	}
 }

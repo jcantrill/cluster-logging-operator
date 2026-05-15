@@ -62,49 +62,49 @@ Multi-tenancy can be configured using the `X-Scope-OrgID` header.
 package main
 
 import (
-    "fmt"
-    "gopkg.in/yaml.v3"
-    
-    "github.com/openshift/cluster-logging-operator/internal/generator/otelc/api"
-    "github.com/openshift/cluster-logging-operator/internal/generator/otelc/api/receivers"
+	"fmt"
+	"gopkg.in/yaml.v3"
+
+	"github.com/openshift/cluster-logging-operator/internal/generator/impl/otelc/api"
+	"github.com/openshift/cluster-logging-operator/internal/generator/impl/otelc/api/receivers"
 )
 
 func main() {
-    // Create a new FileLog receiver
-    fileLog := receivers.NewFileLog("/var/log/app/*.log", "/var/log/service/*.log")
-    fileLog.StartAt = "beginning"
-    fileLog.Encoding = "utf-8"
-    fileLog.MaxConcurrentFiles = 256
-    fileLog.Attributes = map[string]interface{}{
-        "log.type": "application",
-        "environment": "production",
-    }
-    
-    // Add multiline support
-    fileLog.Multiline = &receivers.Multiline{
-        LineStartPattern: "^\\d{4}-\\d{2}-\\d{2}",
-    }
-    
-    // Add operators for log processing
-    fileLog.Operators = []receivers.Operator{
-        {
-            Type: "json_parser",
-            ID:   "json_parse",
-        },
-    }
-    
-    // Create receivers collection
-    receivers := api.Receivers{
-        "file_log/app": fileLog,
-    }
-    
-    // Marshal to YAML
-    data, err := yaml.Marshal(receivers)
-    if err != nil {
-        panic(err)
-    }
-    
-    fmt.Println(string(data))
+	// Create a new FileLog receiver
+	fileLog := receivers.NewFileLog("/var/log/app/*.log", "/var/log/service/*.log")
+	fileLog.StartAt = "beginning"
+	fileLog.Encoding = "utf-8"
+	fileLog.MaxConcurrentFiles = 256
+	fileLog.Attributes = map[string]interface{}{
+		"log.type":    "application",
+		"environment": "production",
+	}
+
+	// Add multiline support
+	fileLog.Multiline = &receivers.Multiline{
+		LineStartPattern: "^\\d{4}-\\d{2}-\\d{2}",
+	}
+
+	// Add operators for log processing
+	fileLog.Operators = []receivers.Operator{
+		{
+			Type: "json_parser",
+			ID:   "json_parse",
+		},
+	}
+
+	// Create receivers collection
+	receivers := api.Receivers{
+		"file_log/app": fileLog,
+	}
+
+	// Marshal to YAML
+	data, err := yaml.Marshal(receivers)
+	if err != nil {
+		panic(err)
+	}
+
+	fmt.Println(string(data))
 }
 ```
 
@@ -134,49 +134,49 @@ file_log/app:
 package main
 
 import (
-    "fmt"
-    "gopkg.in/yaml.v3"
-    
-    "github.com/openshift/cluster-logging-operator/internal/generator/otelc/api"
-    "github.com/openshift/cluster-logging-operator/internal/generator/otelc/api/exporters"
-    "github.com/openshift/cluster-logging-operator/internal/generator/otelc/api/types"
+	"fmt"
+	"gopkg.in/yaml.v3"
+
+	"github.com/openshift/cluster-logging-operator/internal/generator/impl/otelc/api"
+	"github.com/openshift/cluster-logging-operator/internal/generator/impl/otelc/api/exporters"
+	"github.com/openshift/cluster-logging-operator/internal/generator/impl/otelc/api/types"
 )
 
 func main() {
-    // Create OTLPHTTP exporter for Loki
-    otlphttp := exporters.NewOTLPHTTP("http://loki:3100/otlp")
-    otlphttp.Encoding = "proto"
-    otlphttp.Compression = "gzip"
-    otlphttp.Headers = map[string]string{
-        "X-Scope-OrgID": "tenant1",
-    }
-    otlphttp.TLS = &types.TLSClientConfig{
-        Insecure: true,
-    }
-    otlphttp.SendingQueue = &types.QueueSettings{
-        Enabled:      true,
-        NumConsumers: 5,
-        QueueSize:    1000,
-    }
-    otlphttp.RetryOnFailure = &types.RetrySettings{
-        Enabled:         true,
-        InitialInterval: "5s",
-        MaxInterval:     "30s",
-        MaxElapsedTime:  "5m",
-    }
-    
-    // Create exporters collection
-    exporters := api.Exporters{
-        "otlphttp/loki": otlphttp,
-    }
-    
-    // Marshal to YAML
-    data, err := yaml.Marshal(exporters)
-    if err != nil {
-        panic(err)
-    }
-    
-    fmt.Println(string(data))
+	// Create OTLPHTTP exporter for Loki
+	otlphttp := exporters.NewOTLPHTTP("http://loki:3100/otlp")
+	otlphttp.Encoding = "proto"
+	otlphttp.Compression = "gzip"
+	otlphttp.Headers = map[string]string{
+		"X-Scope-OrgID": "tenant1",
+	}
+	otlphttp.TLS = &types.TLSClientConfig{
+		Insecure: true,
+	}
+	otlphttp.SendingQueue = &types.QueueSettings{
+		Enabled:      true,
+		NumConsumers: 5,
+		QueueSize:    1000,
+	}
+	otlphttp.RetryOnFailure = &types.RetrySettings{
+		Enabled:         true,
+		InitialInterval: "5s",
+		MaxInterval:     "30s",
+		MaxElapsedTime:  "5m",
+	}
+
+	// Create exporters collection
+	exporters := api.Exporters{
+		"otlphttp/loki": otlphttp,
+	}
+
+	// Marshal to YAML
+	data, err := yaml.Marshal(exporters)
+	if err != nil {
+		panic(err)
+	}
+
+	fmt.Println(string(data))
 }
 ```
 

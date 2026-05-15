@@ -3,8 +3,8 @@ package container_test
 import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	"github.com/openshift/cluster-logging-operator/internal/generator/otelc/api/receivers/operators"
-	"github.com/openshift/cluster-logging-operator/internal/generator/otelc/input/container"
+	"github.com/openshift/cluster-logging-operator/internal/generator/impl/otelc/api/receivers/operators"
+	"github.com/openshift/cluster-logging-operator/internal/generator/impl/otelc/input/container"
 	utilsyaml "github.com/openshift/cluster-logging-operator/internal/utils/yaml"
 )
 

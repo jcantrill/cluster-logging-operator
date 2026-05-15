@@ -6,7 +6,7 @@ import (
 
 	. "github.com/onsi/ginkgo/v2"
 	obs "github.com/openshift/cluster-logging-operator/api/observability/v1"
-	"github.com/openshift/cluster-logging-operator/internal/generator/otelc/input/container"
+	"github.com/openshift/cluster-logging-operator/internal/generator/impl/otelc/input/container"
 	utilyaml "github.com/openshift/cluster-logging-operator/internal/utils/yaml"
 )
 

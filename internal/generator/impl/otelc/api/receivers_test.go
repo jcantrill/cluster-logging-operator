@@ -3,8 +3,8 @@ package api_test
 import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	otelcapi "github.com/openshift/cluster-logging-operator/internal/generator/otelc/api"
-	"github.com/openshift/cluster-logging-operator/internal/generator/otelc/api/receivers"
+	otelcapi "github.com/openshift/cluster-logging-operator/internal/generator/impl/otelc/api"
+	"github.com/openshift/cluster-logging-operator/internal/generator/impl/otelc/api/receivers"
 	"gopkg.in/yaml.v3"
 )
 
