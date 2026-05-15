@@ -37,7 +37,8 @@ func New(id string, o *adapters.Output, inputs []string, secrets observability.S
 	}
 
 	inputSpecs := clfSpec.InputSpecsTo(o.OutputSpec)
-	tenants := determineTenants(inputSpecs)
+	tenantsList := observability.DetermineTenants(inputSpecs)
+	tenants := sets.NewString(tenantsList...)
 	routeID := helpers.MakeID(id, "route")
 	tfs[routeID] = transforms.NewRoute(func(r *transforms.Route) {
 		r.Routes = buildRoutes(tenants)
@@ -56,35 +57,6 @@ func New(id string, o *adapters.Output, inputs []string, secrets observability.S
 	}
 
 	return sinks, tfs
-}
-
-func determineTenants(inputSpecs []obs.InputSpec) *sets.String {
-	tenants := sets.NewString()
-
-	for _, inputSpec := range inputSpecs {
-		switch inputSpec.Type {
-		case obs.InputTypeApplication:
-			tenants.Insert(string(obs.InputTypeApplication))
-			if observability.IncludesInfraNamespace(inputSpec.Application) {
-				tenants.Insert(string(obs.InputTypeInfrastructure))
-			}
-		case obs.InputTypeAudit:
-			tenants.Insert(string(obs.InputTypeAudit))
-		case obs.InputTypeInfrastructure:
-			tenants.Insert(string(obs.InputTypeInfrastructure))
-		case obs.InputTypeReceiver:
-			tenants.Insert(getTenantForReceiver(inputSpec.Receiver.Type))
-		}
-	}
-
-	return tenants
-}
-
-func getTenantForReceiver(receiverType obs.ReceiverType) string {
-	if receiverType == obs.ReceiverTypeHTTP {
-		return string(obs.InputTypeAudit)
-	}
-	return string(obs.InputTypeInfrastructure)
 }
 
 func buildRoutes(tenants *sets.String) map[string]string {
