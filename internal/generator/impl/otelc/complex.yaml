@@ -1,0 +1,12 @@
+exporters: {}
+receivers: {}
+service:
+  pipelines:
+    logs/pipeline:
+      receivers:
+        - file_log/input_infrastructure_container
+        - file_log/input_mytestapp_container
+      exporters:
+        - otlphttp/output_default_lokistack_application
+        - otlphttp/output_default_lokistack_audit
+        - otlphttp/output_default_lokistack_infrastructure

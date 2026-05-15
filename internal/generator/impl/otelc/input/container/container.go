@@ -9,7 +9,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// NewSource generates a FileLog receiver for Kubernetes container logs based on an InputSpec.
+// New generates a FileLog receiver for Kubernetes container logs based on an InputSpec.
 // It returns the receiver ID and the configured FileLog receiver.
 //
 // The function handles:
@@ -17,7 +17,7 @@ import (
 // - Configuring CRI-O log parsing operators
 // - Setting max message size limits
 // - Applying label selectors
-func NewSource(spec obs.InputSpec, logType obs.InputType) (id string, receiver *receivers.FileLog) {
+func New(spec obs.InputSpec) (receiver *receivers.FileLog) {
 	var includes, excludes []string
 	var selector *metav1.LabelSelector
 	var maxMsgSize int64
@@ -107,7 +107,6 @@ func NewSource(spec obs.InputSpec, logType obs.InputType) (id string, receiver *
 
 	// Create base receiver ID (format: input_<name>_container)
 	base := helpers.MakeInputID(spec.Name, obs.InfrastructureSourceContainer.String())
-	id = base
 
 	// Create FileLog receiver
 	receiver = receivers.NewFileLog(base, includes...)
@@ -129,5 +128,5 @@ func NewSource(spec obs.InputSpec, logType obs.InputType) (id string, receiver *
 	// This would need to be handled at a higher level (e.g., via processor or different approach)
 	_ = selector
 
-	return id, receiver
+	return receiver
 }

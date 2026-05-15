@@ -1,7 +1,7 @@
 package exporters
 
 import (
-	types2 "github.com/openshift/cluster-logging-operator/internal/generator/impl/otelc/api/types"
+	"github.com/openshift/cluster-logging-operator/internal/generator/impl/otelc/api/types"
 )
 
 // OtlpHttp represents the OpenTelemetry Collector OTLP HTTP exporter configuration
@@ -18,7 +18,7 @@ type OtlpHttp struct {
 	Endpoint string `yaml:"endpoint"`
 
 	// TLS configuration
-	TLS *types2.TLSClientConfig `yaml:"tls,omitempty"`
+	TLS *types.TLSClientConfig `yaml:"tls,omitempty"`
 
 	// Timeout for HTTP requests (default: "30s")
 	Timeout string `yaml:"timeout,omitempty"`
@@ -53,10 +53,10 @@ type OtlpHttp struct {
 	IdleConnTimeout string `yaml:"idle_conn_timeout,omitempty"`
 
 	// Queue configuration for sending data
-	SendingQueue *types2.QueueSettings `yaml:"sending_queue,omitempty"`
+	SendingQueue *types.QueueSettings `yaml:"sending_queue,omitempty"`
 
 	// Retry configuration for failed requests
-	RetryOnFailure *types2.RetrySettings `yaml:"retry_on_failure,omitempty"`
+	RetryOnFailure *types.RetrySettings `yaml:"retry_on_failure,omitempty"`
 }
 
 // ID returns the exporter identifier in the format "type" or "type/name"
@@ -65,9 +65,9 @@ func (e *OtlpHttp) ID() string {
 }
 
 // ExporterType extracts the exporter type from the ID
-func (e *OtlpHttp) ExporterType() types2.ExporterType {
-	componentType, _ := types2.ParseComponentID(e.id)
-	return types2.ExporterType(componentType)
+func (e *OtlpHttp) ExporterType() types.ExporterType {
+	componentType, _ := types.ParseComponentID(e.id)
+	return types.ExporterType(componentType)
 }
 
 // NewOtlpHttp creates a new OtlpHttp exporter with the given name and endpoint
@@ -76,7 +76,7 @@ func (e *OtlpHttp) ExporterType() types2.ExporterType {
 // For Loki v3+, use the OTLP endpoint: http://loki:3100/otlp
 func NewOtlpHttp(name, endpoint string) *OtlpHttp {
 	return &OtlpHttp{
-		id:       types2.MakeComponentID(string(types2.ExporterTypeOTLPHTTP), name),
+		id:       types.MakeComponentID(string(types.ExporterTypeOTLPHTTP), name),
 		Endpoint: endpoint,
 	}
 }

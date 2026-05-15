@@ -18,12 +18,11 @@ import (
 // Returns:
 //   - exporterIDs: map of tenant -> exporter ID
 //   - exporters: map of exporter ID -> configured OTLPHTTP exporter
-func New(id string, o obs.OutputSpec, inputSpecs []obs.InputSpec, secrets observability.Secrets) (exporterIDs map[string]string, exportersMap api.Exporters) {
+func New(id string, o obs.OutputSpec, inputSpecs []obs.InputSpec, secrets observability.Secrets) (exportersMap api.Exporters) {
 	if o.LokiStack == nil {
 		panic("LokiStack output spec is nil")
 	}
 
-	exporterIDs = make(map[string]string)
 	exportersMap = make(api.Exporters)
 
 	// Determine tenants based on input types
@@ -31,15 +30,14 @@ func New(id string, o obs.OutputSpec, inputSpecs []obs.InputSpec, secrets observ
 
 	// Create an exporter for each tenant
 	for _, tenant := range tenants {
-		exporterID := helpers.MakeOutputID(id, tenant)
-		exporterIDs[tenant] = exporterID
+		exporterID := helpers.MakeID(id, tenant)
 
 		// Generate OTLPHTTP exporter for this tenant
 		exporter := generateExporterForTenant(exporterID, o, tenant, secrets)
-		exportersMap[exporterID] = exporter
+		exportersMap[exporter.ID()] = exporter
 	}
 
-	return exporterIDs, exportersMap
+	return exportersMap
 }
 
 // generateExporterForTenant creates an OTLPHTTP exporter configured for a specific tenant.

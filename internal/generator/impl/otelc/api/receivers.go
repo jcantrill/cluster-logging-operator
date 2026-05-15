@@ -13,8 +13,8 @@ import (
 // where the type determines the receiver implementation.
 type Receivers map[string]types.Receiver
 
-func (receiverMap *Receivers) Add(id string, receiver types.Receiver) {
-	(*receiverMap)[id] = receiver
+func (receiverMap *Receivers) Add(receiver types.Receiver) {
+	(*receiverMap)[receiver.ID()] = receiver
 }
 
 func (receiverMap *Receivers) UnmarshalYAML(value *yaml.Node) error {

@@ -17,6 +17,12 @@ func (exporterMap *Exporters) Add(id string, exporter types.Exporter) {
 	(*exporterMap)[id] = exporter
 }
 
+func (exporterMap *Exporters) Merge(exporters Exporters) {
+	for _, e := range exporters {
+		(*exporterMap)[e.ID()] = e
+	}
+}
+
 func (exporterMap *Exporters) UnmarshalYAML(value *yaml.Node) error {
 	if *exporterMap == nil {
 		*exporterMap = make(Exporters)

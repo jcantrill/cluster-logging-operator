@@ -28,7 +28,7 @@ var _ = Describe("Input", func() {
 		}
 
 		// Generate the receivers
-		id, receiver := container.NewSource(spec, obs.InputTypeApplication)
+		id, receiver := container.New(spec, obs.InputTypeApplication)
 		fmt.Println(id)
 		fmt.Println("")
 		fmt.Println(utilyaml.MustMarshal(receiver))
