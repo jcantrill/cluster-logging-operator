@@ -2,7 +2,6 @@ package api
 
 import (
 	"fmt"
-	"strings"
 
 	"github.com/openshift/cluster-logging-operator/internal/generator/otelc/api/receivers"
 	"github.com/openshift/cluster-logging-operator/internal/generator/otelc/api/types"
@@ -19,43 +18,24 @@ func (receiverMap *Receivers) Add(id string, receiver types.Receiver) {
 }
 
 func (receiverMap *Receivers) UnmarshalYAML(value *yaml.Node) error {
-	if value.Kind != yaml.MappingNode {
-		return fmt.Errorf("receivers data must be a mapping, got: %v", value.Kind)
-	}
-
 	if *receiverMap == nil {
 		*receiverMap = make(Receivers)
 	}
-
-	// Parse the mapping as a map first to extract entries
-	entries := make(map[string]*yaml.Node)
-	for i := 0; i < len(value.Content); i += 2 {
-		key := value.Content[i].Value
-		val := value.Content[i+1]
-		entries[key] = val
-	}
-
-	for id, entry := range entries {
-		// Extract receiver type from the ID (e.g., "file_log" or "file_log/my-instance")
-		receiverType := id
-		if slashIdx := strings.Index(id, "/"); slashIdx != -1 {
-			receiverType = id[:slashIdx]
-		}
-
-		var receiver types.Receiver
-		switch types.ReceiverType(receiverType) {
-		case types.ReceiverTypeFileLog:
-			var r receivers.FileLog
-			if err := entry.Decode(&r); err != nil {
-				return fmt.Errorf("failed to unmarshal file_log receiver %s: %w", id, err)
-			}
-			receiver = &r
-		default:
-			return fmt.Errorf("unknown receiver type %s for receiver %s", receiverType, id)
-		}
-
+	return unmarshalComponentMap(value, "receivers", decodeReceiver, func(id string, receiver types.Receiver) {
 		(*receiverMap)[id] = receiver
-	}
+	})
+}
 
-	return nil
+// decodeReceiver decodes a YAML node into a specific receiver type
+func decodeReceiver(receiverType, receiverID string, node *yaml.Node) (types.Receiver, error) {
+	switch types.ReceiverType(receiverType) {
+	case types.ReceiverTypeFileLog:
+		var r receivers.FileLog
+		if err := node.Decode(&r); err != nil {
+			return nil, fmt.Errorf("failed to unmarshal file_log receiver %s: %w", receiverID, err)
+		}
+		return &r, nil
+	default:
+		return nil, fmt.Errorf("unknown receiver type %s for receiver %s", receiverType, receiverID)
+	}
 }

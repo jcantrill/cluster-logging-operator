@@ -4,7 +4,9 @@ import (
 	"fmt"
 
 	"github.com/openshift/cluster-logging-operator/internal/generator/otelc/api"
+	"github.com/openshift/cluster-logging-operator/internal/generator/otelc/api/exporters"
 	"github.com/openshift/cluster-logging-operator/internal/generator/otelc/api/receivers"
+	"github.com/openshift/cluster-logging-operator/internal/generator/otelc/api/types"
 	"gopkg.in/yaml.v3"
 )
 
@@ -84,6 +86,75 @@ func ExampleFileLog_withRetry() {
 	// retry_on_failure:
 	//     enabled: true
 	//     initial_interval: 1s
+	//     max_interval: 30s
+	//     max_elapsed_time: 5m
+}
+
+func ExampleOTLPHTTP() {
+	// Create OTLPHTTP exporter for Loki
+	otlphttp := exporters.NewOTLPHTTP("http://loki:3100/otlp")
+	otlphttp.Encoding = "proto"
+	otlphttp.Compression = "gzip"
+	otlphttp.Headers = map[string]string{
+		"X-Scope-OrgID": "tenant1",
+	}
+	otlphttp.TLS = &types.TLSClientConfig{
+		Insecure: true,
+	}
+
+	// Create exporters collection
+	exportersMap := api.Exporters{
+		"otlphttp/loki": otlphttp,
+	}
+
+	// Marshal to YAML
+	data, err := yaml.Marshal(exportersMap)
+	if err != nil {
+		panic(err)
+	}
+
+	fmt.Println(string(data))
+	// Output:
+	// otlphttp/loki:
+	//     endpoint: http://loki:3100/otlp
+	//     tls:
+	//         insecure: true
+	//     headers:
+	//         X-Scope-OrgID: tenant1
+	//     compression: gzip
+	//     encoding: proto
+}
+
+func ExampleOTLPHTTP_withQueueAndRetry() {
+	// Create OTLPHTTP exporter with queue and retry settings
+	otlphttp := exporters.NewOTLPHTTP("http://loki:3100/otlp")
+	otlphttp.SendingQueue = &types.QueueSettings{
+		Enabled:      true,
+		NumConsumers: 5,
+		QueueSize:    1000,
+	}
+	otlphttp.RetryOnFailure = &types.RetrySettings{
+		Enabled:         true,
+		InitialInterval: "5s",
+		MaxInterval:     "30s",
+		MaxElapsedTime:  "5m",
+	}
+
+	data, err := yaml.Marshal(otlphttp)
+	if err != nil {
+		panic(err)
+	}
+
+	fmt.Println(string(data))
+	// Output:
+	// endpoint: http://loki:3100/otlp
+	// sending_queue:
+	//     enabled: true
+	//     num_consumers: 5
+	//     queue_size: 1000
+	// retry_on_failure:
+	//     enabled: true
+	//     initial_interval: 5s
 	//     max_interval: 30s
 	//     max_elapsed_time: 5m
 }

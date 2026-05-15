@@ -4,9 +4,11 @@ This package provides Go structs for generating OpenTelemetry Collector configur
 
 ## Structure
 
-- `types/` - Core types and interfaces for receivers
+- `types/` - Core types and interfaces for receivers and exporters
 - `receivers/` - Receiver implementations (currently: FileLog)
 - `receivers.go` - Collection and unmarshaling logic for receivers
+- `exporters/` - Exporter implementations (currently: OTLPHTTP)
+- `exporters.go` - Collection and unmarshaling logic for exporters
 
 ## Supported Receivers
 
@@ -24,7 +26,31 @@ The FileLog receiver reads logs from files on the filesystem. It is based on the
 - Operator-based log processing
 - Custom attributes and resource labels
 
-## Usage Example
+## Supported Exporters
+
+### OTLPHTTP Exporter
+
+The OTLPHTTP exporter sends logs, metrics, and traces via HTTP using the OTLP protocol. This is the recommended way to send logs to Grafana Loki v3+ using native OTLP ingestion.
+
+#### Features
+
+- HTTP/HTTPS endpoint configuration
+- TLS/SSL support
+- Custom headers (e.g., tenant ID)
+- Compression (gzip, none)
+- Encoding (proto, json)
+- Queue and retry configuration
+- Connection pool settings
+
+#### Use with Grafana Loki
+
+For Loki v3+, use the OTLP endpoint: `http://loki:3100/otlp`
+
+Multi-tenancy can be configured using the `X-Scope-OrgID` header.
+
+## Usage Examples
+
+### Receivers Example
 
 ```go
 package main
@@ -96,6 +122,80 @@ file_log/app:
       id: json_parse
 ```
 
+### Exporters Example
+
+```go
+package main
+
+import (
+    "fmt"
+    "gopkg.in/yaml.v3"
+    
+    "github.com/openshift/cluster-logging-operator/internal/generator/otelc/api"
+    "github.com/openshift/cluster-logging-operator/internal/generator/otelc/api/exporters"
+    "github.com/openshift/cluster-logging-operator/internal/generator/otelc/api/types"
+)
+
+func main() {
+    // Create OTLPHTTP exporter for Loki
+    otlphttp := exporters.NewOTLPHTTP("http://loki:3100/otlp")
+    otlphttp.Encoding = "proto"
+    otlphttp.Compression = "gzip"
+    otlphttp.Headers = map[string]string{
+        "X-Scope-OrgID": "tenant1",
+    }
+    otlphttp.TLS = &types.TLSClientConfig{
+        Insecure: true,
+    }
+    otlphttp.SendingQueue = &types.QueueSettings{
+        Enabled:      true,
+        NumConsumers: 5,
+        QueueSize:    1000,
+    }
+    otlphttp.RetryOnFailure = &types.RetrySettings{
+        Enabled:         true,
+        InitialInterval: "5s",
+        MaxInterval:     "30s",
+        MaxElapsedTime:  "5m",
+    }
+    
+    // Create exporters collection
+    exporters := api.Exporters{
+        "otlphttp/loki": otlphttp,
+    }
+    
+    // Marshal to YAML
+    data, err := yaml.Marshal(exporters)
+    if err != nil {
+        panic(err)
+    }
+    
+    fmt.Println(string(data))
+}
+```
+
+#### Output
+
+```yaml
+otlphttp/loki:
+  endpoint: http://loki:3100/otlp
+  tls:
+    insecure: true
+  compression: gzip
+  encoding: proto
+  headers:
+    X-Scope-OrgID: tenant1
+  sending_queue:
+    enabled: true
+    num_consumers: 5
+    queue_size: 1000
+  retry_on_failure:
+    enabled: true
+    initial_interval: 5s
+    max_interval: 30s
+    max_elapsed_time: 5m
+```
+
 ## YAML-Only Serialization
 
 Unlike the vector API which supports both TOML and YAML, this API only uses YAML serialization tags. This is because OpenTelemetry Collector uses YAML for its configuration files.
@@ -116,5 +216,12 @@ go test -v
 
 ## References
 
+### Receivers
 - [OpenTelemetry Collector Contrib - FileLog Receiver](https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/receiver/filelogreceiver)
+
+### Exporters
+- [OpenTelemetry Collector - OTLP HTTP Exporter](https://github.com/open-telemetry/opentelemetry-collector/tree/main/exporter/otlphttpexporter)
+- [Grafana Loki - OTLP Ingestion](https://grafana.com/docs/loki/latest/send-data/otel/)
+
+### General
 - [OpenTelemetry Collector Configuration](https://opentelemetry.io/docs/collector/configuration/)

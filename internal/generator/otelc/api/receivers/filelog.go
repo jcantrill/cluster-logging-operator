@@ -45,15 +45,15 @@ type FileLog struct {
 	PreserveTrailingWhitespaces bool `yaml:"preserve_trailing_whitespaces,omitempty"`
 
 	// File attributes
-	IncludeFileName             bool `yaml:"include_file_name,omitempty"`              // Default: true
-	IncludeFilePath             bool `yaml:"include_file_path,omitempty"`              // Default: false
-	IncludeFileNameResolved     bool `yaml:"include_file_name_resolved,omitempty"`     // Default: false
-	IncludeFilePathResolved     bool `yaml:"include_file_path_resolved,omitempty"`     // Default: false
-	IncludeFileOwnerName        bool `yaml:"include_file_owner_name,omitempty"`        // Not Windows
-	IncludeFileOwnerGroupName   bool `yaml:"include_file_owner_group_name,omitempty"`  // Not Windows
-	IncludeFilePermissions      bool `yaml:"include_file_permissions,omitempty"`       // Not Windows
-	IncludeFileRecordNumber     bool `yaml:"include_file_record_number,omitempty"`     // Default: false
-	IncludeFileRecordOffset     bool `yaml:"include_file_record_offset,omitempty"`     // Default: false
+	IncludeFileName           bool `yaml:"include_file_name,omitempty"`             // Default: true
+	IncludeFilePath           bool `yaml:"include_file_path,omitempty"`             // Default: false
+	IncludeFileNameResolved   bool `yaml:"include_file_name_resolved,omitempty"`    // Default: false
+	IncludeFilePathResolved   bool `yaml:"include_file_path_resolved,omitempty"`    // Default: false
+	IncludeFileOwnerName      bool `yaml:"include_file_owner_name,omitempty"`       // Not Windows
+	IncludeFileOwnerGroupName bool `yaml:"include_file_owner_group_name,omitempty"` // Not Windows
+	IncludeFilePermissions    bool `yaml:"include_file_permissions,omitempty"`      // Not Windows
+	IncludeFileRecordNumber   bool `yaml:"include_file_record_number,omitempty"`    // Default: false
+	IncludeFileRecordOffset   bool `yaml:"include_file_record_offset,omitempty"`    // Default: false
 
 	// Multiline configuration
 	Multiline *Multiline `yaml:"multiline,omitempty"`
@@ -88,25 +88,25 @@ type Multiline struct {
 
 // Header metadata parsing configuration
 type Header struct {
-	Pattern           string     `yaml:"pattern"`             // Required: regex
+	Pattern           string     `yaml:"pattern"`            // Required: regex
 	MetadataOperators []Operator `yaml:"metadata_operators"` // Required: list of operators
 }
 
 // OrderingCriteria controls file processing order
 type OrderingCriteria struct {
-	Regex   string      `yaml:"regex,omitempty"`    // Regex with named capture groups
-	GroupBy string      `yaml:"group_by,omitempty"` // Regex with named capture groups
-	TopN    int         `yaml:"top_n,omitempty"`    // Number (default: 1)
+	Regex   string         `yaml:"regex,omitempty"`    // Regex with named capture groups
+	GroupBy string         `yaml:"group_by,omitempty"` // Regex with named capture groups
+	TopN    int            `yaml:"top_n,omitempty"`    // Number (default: 1)
 	SortBy  []SortCriteria `yaml:"sort_by,omitempty"`
 }
 
 // SortCriteria defines sorting rules for file ordering
 type SortCriteria struct {
-	RegexKey  string `yaml:"regex_key,omitempty"`  // Named capture group from regex
-	SortType  string `yaml:"sort_type,omitempty"`  // "numeric", "alphabetical", "timestamp", "mtime"
-	Location  string `yaml:"location,omitempty"`   // For timestamp sort_type
-	Format    string `yaml:"format,omitempty"`     // strptime format for timestamp sort_type
-	Ascending bool   `yaml:"ascending,omitempty"`  // Sort order (default: true)
+	RegexKey  string `yaml:"regex_key,omitempty"` // Named capture group from regex
+	SortType  string `yaml:"sort_type,omitempty"` // "numeric", "alphabetical", "timestamp", "mtime"
+	Location  string `yaml:"location,omitempty"`  // For timestamp sort_type
+	Format    string `yaml:"format,omitempty"`    // strptime format for timestamp sort_type
+	Ascending bool   `yaml:"ascending,omitempty"` // Sort order (default: true)
 }
 
 // RetryOnFailure configures retry behavior for downstream errors
@@ -127,10 +127,7 @@ type Operator struct {
 }
 
 func (r *FileLog) ReceiverType() types.ReceiverType {
-	if r.receiverType == "" {
-		r.receiverType = types.ReceiverTypeFileLog
-	}
-	return r.receiverType
+	return types.ReceiverTypeFileLog
 }
 
 // NewFileLog creates a new FileLog receiver with the given include patterns
