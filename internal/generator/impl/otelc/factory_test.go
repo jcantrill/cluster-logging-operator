@@ -66,7 +66,7 @@ var _ = Describe("Testing Complete Config Generation", func() {
 		if op == nil {
 			op = clusterOptions
 		}
-		conf := otelc.Conf(secrets, spec, constants.OpenshiftNS, "my-forwarder", factory.ForwarderResourceNames{CommonName: constants.CollectorName}, op)
+		conf := otelc.NewConfig(secrets, spec, constants.OpenshiftNS, "my-forwarder", factory.ForwarderResourceNames{CommonName: constants.CollectorName}, op)
 		Expect(exp).To(MatchYAML(yaml.MustMarshal(conf)))
 	},
 		Entry("with complex spec",

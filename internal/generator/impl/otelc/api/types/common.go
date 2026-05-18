@@ -1,7 +1,7 @@
 package types
 
-// TLSClientConfig contains TLS client configuration
-type TLSClientConfig struct {
+// TlsClientConfig contains TLS client configuration
+type TlsClientConfig struct {
 	Insecure           bool   `yaml:"insecure,omitempty"`             // Disable TLS verification
 	CAFile             string `yaml:"ca_file,omitempty"`              // Path to CA certificate file
 	CertFile           string `yaml:"cert_file,omitempty"`            // Path to client certificate file

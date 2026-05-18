@@ -15,7 +15,7 @@ func New(o *adapters.Output, inputs []obs.InputSpec, secrets map[string]*corev1.
 
 	switch o.Type {
 	case obs.OutputTypeLokiStack:
-		exporters.Merge(lokistack.New(o.Name, o.OutputSpec, inputs, secrets))
+		exporters.Merge(lokistack.New(o.Name, o.OutputSpec, inputs, secrets, op))
 	}
 	return exporters
 }

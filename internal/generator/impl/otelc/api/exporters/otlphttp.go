@@ -18,7 +18,7 @@ type OtlpHttp struct {
 	Endpoint string `yaml:"endpoint"`
 
 	// TLS configuration
-	TLS *types.TLSClientConfig `yaml:"tls,omitempty"`
+	TLS *types.TlsClientConfig `yaml:"tls,omitempty"`
 
 	// Timeout for HTTP requests (default: "30s")
 	Timeout string `yaml:"timeout,omitempty"`

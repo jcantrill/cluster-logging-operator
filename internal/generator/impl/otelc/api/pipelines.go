@@ -14,7 +14,7 @@ type Pipeline struct {
 	Exporters []string `yaml:"exporters,omitempty"`
 }
 
-func NewLogPipeline(name string) *Pipeline {
+func NewLogsPipeline(name string) *Pipeline {
 	return &Pipeline{
 		id:        types.MakeComponentID(string(types.PipelineTypeLogs), name),
 		Receivers: []string{},

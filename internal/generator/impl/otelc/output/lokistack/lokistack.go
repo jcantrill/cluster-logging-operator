@@ -10,6 +10,8 @@ import (
 	"github.com/openshift/cluster-logging-operator/internal/generator/impl/otelc/api"
 	"github.com/openshift/cluster-logging-operator/internal/generator/impl/otelc/api/exporters"
 	"github.com/openshift/cluster-logging-operator/internal/generator/impl/otelc/api/types"
+	"github.com/openshift/cluster-logging-operator/internal/generator/impl/otelc/helpers/tls"
+	"github.com/openshift/cluster-logging-operator/internal/utils"
 )
 
 // New creates OTLPHTTP exporters for LokiStack using OpenShift Logging tenancy model.
@@ -18,7 +20,7 @@ import (
 // Returns:
 //   - exporterIDs: map of tenant -> exporter ID
 //   - exporters: map of exporter ID -> configured OTLPHTTP exporter
-func New(id string, o obs.OutputSpec, inputSpecs []obs.InputSpec, secrets observability.Secrets) (exportersMap api.Exporters) {
+func New(id string, o obs.OutputSpec, inputSpecs []obs.InputSpec, secrets observability.Secrets, op utils.Options) (exportersMap api.Exporters) {
 	if o.LokiStack == nil {
 		panic("LokiStack output spec is nil")
 	}
@@ -33,7 +35,7 @@ func New(id string, o obs.OutputSpec, inputSpecs []obs.InputSpec, secrets observ
 		exporterID := helpers.MakeID(id, tenant)
 
 		// Generate OTLPHTTP exporter for this tenant
-		exporter := generateExporterForTenant(exporterID, o, tenant, secrets)
+		exporter := generateExporterForTenant(exporterID, o, tenant, secrets, op)
 		exportersMap[exporter.ID()] = exporter
 	}
 
@@ -41,7 +43,7 @@ func New(id string, o obs.OutputSpec, inputSpecs []obs.InputSpec, secrets observ
 }
 
 // generateExporterForTenant creates an OTLPHTTP exporter configured for a specific tenant.
-func generateExporterForTenant(exporterID string, o obs.OutputSpec, tenant string, secrets observability.Secrets) *exporters.OtlpHttp {
+func generateExporterForTenant(exporterID string, o obs.OutputSpec, tenant string, secrets observability.Secrets, op utils.Options) *exporters.OtlpHttp {
 	// Build the LokiStack OTLP endpoint URL for this tenant
 	url := lokistack.OtlpURL(o.LokiStack, tenant)
 	if url == "" {
@@ -67,7 +69,7 @@ func generateExporterForTenant(exporterID string, o obs.OutputSpec, tenant strin
 
 	// Configure TLS if specified
 	if o.TLS != nil {
-		exporter.TLS = convertOutputTLSSpec(o.TLS)
+		exporter.TLS = tls.NewTlsClientConfig(o.TLS, op)
 	}
 
 	// Apply tuning configuration
@@ -76,40 +78,6 @@ func generateExporterForTenant(exporterID string, o obs.OutputSpec, tenant strin
 	}
 
 	return exporter
-}
-
-// convertOutputTLSSpec converts observability OutputTLSSpec to OTLP TLSClientConfig.
-func convertOutputTLSSpec(tls *obs.OutputTLSSpec) *types.TLSClientConfig {
-	if tls == nil {
-		return nil
-	}
-
-	config := &types.TLSClientConfig{
-		InsecureSkipVerify: tls.InsecureSkipVerify,
-	}
-
-	// Handle CA certificate
-	if tls.CA != nil {
-		if tls.CA.ConfigMapName != "" {
-			config.CAFile = fmt.Sprintf("%s.%s", tls.CA.ConfigMapName, tls.CA.Key)
-		} else if tls.CA.SecretName != "" {
-			config.CAFile = fmt.Sprintf("%s.%s", tls.CA.SecretName, tls.CA.Key)
-		}
-	}
-
-	// Handle client certificate
-	if tls.Certificate != nil {
-		if tls.Certificate.SecretName != "" {
-			config.CertFile = fmt.Sprintf("%s.%s", tls.Certificate.SecretName, tls.Certificate.Key)
-		}
-	}
-
-	// Handle client key
-	if tls.Key != nil && tls.Key.SecretName != "" {
-		config.KeyFile = fmt.Sprintf("%s.%s", tls.Key.SecretName, tls.Key.Key)
-	}
-
-	return config
 }
 
 // applyLokiTuning applies LokiStack tuning configuration to the OTLPHTTP exporter.

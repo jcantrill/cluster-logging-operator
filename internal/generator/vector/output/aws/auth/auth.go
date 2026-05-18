@@ -4,6 +4,7 @@ import (
 	"strings"
 
 	obs "github.com/openshift/cluster-logging-operator/api/observability/v1"
+	"github.com/openshift/cluster-logging-operator/internal/api/observability"
 	"github.com/openshift/cluster-logging-operator/internal/collector/aws"
 	"github.com/openshift/cluster-logging-operator/internal/constants"
 	"github.com/openshift/cluster-logging-operator/internal/generator/framework"
@@ -35,7 +36,7 @@ func New(outputName string, auth *obs.AwsAuthentication, options utils.Options) 
 	case obs.AwsAuthTypeIAMRole:
 		if forwarderName, found := utils.GetOption(options, framework.OptionForwarderName, ""); found {
 			// For OIDC roles we mount a configMap containing a credentials file
-			a.CredentialsFile = strings.Trim(vectorhelpers.ConfigPath(forwarderName+"-"+constants.AwsCredentialsConfigMapName, constants.AwsCredentialsKey), `"`)
+			a.CredentialsFile = strings.Trim(observability.ConfigPath(forwarderName+"-"+constants.AwsCredentialsConfigMapName, constants.AwsCredentialsKey), `"`)
 			a.Profile = "output_" + outputName
 		}
 	}

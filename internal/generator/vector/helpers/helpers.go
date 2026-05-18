@@ -2,15 +2,12 @@ package helpers
 
 import (
 	"fmt"
-	"path/filepath"
 	"regexp"
 	"strings"
 	"sync"
 
 	log "github.com/ViaQ/logerr/v2/log/static"
 	v1 "github.com/openshift/cluster-logging-operator/api/observability/v1"
-	"github.com/openshift/cluster-logging-operator/internal/constants"
-
 	"golang.org/x/sys/unix"
 )
 
@@ -52,6 +49,7 @@ func ListenOnAllLocalInterfacesAddress() string {
 	return listenAllAddress
 }
 
+<<<<<<< HEAD
 // ConfigPath is the quoted path for any configmap visible to the collector
 func ConfigPath(name string, file string, formatter ...string) string {
 	formatString := "%q"

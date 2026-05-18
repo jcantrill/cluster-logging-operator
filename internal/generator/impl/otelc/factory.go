@@ -13,7 +13,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 )
 
-func Conf(secrets map[string]*corev1.Secret, clfspec obs.ClusterLogForwarderSpec, namespace, forwarderName string, resNames factory.ForwarderResourceNames, op utils.Options) (config *api.Config) {
+func NewConfig(secrets map[string]*corev1.Secret, clfspec obs.ClusterLogForwarderSpec, namespace, forwarderName string, resNames factory.ForwarderResourceNames, op utils.Options) (config *api.Config) {
 
 	config = api.NewConfig()
 
@@ -36,7 +36,7 @@ func Conf(secrets map[string]*corev1.Secret, clfspec obs.ClusterLogForwarderSpec
 
 	for _, p := range clfspec.Pipelines {
 
-		pipeline := api.NewLogPipeline(p.Name)
+		pipeline := api.NewLogsPipeline(p.Name)
 		for _, inputRefs := range p.InputRefs {
 			receivers := inputsToReceivers[inputRefs]
 			for _, rec := range receivers {

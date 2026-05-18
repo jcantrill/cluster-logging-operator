@@ -99,7 +99,7 @@ func ExampleOtlpHttp() {
 	otlphttp.Headers = map[string]string{
 		"X-Scope-OrgID": "tenant1",
 	}
-	otlphttp.TLS = &types.TLSClientConfig{
+	otlphttp.TLS = &types.TlsClientConfig{
 		Insecure: true,
 	}
 

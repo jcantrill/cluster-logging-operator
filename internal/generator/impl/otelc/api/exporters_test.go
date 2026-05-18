@@ -19,7 +19,7 @@ var _ = Describe("Exporters", func() {
 			exporter.Headers = map[string]string{
 				"X-Scope-OrgID": "tenant1",
 			}
-			exporter.TLS = &types.TLSClientConfig{
+			exporter.TLS = &types.TlsClientConfig{
 				Insecure: true,
 			}
 
