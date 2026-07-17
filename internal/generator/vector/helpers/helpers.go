@@ -49,25 +49,6 @@ func ListenOnAllLocalInterfacesAddress() string {
 	return listenAllAddress
 }
 
-<<<<<<< HEAD
-// ConfigPath is the quoted path for any configmap visible to the collector
-func ConfigPath(name string, file string, formatter ...string) string {
-	formatString := "%q"
-	if len(formatter) > 0 {
-		formatString = formatter[0]
-	}
-	return fmt.Sprintf(formatString, filepath.Join(constants.ConfigMapBaseDir, name, file))
-}
-
-// SecretPath is the quoted path for any secret visible to the collector
-func SecretPath(secretName string, file string, formatter ...string) string {
-	formatString := "%q"
-	if len(formatter) > 0 {
-		formatString = formatter[0]
-	}
-	return fmt.Sprintf(formatString, filepath.Join(constants.CollectorSecretsDir, secretName, file))
-}
-
 // SecretFrom formatted string SECRET[<secret_component_id>.<secret_name>#<secret_key>]
 func SecretFrom(secretKey *v1.SecretReference) string {
 	if secretKey != nil && secretKey.SecretName != "" && secretKey.Key != "" {
