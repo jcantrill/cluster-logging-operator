@@ -21,5 +21,5 @@ const (
 	AnnotationMaxUnavailable = "observability.openshift.io/max-unavailable-rollout"
 
 	// AnnotationCollectorType selects the collector implementation. Supported values: "vector" (default), "otelcol".
-	AnnotationCollectorType = "observability.openshift.io/logging/dev-preview-collector-type"
+	AnnotationCollectorType = "observability.openshift.io/dev-preview-logging-collector-type"
 )

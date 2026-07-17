@@ -2,6 +2,7 @@ package vector
 
 import (
 	"github.com/openshift/cluster-logging-operator/internal/collector/common"
+	"github.com/openshift/cluster-logging-operator/internal/constants"
 	"github.com/openshift/cluster-logging-operator/internal/factory"
 	"github.com/openshift/cluster-logging-operator/internal/runtime"
 	"github.com/openshift/cluster-logging-operator/internal/utils"
@@ -31,6 +32,7 @@ func CollectorVisitor(collectorContainer *corev1.Container, podSpec *corev1.PodS
 
 	collectorContainer.Command = []string{"sh"}
 	collectorContainer.Args = []string{entrypointValue}
+	collectorContainer.Image = utils.GetComponentImage(constants.VectorName)
 
 	podSpec.Volumes = append(podSpec.Volumes,
 		corev1.Volume{Name: common.ConfigVolumeName, VolumeSource: corev1.VolumeSource{ConfigMap: &corev1.ConfigMapVolumeSource{LocalObjectReference: corev1.LocalObjectReference{Name: resNames.ConfigMap}}}},

@@ -37,7 +37,7 @@ const (
 
 	InjectTrustedCABundleLabel = "config.openshift.io/inject-trusted-cabundle"
 
-	ComponentNameOtelc = "otelc"
+	ComponentNameOtelc = "otelcol"
 	VectorName         = "vector"
 
 	//ServiceAccountSecretPath is the path to find the projected serviceAccount token and other SA secrets

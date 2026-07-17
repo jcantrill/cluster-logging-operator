@@ -3,7 +3,7 @@ package types
 type ReceiverType string
 
 const (
-	ReceiverTypeFileLog ReceiverType = "file_log"
+	ReceiverTypeFileLog ReceiverType = "filelog"
 )
 
 // Receiver is an OpenTelemetry Collector receiver for signals coming into the collector

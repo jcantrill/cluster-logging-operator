@@ -119,7 +119,7 @@ func ReconcileCollector(context internalcontext.ForwarderContext, pollInterval, 
 		context.Forwarder.Annotations,
 	)
 
-	if err = collectorFactory.ReconcileCollectorConfig(context.Client, context.Reader, context.Forwarder.Namespace, collectorConfig, ownerRef); err != nil {
+	if err = collectorFactory.ReconcileConfig(context.Client, context.Reader, context.Forwarder.Namespace, collectorConfig, ownerRef); err != nil {
 		log.Error(err, "collector.ReconcileCollectorConfig")
 		return
 	}
@@ -179,7 +179,8 @@ func GenerateConfig(k8Client client.Client, clf obs.ClusterLogForwarder, resourc
 	tlsProfile, _ := tls.FetchAPIServerTlsProfile(k8Client)
 	op[framework.ClusterTLSProfileSpec] = tls.GetClusterTLSProfileSpec(tlsProfile)
 	EvaluateAnnotationsForEnabledCapabilities(clf.Annotations, op)
-	collectorType, _ := utils.GetOption(op, constants.AnnotationCollectorType, constants.ComponentNameOtelc)
+	collectorType, _ := utils.GetOption(utils.NewOptionsFrom(clf.Annotations), constants.AnnotationCollectorType, constants.VectorName)
+	log.V(3).Info("collectorType", "collectorType", collectorType, "annotations", clf.Annotations)
 	g := forwardergenerator.New(collectorType)
 	generatedConfig, err := g.GenerateConf(secrets, clf.Spec, clf.Namespace, clf.Name, resourceNames, op)
 

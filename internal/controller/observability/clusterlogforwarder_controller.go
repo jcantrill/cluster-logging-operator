@@ -5,6 +5,8 @@ import (
 	"encoding/json"
 	"time"
 
+	"github.com/openshift/cluster-logging-operator/internal/constants"
+	"github.com/openshift/cluster-logging-operator/internal/runtime/daemonset"
 	v1 "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
 	appsv1 "k8s.io/api/apps/v1"
 	networkingv1 "k8s.io/api/networking/v1"
@@ -116,7 +118,7 @@ func (r *ClusterLogForwarderReconciler) Reconcile(_ context.Context, req ctrl.Re
 		return defaultRequeue, err
 	}
 
-	if err = RemoveStaleWorkload(cxt.Client, cxt.Forwarder); err != nil {
+	if err = RemoveStaleWorkload(cxt.Client, cxt.Forwarder); err != nil && !errors.IsNotFound(err) {
 		readyCond.Reason = obsv1.ReasonFailureToRemoveStaleWorkload
 		readyCond.Message = err.Error()
 		return defaultRequeue, err
@@ -138,8 +140,14 @@ func (r *ClusterLogForwarderReconciler) Reconcile(_ context.Context, req ctrl.Re
 // RemoveStaleWorkload removes existing workload if the ClusterLogForwarder was modified such that the deployment will change
 // from a daemonSet to a deployment or vice versa
 func RemoveStaleWorkload(k8Client client.Client, forwarder *obsv1.ClusterLogForwarder) error {
+	ds, err := daemonset.Get(k8Client, forwarder.Namespace, forwarder.Name)
+	if err != nil {
+		return err
+	}
+	currentCollector := ds.Annotations[constants.LabelK8sName]
+	desiredCollector := forwarder.Annotations[constants.AnnotationCollectorType]
 	remove := collector.RemoveDeployment
-	if internalobs.DeployAsDeployment(*forwarder) {
+	if internalobs.DeployAsDeployment(*forwarder) || currentCollector != desiredCollector {
 		remove = collector.Remove
 	}
 	return remove(k8Client, forwarder.Namespace, forwarder.Name)

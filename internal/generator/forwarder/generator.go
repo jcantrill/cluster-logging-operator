@@ -10,6 +10,7 @@ import (
 	"github.com/openshift/cluster-logging-operator/internal/generator/vector/conf"
 	"github.com/openshift/cluster-logging-operator/internal/utils"
 	"github.com/openshift/cluster-logging-operator/internal/utils/toml"
+	"github.com/openshift/cluster-logging-operator/internal/utils/yaml"
 
 	corev1 "k8s.io/api/core/v1"
 )
@@ -29,11 +30,13 @@ func (cg *ConfigGenerator) GenerateConf(secrets map[string]*corev1.Secret, clfsp
 	var config interface{}
 	switch cg.collectorType {
 	case constants.ComponentNameOtelc:
-		config = conf.Conf(secrets, clfspec, namespace, forwarderName, resNames, op)
-	case constants.VectorName:
 		config = otelc.NewConfig(secrets, clfspec, namespace, forwarderName, resNames, op)
+		content, err := yaml.Marshal(config)
+		return string(content), err
+	case constants.VectorName:
+		config = conf.Conf(secrets, clfspec, namespace, forwarderName, resNames, op)
+		return toml.Marshal(config)
 	default:
-		return "", fmt.Errorf("unknown collector type %s", cg.collectorType)
+		return "", fmt.Errorf("unknown collector type: %s", cg.collectorType)
 	}
-	return toml.Marshal(config)
 }

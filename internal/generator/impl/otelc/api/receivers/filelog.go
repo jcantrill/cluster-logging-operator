@@ -30,7 +30,7 @@ type FileLog struct {
 
 	// Buffer and size limits
 	InitialBufferSize  string `yaml:"initial_buffer_size,omitempty"`   // Size (default: "16KiB")
-	MaxLogSize         string `yaml:"max_log_size,omitempty"`          // Size (default: "1MiB")
+	MaxLogSize         int64  `yaml:"max_log_size,omitempty"`          // Size (default: "1MiB")
 	MaxLogSizeBehavior string `yaml:"max_log_size_behavior,omitempty"` // "split" or "truncate" (default: "split")
 
 	// Concurrency

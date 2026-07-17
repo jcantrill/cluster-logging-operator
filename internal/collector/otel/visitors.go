@@ -4,7 +4,9 @@ import (
 	"path"
 
 	"github.com/openshift/cluster-logging-operator/internal/collector/common"
+	"github.com/openshift/cluster-logging-operator/internal/constants"
 	"github.com/openshift/cluster-logging-operator/internal/factory"
+	"github.com/openshift/cluster-logging-operator/internal/utils"
 	corev1 "k8s.io/api/core/v1"
 )
 
@@ -19,6 +21,7 @@ func CollectorVisitor(collectorContainer *corev1.Container, podSpec *corev1.PodS
 		corev1.VolumeMount{Name: common.DataDir, ReadOnly: false, MountPath: dataPath},
 	)
 
+	collectorContainer.Image = utils.GetComponentImage(constants.ComponentNameOtelc)
 	collectorContainer.Command = []string{"/otelcol-contrib"}
 	collectorContainer.Args = []string{"--config=" + path.Join(configPath, ConfigFile)}
 

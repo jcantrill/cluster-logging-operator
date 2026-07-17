@@ -116,7 +116,7 @@ func New(spec obs.InputSpec) (receiver *receivers.FileLog) {
 
 	// Set max log size (converted from bytes)
 	maxLogSizeQuantity := resource.NewQuantity(maxMsgSize, resource.BinarySI)
-	receiver.MaxLogSize = maxLogSizeQuantity.String()
+	receiver.MaxLogSize, _ = maxLogSizeQuantity.AsInt64()
 
 	// Add CRI-O parsing operators
 	// TODO get clusterID
