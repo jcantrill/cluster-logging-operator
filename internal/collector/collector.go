@@ -4,7 +4,10 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/openshift/cluster-logging-operator/internal/collector/otel"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	log "github.com/ViaQ/logerr/v2/log/static"
 	"github.com/openshift/cluster-logging-operator/internal/auth"
@@ -53,15 +56,21 @@ const (
 	tmpPath                                    = "/tmp"
 )
 
+// Visitor is function for modifying a specific container of a pod
 type Visitor func(collector *v1.Container, podSpec *v1.PodSpec, resNames *factory.ForwarderResourceNames, namespace, logLevel string)
 type CommonLabelVisitor func(o runtime.Object)
 type PodLabelVisitor func(o runtime.Object)
 
 type Factory struct {
-	ConfigHash             string
-	CollectorSpec          obs.CollectorSpec
-	ClusterID              string
-	ImageName              string
+	ConfigHash    string
+	CollectorSpec obs.CollectorSpec
+	ClusterID     string
+	ImageName     string
+	CollectorType string
+
+	ReconcileConfig func(k8sClient client.Client, reader client.Reader, namespace, collectorConfig string, ownerRef metav1.OwnerReference) error
+
+	// Visit provides a collector specific way to modify the collector container
 	Visit                  Visitor
 	Secrets                internalobs.Secrets
 	ConfigMaps             internalobs.ConfigMaps
@@ -107,29 +116,40 @@ func New(confHash, clusterID string, collectorSpec *obs.CollectorSpec, secrets i
 	if collectorSpec == nil {
 		collectorSpec = &obs.CollectorSpec{}
 	}
+	collectorImpl, _ := utils.GetOption(utils.NewOptionsFrom(annotations), constants.AnnotationCollectorType, constants.VectorName)
+	labelInitializer := func(o runtime.Object) {
+		runtime.SetCommonLabels(o, collectorImpl, resNames.ForwarderName, constants.CollectorName)
+	}
 	factory := &Factory{
-		ClusterID:     clusterID,
-		ConfigHash:    confHash,
-		CollectorSpec: *collectorSpec,
-		ImageName:     constants.VectorName,
-		Visit:         vector.CollectorVisitor,
-		ConfigMaps:    configMaps,
-		Secrets:       secrets,
-		ForwarderSpec: forwarderSpec,
-		CommonLabelInitializer: func(o runtime.Object) {
-			runtime.SetCommonLabels(o, constants.VectorName, resNames.ForwarderName, constants.CollectorName)
-		},
-		ResourceNames:   resNames,
-		PodLabelVisitor: vector.PodLogExcludeLabel,
-		isDaemonset:     isDaemonset,
-		annotations:     annotations,
+		ClusterID:              clusterID,
+		ConfigHash:             confHash,
+		CollectorSpec:          *collectorSpec,
+		CollectorType:          collectorImpl,
+		ImageName:              collectorImpl,
+		Visit:                  vector.CollectorVisitor,
+		ConfigMaps:             configMaps,
+		Secrets:                secrets,
+		ForwarderSpec:          forwarderSpec,
+		CommonLabelInitializer: labelInitializer,
+		ResourceNames:          resNames,
+		PodLabelVisitor:        vector.PodLogExcludeLabel,
+		isDaemonset:            isDaemonset,
+		annotations:            annotations,
+	}
+	factory.ReconcileConfig = factory.ReconcileCollectorConfig
+	if collectorImpl == constants.ComponentNameOtelc {
+		factory.Visit = otel.CollectorVisitor
+		factory.PodLabelVisitor = nil
+		factory.ReconcileConfig = func(k8sClient client.Client, reader client.Reader, namespace, collectorConfig string, ownerRef metav1.OwnerReference) error {
+			return otel.ReconcileCollectorConfig(k8sClient, reader, *factory.ResourceNames, namespace, collectorConfig, ownerRef, factory.CommonLabelInitializer)
+		}
 	}
 	return factory
 }
 
 func (f *Factory) NewDaemonSet(namespace, name string, trustedCABundle *v1.ConfigMap, tlsProfileSpec configv1.TLSProfileSpec) *apps.DaemonSet {
 	podSpec := f.NewPodSpec(trustedCABundle, f.ForwarderSpec, f.ClusterID, tlsProfileSpec, namespace)
-	ds := factory.NewDaemonSet(namespace, name, name, constants.CollectorName, constants.VectorName, f.MaxUnavailable(), *podSpec, f.CommonLabelInitializer, f.PodLabelVisitor)
+	ds := factory.NewDaemonSet(namespace, name, name, constants.CollectorName, f.CollectorType, f.MaxUnavailable(), *podSpec, f.CommonLabelInitializer, f.PodLabelVisitor)
 	ds.Spec.Template.Annotations[constants.AnnotationSecretHash] = f.Secrets.Hash64a()
 	ds.Spec.Template.Annotations[constants.AnnotationConfigMapHash] = f.ConfigMaps.Hash64a()
 	return ds
@@ -137,7 +157,7 @@ func (f *Factory) NewDaemonSet(namespace, name string, trustedCABundle *v1.Confi
 
 func (f *Factory) NewDeployment(namespace, name string, trustedCABundle *v1.ConfigMap, tlsProfileSpec configv1.TLSProfileSpec) *apps.Deployment {
 	podSpec := f.NewPodSpec(trustedCABundle, f.ForwarderSpec, f.ClusterID, tlsProfileSpec, namespace)
-	dpl := factory.NewDeployment(namespace, name, constants.CollectorName, constants.VectorName, 2, *podSpec, f.CommonLabelInitializer, f.PodLabelVisitor)
+	dpl := factory.NewDeployment(namespace, name, constants.CollectorName, f.CollectorType, 2, *podSpec, f.CommonLabelInitializer, f.PodLabelVisitor)
 	dpl.Spec.Template.Annotations[constants.AnnotationSecretHash] = f.Secrets.Hash64a()
 	dpl.Spec.Template.Annotations[constants.AnnotationConfigMapHash] = f.ConfigMaps.Hash64a()
 	return dpl

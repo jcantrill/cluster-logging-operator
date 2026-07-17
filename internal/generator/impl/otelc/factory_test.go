@@ -3,6 +3,7 @@ package otelc_test
 import (
 	_ "embed"
 	"fmt"
+	"os"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -67,7 +68,8 @@ var _ = Describe("Testing Complete Config Generation", func() {
 			op = clusterOptions
 		}
 		conf := otelc.NewConfig(secrets, spec, constants.OpenshiftNS, "my-forwarder", factory.ForwarderResourceNames{CommonName: constants.CollectorName}, op)
-		Expect(exp).To(MatchYAML(yaml.MustMarshal(conf)))
+		os.WriteFile("/tmp/act.yaml", []byte(yaml.MustMarshal(conf)), 0600)
+		Expect(yaml.MustMarshal(conf)).To(MatchYAML(exp))
 	},
 		Entry("with complex spec",
 			"complex.yaml",

@@ -1,5 +1,30 @@
-exporters: {}
-receivers: {}
+receivers:
+  file_log/input_mytestapp_container:
+    include:
+      - /var/log/pods/test-ns_*/*/*.log
+    exclude:
+      - /var/log/pods/*/*/*.gz
+      - /var/log/pods/*/*/*.log.*
+      - /var/log/pods/*/*/*.tmp
+      - /var/log/pods/default_*/*/*.log
+      - /var/log/pods/kube*_*/*/*.log
+      - /var/log/pods/openshift*_*/*/*.log
+    start_at: end
+    max_log_size: 3Mi
+    include_file_path: true
+exporters:
+  otlp_http/output_default_lokistack_application:
+    endpoint: https://logging-loki-gateway-http.openshift-logging.svc:8080/api/logs/v1/application/otlp/v1/logs
+    tls:
+      ca_file: /var/run/ocp-collector/config/openshift-service-ca.crt/ca-bundle.crt
+  otlp_http/output_default_lokistack_audit:
+    endpoint: https://logging-loki-gateway-http.openshift-logging.svc:8080/api/logs/v1/audit/otlp/v1/logs
+    tls:
+      ca_file: /var/run/ocp-collector/config/openshift-service-ca.crt/ca-bundle.crt
+  otlp_http/output_default_lokistack_infrastructure:
+    endpoint: https://logging-loki-gateway-http.openshift-logging.svc:8080/api/logs/v1/infrastructure/otlp/v1/logs
+    tls:
+      ca_file: /var/run/ocp-collector/config/openshift-service-ca.crt/ca-bundle.crt
 service:
   pipelines:
     logs/pipeline:
@@ -7,6 +32,6 @@ service:
         - file_log/input_infrastructure_container
         - file_log/input_mytestapp_container
       exporters:
-        - otlphttp/output_default_lokistack_application
-        - otlphttp/output_default_lokistack_audit
-        - otlphttp/output_default_lokistack_infrastructure
+        - otlp_http/output_default_lokistack_application
+        - otlp_http/output_default_lokistack_audit
+        - otlp_http/output_default_lokistack_infrastructure

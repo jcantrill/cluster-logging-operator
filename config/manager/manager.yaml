@@ -55,3 +55,5 @@ spec:
             value: quay.io/openshift-logging/vector:v0.54.0
           - name: RELATED_IMAGE_LOG_FILE_METRIC_EXPORTER
             value: quay.io/openshift-logging/log-file-metric-exporter:latest
+          - name: RELATED_IMAGE_OTEL_COLLECTOR
+            value: ghcr.io/open-telemetry/opentelemetry-collector-releases/opentelemetry-collector-contrib:0.127.0

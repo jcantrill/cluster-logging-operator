@@ -6,6 +6,7 @@ import (
 
 	obs "github.com/openshift/cluster-logging-operator/api/observability/v1"
 	"github.com/openshift/cluster-logging-operator/internal/api/initialize"
+	"github.com/openshift/cluster-logging-operator/internal/constants"
 	"github.com/openshift/cluster-logging-operator/internal/factory"
 	forwardergenerator "github.com/openshift/cluster-logging-operator/internal/generator/forwarder"
 	"github.com/openshift/cluster-logging-operator/internal/generator/framework"
@@ -51,7 +52,7 @@ func Generate(clfYaml string, debugOutput bool, client client.Client) (string, e
 	//k8shandler.EvaluateAnnotationsForEnabledCapabilities(forwarder.Annotations, op)
 	op[framework.ClusterTLSProfileSpec] = tls.GetClusterTLSProfileSpec(nil)
 
-	configGenerator := forwardergenerator.New()
+	configGenerator := forwardergenerator.New(constants.VectorName)
 	if configGenerator == nil {
 		return "", errors.New("unsupported collector implementation")
 	}

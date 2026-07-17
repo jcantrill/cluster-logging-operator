@@ -32,7 +32,7 @@ func New(id string, o obs.OutputSpec, inputSpecs []obs.InputSpec, secrets observ
 
 	// Create an exporter for each tenant
 	for _, tenant := range tenants {
-		exporterID := helpers.MakeID(id, tenant)
+		exporterID := helpers.MakeOutputID(id, tenant)
 
 		// Generate OTLPHTTP exporter for this tenant
 		exporter := generateExporterForTenant(exporterID, o, tenant, secrets, op)

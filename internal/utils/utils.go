@@ -28,8 +28,9 @@ var (
 	DefaultNodeSelector = map[string]string{OsNodeLabel: LinuxValue}
 )
 
-// COMPONENT_IMAGES are keys based on the "container name" + "-{image,version}"
-var COMPONENT_IMAGES = map[string]string{
+// ComponentImages are keys based on the "container name" + "-{image,version}"
+var ComponentImages = map[string]string{
+	constants.ComponentNameOtelc:         constants.OtelcImageEnvVar,
 	constants.VectorName:                 constants.VectorImageEnvVar,
 	constants.LogfilesmetricexporterName: constants.LogfilesmetricImageEnvVar,
 }
@@ -141,7 +142,7 @@ func AddOwnerRefToObject(object metav1.Object, ownerRef metav1.OwnerReference) {
 // based on the component type
 func GetComponentImage(component string) string {
 
-	envVarName, ok := COMPONENT_IMAGES[component]
+	envVarName, ok := ComponentImages[component]
 	if !ok {
 		log.Error(errors.New("can not get component image"), "Environment variable name mapping missing for component", "component", component)
 		return ""

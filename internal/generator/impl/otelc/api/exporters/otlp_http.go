@@ -76,7 +76,7 @@ func (e *OtlpHttp) ExporterType() types.ExporterType {
 // For Loki v3+, use the OTLP endpoint: http://loki:3100/otlp
 func NewOtlpHttp(name, endpoint string) *OtlpHttp {
 	return &OtlpHttp{
-		id:       types.MakeComponentID(string(types.ExporterTypeOTLPHTTP), name),
+		id:       types.MakeComponentID(string(types.ExporterTypeOtlpHttp), name),
 		Endpoint: endpoint,
 	}
 }

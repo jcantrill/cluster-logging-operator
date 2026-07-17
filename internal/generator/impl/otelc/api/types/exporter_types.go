@@ -3,7 +3,7 @@ package types
 type ExporterType string
 
 const (
-	ExporterTypeOTLPHTTP ExporterType = "otlphttp"
+	ExporterTypeOtlpHttp ExporterType = "otlp_http"
 )
 
 // Exporter is an OpenTelemetry Collector exporter for sending signals out of the collector

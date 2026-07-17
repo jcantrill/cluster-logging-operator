@@ -175,11 +175,12 @@ func ReconcileCollector(context internalcontext.ForwarderContext, pollInterval, 
 	return nil
 }
 
-func GenerateConfig(k8Client client.Client, clf obs.ClusterLogForwarder, resourceNames factory.ForwarderResourceNames, secrets internalobs.Secrets, op framework.Options) (config string, err error) {
+func GenerateConfig(k8Client client.Client, clf obs.ClusterLogForwarder, resourceNames factory.ForwarderResourceNames, secrets internalobs.Secrets, op utils.Options) (config string, err error) {
 	tlsProfile, _ := tls.FetchAPIServerTlsProfile(k8Client)
 	op[framework.ClusterTLSProfileSpec] = tls.GetClusterTLSProfileSpec(tlsProfile)
 	EvaluateAnnotationsForEnabledCapabilities(clf.Annotations, op)
-	g := forwardergenerator.New()
+	collectorType, _ := utils.GetOption(op, constants.AnnotationCollectorType, constants.ComponentNameOtelc)
+	g := forwardergenerator.New(collectorType)
 	generatedConfig, err := g.GenerateConf(secrets, clf.Spec, clf.Namespace, clf.Name, resourceNames, op)
 
 	if err != nil {
@@ -192,7 +193,7 @@ func GenerateConfig(k8Client client.Client, clf obs.ClusterLogForwarder, resourc
 }
 
 // EvaluateAnnotationsForEnabledCapabilities populates generator options with capabilities enabled by the ClusterLogForwarder
-func EvaluateAnnotationsForEnabledCapabilities(annotations map[string]string, options framework.Options) {
+func EvaluateAnnotationsForEnabledCapabilities(annotations map[string]string, options utils.Options) {
 	if annotations == nil {
 		return
 	}

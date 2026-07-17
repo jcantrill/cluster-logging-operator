@@ -12,6 +12,17 @@ type Options map[string]interface{}
 // NoOptions is used to pass empty options
 var NoOptions = Options{}
 
+// NewOptionsFrom constructs options from map of strings
+func NewOptionsFrom(source map[string]string) Options {
+	options := map[string]interface{}{}
+	if source != nil {
+		for k, v := range source {
+			options[k] = v
+		}
+	}
+	return options
+}
+
 // Has takes a key and returns true if it exists
 func (o Options) Has(key string) bool {
 	_, found := o[key]

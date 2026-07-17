@@ -9,7 +9,6 @@ import (
 	lokioutput "github.com/openshift/cluster-logging-operator/internal/generator/vector/output/loki"
 )
 
-
 // GenerateOutput returns either a Loki or OTLP output spec when migrating Lokistacks
 func GenerateOutput(outSpec obs.OutputSpec, tenant string) obs.OutputSpec {
 	obsOut := obs.OutputSpec{

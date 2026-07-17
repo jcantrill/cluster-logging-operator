@@ -23,7 +23,6 @@ const (
 	SharedKey                   = "shared_key"            // fluent forward
 	AwsSecretAccessKey          = "aws_secret_access_key" //nolint:gosec
 	AwsAccessKeyID              = "aws_access_key_id"
-	AwsRoleSessionName          = "cluster-logging" // identifier for role logging session
 	AwsCredentialsConfigMapName = "aws-creds"
 	AwsCredentialsKey           = "credentials" // credrequest key to check for sts-formatted secret
 	AwsWebIdentityRoleKey       = "role_arn"    // manual key to check for sts-formatted secret
@@ -38,13 +37,13 @@ const (
 
 	InjectTrustedCABundleLabel = "config.openshift.io/inject-trusted-cabundle"
 
+	ComponentNameOtelc = "otelc"
+	VectorName         = "vector"
+
 	//ServiceAccountSecretPath is the path to find the projected serviceAccount token and other SA secrets
 	ServiceAccountSecretPath          = "/var/run/ocp-collector/serviceaccount"
 	TrustedCABundleMountFile          = "tls-ca-bundle.pem"
 	TrustedCABundleMountDir           = "/etc/pki/ca-trust/extracted/pem/"
-	ElasticsearchName                 = "elasticsearch"
-	VectorName                        = "vector"
-	KibanaName                        = "kibana"
 	LogfilesmetricexporterName        = "logfilesmetricexporter"
 	LogfilesmetricexporterPort        = int32(2112)
 	MetricsPortName                   = "metrics"
@@ -55,14 +54,14 @@ const (
 	PodSecurityLabelEnforce           = "pod-security.kubernetes.io/enforce"
 	PodSecurityLabelValue             = "privileged"
 	// Disable gosec linter, complains "possible hard-coded secret"
-	CollectorSecretsDir         = "/var/run/ocp-collector/secrets" //nolint:gosec
-	ConfigMapBaseDir            = "/var/run/ocp-collector/config"
-	CollectorName               = "collector"
-	CollectorConfigSecretName   = "collector-config"
-	CollectorMetricSecretName   = "collector-metrics"
-	CollectorServiceAccountName = "logcollector"
-	CollectorTrustedCAName      = "collector-trusted-ca-bundle"
+	CollectorSecretsDir    = "/var/run/ocp-collector/secrets" //nolint:gosec
+	ConfigMapBaseDir       = "/var/run/ocp-collector/config"
+	CollectorName          = "collector"
+	CollectorTrustedCAName = "collector-trusted-ca-bundle"
 
+	// Operand images
+
+	OtelcImageEnvVar          = "RELATED_IMAGE_OTEL_COLLECTOR"
 	VectorImageEnvVar         = "RELATED_IMAGE_VECTOR"
 	LogfilesmetricImageEnvVar = "RELATED_IMAGE_LOG_FILE_METRIC_EXPORTER"
 
@@ -77,9 +76,7 @@ const (
 
 	OptimisticLockErrorMsg = "the object has been modified; please apply your changes to the latest version and try again"
 
-	HTTPReceiverPort   = 8443
-	HTTPFormat         = "kubeAPIAudit"
-	SyslogReceiverPort = 10514
+	HTTPFormat = "kubeAPIAudit"
 
 	DefaultHTTPPort  = int32(80)
 	DefaultHTTPSPort = int32(443)
