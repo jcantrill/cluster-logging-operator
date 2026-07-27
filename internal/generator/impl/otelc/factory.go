@@ -29,9 +29,10 @@ func NewConfig(secrets map[string]*corev1.Secret, clfspec obs.ClusterLogForwarde
 	for _, spec := range clfspec.Outputs {
 		o := adapters.NewOutput(spec)
 		// TODO fix inputs to the exporters
-		exporters := output.New(o, clfspec.Inputs, secrets, op)
+		exporters, extensions := output.New(o, clfspec.Inputs, secrets, op)
 		outputsToExporters[spec.Name] = exporters
 		config.AddExporters(exporters)
+		config.AddExtensions(extensions)
 	}
 
 	for _, p := range clfspec.Pipelines {

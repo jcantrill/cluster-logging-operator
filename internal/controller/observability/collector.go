@@ -98,7 +98,7 @@ func ReconcileCollector(context internalcontext.ForwarderContext, pollInterval, 
 		log.V(9).Error(err, "collector.GenerateConfig")
 		return err
 	}
-	log.V(3).Info("Generated collector config", "config", collectorConfig)
+	log.V(4).Info("Generated collector config", "config", collectorConfig)
 	var collectorConfHash string
 	collectorConfHash, err = utils.CalculateMD5Hash(collectorConfig)
 	if err != nil {

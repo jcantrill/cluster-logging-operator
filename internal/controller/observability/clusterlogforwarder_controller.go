@@ -144,10 +144,11 @@ func RemoveStaleWorkload(k8Client client.Client, forwarder *obsv1.ClusterLogForw
 	if err != nil {
 		return err
 	}
-	currentCollector := ds.Annotations[constants.LabelK8sName]
+	currentCollector := ds.Labels[constants.LabelK8sName]
 	desiredCollector := forwarder.Annotations[constants.AnnotationCollectorType]
 	remove := collector.RemoveDeployment
 	if internalobs.DeployAsDeployment(*forwarder) || currentCollector != desiredCollector {
+		log.V(3).Info("Removing stale workload", "currentImpl", currentCollector, "desiredImpl", desiredCollector)
 		remove = collector.Remove
 	}
 	return remove(k8Client, forwarder.Namespace, forwarder.Name)

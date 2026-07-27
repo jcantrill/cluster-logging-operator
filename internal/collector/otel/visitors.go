@@ -15,6 +15,13 @@ func CollectorVisitor(collectorContainer *corev1.Container, podSpec *corev1.PodS
 		corev1.EnvVar{Name: "OTEL_LOG_LEVEL", Value: logLevel},
 	)
 
+	if collectorContainer.SecurityContext != nil && collectorContainer.SecurityContext.Capabilities != nil {
+		collectorContainer.SecurityContext.Capabilities.Add = append(
+			collectorContainer.SecurityContext.Capabilities.Add,
+			"DAC_READ_SEARCH",
+		)
+	}
+
 	dataPath := GetDataPath(namespace, resNames.ForwarderName)
 	collectorContainer.VolumeMounts = append(collectorContainer.VolumeMounts,
 		corev1.VolumeMount{Name: common.ConfigVolumeName, ReadOnly: true, MountPath: configPath},

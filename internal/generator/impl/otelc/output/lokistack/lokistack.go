@@ -2,13 +2,17 @@ package lokistack
 
 import (
 	"fmt"
+	"strings"
 
 	obs "github.com/openshift/cluster-logging-operator/api/observability/v1"
-	"github.com/openshift/cluster-logging-operator/internal/api/observability"
+	internalobs "github.com/openshift/cluster-logging-operator/internal/api/observability"
+	"github.com/openshift/cluster-logging-operator/internal/constants"
 	"github.com/openshift/cluster-logging-operator/internal/generator/common/lokistack"
+	"github.com/openshift/cluster-logging-operator/internal/generator/framework"
 	"github.com/openshift/cluster-logging-operator/internal/generator/helpers"
 	"github.com/openshift/cluster-logging-operator/internal/generator/impl/otelc/api"
 	"github.com/openshift/cluster-logging-operator/internal/generator/impl/otelc/api/exporters"
+	"github.com/openshift/cluster-logging-operator/internal/generator/impl/otelc/api/extensions"
 	"github.com/openshift/cluster-logging-operator/internal/generator/impl/otelc/api/types"
 	"github.com/openshift/cluster-logging-operator/internal/generator/impl/otelc/helpers/tls"
 	"github.com/openshift/cluster-logging-operator/internal/utils"
@@ -18,34 +22,60 @@ import (
 // It generates one exporter per tenant (application, infrastructure, audit) based on the input types.
 //
 // Returns:
-//   - exporterIDs: map of tenant -> exporter ID
 //   - exporters: map of exporter ID -> configured OTLPHTTP exporter
-func New(id string, o obs.OutputSpec, inputSpecs []obs.InputSpec, secrets observability.Secrets, op utils.Options) (exportersMap api.Exporters) {
+//   - exts: map of extension ID -> configured extension (e.g. bearertokenauth)
+func New(id string, o obs.OutputSpec, inputSpecs []obs.InputSpec, secrets internalobs.Secrets, op utils.Options) (exportersMap api.Exporters, exts api.Extensions) {
 	if o.LokiStack == nil {
 		panic("LokiStack output spec is nil")
 	}
 
 	exportersMap = make(api.Exporters)
+	exts = make(api.Extensions)
+
+	// Create bearertokenauth extension if needed
+	var authExt *extensions.BearerTokenAuth
+	if o.LokiStack.Authentication != nil && o.LokiStack.Authentication.Token != nil {
+		authExt = newBearerTokenAuthExtension(id, o.LokiStack.Authentication.Token, op)
+		if authExt != nil {
+			exts.Add(authExt)
+		}
+	}
 
 	// Determine tenants based on input types
-	tenants := observability.DetermineTenants(inputSpecs)
+	tenants := internalobs.DetermineTenants(inputSpecs)
 
 	// Create an exporter for each tenant
 	for _, tenant := range tenants {
 		exporterID := helpers.MakeOutputID(id, tenant)
-
-		// Generate OTLPHTTP exporter for this tenant
-		exporter := generateExporterForTenant(exporterID, o, tenant, secrets, op)
+		exporter := generateExporterForTenant(exporterID, o, tenant, authExt, op)
 		exportersMap[exporter.ID()] = exporter
 	}
 
-	return exportersMap
+	return exportersMap, exts
+}
+
+func newBearerTokenAuthExtension(outputID string, token *obs.BearerToken, op utils.Options) *extensions.BearerTokenAuth {
+	switch token.From {
+	case obs.BearerTokenFromServiceAccount:
+		if name, found := utils.GetOption[string](op, framework.OptionServiceAccountTokenSecretName, ""); found {
+			tokenPath := internalobs.SecretPath(name, constants.TokenKey, "%s")
+			return extensions.NewBearerTokenAuth(outputID, tokenPath)
+		}
+	case obs.BearerTokenFromSecret:
+		if token.Secret != nil {
+			tokenPath := internalobs.SecretPath(token.Secret.Name, token.Secret.Key, "%s")
+			return extensions.NewBearerTokenAuth(outputID, tokenPath)
+		}
+	}
+	return nil
 }
 
 // generateExporterForTenant creates an OTLPHTTP exporter configured for a specific tenant.
-func generateExporterForTenant(exporterID string, o obs.OutputSpec, tenant string, secrets observability.Secrets, op utils.Options) *exporters.OtlpHttp {
+func generateExporterForTenant(exporterID string, o obs.OutputSpec, tenant string, authExt *extensions.BearerTokenAuth, op utils.Options) *exporters.OtlpHttp {
 	// Build the LokiStack OTLP endpoint URL for this tenant
 	url := lokistack.OtlpURL(o.LokiStack, tenant)
+	url, _ = strings.CutSuffix(url, "/v1/logs")
+
 	if url == "" {
 		panic(fmt.Sprintf("LokiStack output has no valid URL for tenant %s", tenant))
 	}
@@ -53,17 +83,10 @@ func generateExporterForTenant(exporterID string, o obs.OutputSpec, tenant strin
 	// Create OTLPHTTP exporter
 	exporter := exporters.NewOtlpHttp(exporterID, url)
 
-	// Configure authentication
-	if o.LokiStack.Authentication != nil && o.LokiStack.Authentication.Token != nil && o.LokiStack.Authentication.Token.Secret != nil {
-		secretKey := fmt.Sprintf("%s.%s", o.LokiStack.Authentication.Token.Secret.Name, o.LokiStack.Authentication.Token.Secret.Key)
-		tokenSecret := secrets[secretKey]
-		if tokenSecret != nil && len(tokenSecret.Data) > 0 {
-			// In OpenTelemetry Collector, bearer token is set via headers
-			if exporter.Headers == nil {
-				exporter.Headers = make(map[string]string)
-			}
-			tokenValue := string(tokenSecret.Data[o.LokiStack.Authentication.Token.Secret.Key])
-			exporter.Headers["Authorization"] = fmt.Sprintf("Bearer %s", tokenValue)
+	// Reference the authenticator extension
+	if authExt != nil {
+		exporter.Auth = &exporters.AuthConfig{
+			Authenticator: authExt.ID(),
 		}
 	}
 
@@ -88,24 +111,20 @@ func applyLokiTuning(exporter *exporters.OtlpHttp, tuning *obs.LokiTuningSpec) {
 
 	// Set compression
 	if tuning.Compression != "" {
-		// OTLP supports "gzip" or "none"
-		// LokiStack tuning uses "gzip", "snappy", or "none"
-		// Map "snappy" to "gzip" since OTLP doesn't support snappy
 		switch tuning.Compression {
 		case "gzip":
 			exporter.Compression = "gzip"
 		case "snappy":
-			exporter.Compression = "gzip" // Fallback to gzip
+			exporter.Compression = "gzip"
 		case "none":
 			exporter.Compression = "none"
 		default:
-			exporter.Compression = "gzip" // Default
+			exporter.Compression = "gzip"
 		}
 	}
 
 	// Apply delivery mode (batch vs simple)
 	if tuning.DeliveryMode == obs.DeliveryModeAtLeastOnce {
-		// Enable retry and queue for at-least-once delivery
 		exporter.RetryOnFailure = &types.RetrySettings{
 			Enabled:         true,
 			InitialInterval: "5s",
@@ -118,11 +137,5 @@ func applyLokiTuning(exporter *exporters.OtlpHttp, tuning *obs.LokiTuningSpec) {
 			NumConsumers: 10,
 			QueueSize:    1000,
 		}
-	}
-
-	// Set max record size if specified
-	if tuning.MaxWrite != nil {
-		// OTLP doesn't have a direct equivalent for max record size
-		// This would typically be handled by the receiver's max_log_size
 	}
 }

@@ -27,6 +27,13 @@ func AreSame(current, desired security.SecurityContextConstraints) (bool, string
 		return false, "requiredDropCapabilities"
 	}
 
+	sort.Slice(current.AllowedCapabilities, func(i, j int) bool { return current.AllowedCapabilities[i] < current.AllowedCapabilities[j] })
+	sort.Slice(desired.AllowedCapabilities, func(i, j int) bool { return desired.AllowedCapabilities[i] < desired.AllowedCapabilities[j] })
+	if !reflect.DeepEqual(current.AllowedCapabilities, desired.AllowedCapabilities) {
+		log.V(3).Info("SCC AllowedCapabilities change", "current name", current.Name)
+		return false, "allowedCapabilities"
+	}
+
 	if current.AllowHostDirVolumePlugin != desired.AllowHostDirVolumePlugin {
 		log.V(3).Info("SCC AllowHostDirVolumePlugin change", "current name", current.Name)
 		return false, "allowHostDirVolumePlugin"
@@ -66,7 +73,7 @@ func AreSame(current, desired security.SecurityContextConstraints) (bool, string
 
 	if current.ReadOnlyRootFilesystem != desired.ReadOnlyRootFilesystem {
 		log.V(3).Info("SCC ReadOnlyRootFilesystem change", "current name", current.Name)
-		return false, "allowPrivilegeEscalation"
+		return false, "readOnlyRootFilesystem"
 	}
 
 	sort.Slice(current.ForbiddenSysctls, func(i, j int) bool { return current.ForbiddenSysctls[i] < current.ForbiddenSysctls[j] })

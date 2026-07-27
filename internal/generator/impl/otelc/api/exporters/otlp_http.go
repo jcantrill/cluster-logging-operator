@@ -4,6 +4,10 @@ import (
 	"github.com/openshift/cluster-logging-operator/internal/generator/impl/otelc/api/types"
 )
 
+type AuthConfig struct {
+	Authenticator string `yaml:"authenticator"`
+}
+
 // OtlpHttp represents the OpenTelemetry Collector OTLP HTTP exporter configuration
 // This is the recommended way to send logs to Loki v3+ using native OTLP ingestion
 // See: https://grafana.com/docs/loki/latest/send-data/otel/
@@ -19,6 +23,9 @@ type OtlpHttp struct {
 
 	// TLS configuration
 	TLS *types.TlsClientConfig `yaml:"tls,omitempty"`
+
+	// Auth references an authenticator extension
+	Auth *AuthConfig `yaml:"auth,omitempty"`
 
 	// Timeout for HTTP requests (default: "30s")
 	Timeout string `yaml:"timeout,omitempty"`

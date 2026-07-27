@@ -40,6 +40,8 @@ func New(spec obs.InputSpec) (receiver *receivers.FileLog) {
 					ib.AddCombined(ncs)
 					appIncludes = append(appIncludes, ncs.Namespace)
 				}
+			} else {
+				ib.AddContainers("*")
 			}
 
 			// Remove default excluded infra namespaces if they are part of the includes

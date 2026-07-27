@@ -16,7 +16,7 @@ const (
 	crioNamespaceContainerCombined   = "/var/log/pods/%s/*.log"
 	crioContainerPathFmt             = "/var/log/pods/*/%s/*.log"
 	crioPathExtFmt                   = "/var/log/pods/*/*/*.%s"
-	crioEverything                   = "/var/log/pods/*/*/*.log"
+	CrioEverything                   = "/var/log/pods/*/*/*.log"
 )
 
 // ContainerPathGlobFrom formats a list of kubernetes container file paths to include/exclude for
@@ -149,7 +149,7 @@ func (b *ContainerPathGlobBuilder) Build(excludeNSFromContainers ...string) []st
 	}
 	paths := uniq.List()
 	sort.Strings(paths)
-	if len(paths) == 0 || len(paths) == 1 && paths[0] == crioEverything {
+	if len(paths) == 0 {
 		return []string{}
 	}
 	return paths

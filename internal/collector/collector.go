@@ -365,6 +365,7 @@ func AddServiceAccountProjectedVolume(podSpec *v1.PodSpec, audience string) {
 
 func AddSecurityContextTo(container *v1.Container) *v1.Container {
 	container.SecurityContext = &v1.SecurityContext{
+		RunAsUser: utils.GetPtr(int64(0)),
 		Capabilities: &v1.Capabilities{
 			Drop: auth.RequiredDropCapabilities,
 		},

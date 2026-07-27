@@ -9,13 +9,16 @@ import (
 	corev1 "k8s.io/api/core/v1"
 )
 
-func New(o *adapters.Output, inputs []obs.InputSpec, secrets map[string]*corev1.Secret, op utils.Options) (exporters api.Exporters) {
+func New(o *adapters.Output, inputs []obs.InputSpec, secrets map[string]*corev1.Secret, op utils.Options) (api.Exporters, api.Extensions) {
 
-	exporters = api.Exporters{}
+	exporters := api.Exporters{}
+	extensions := api.Extensions{}
 
 	switch o.Type {
 	case obs.OutputTypeLokiStack:
-		exporters.Merge(lokistack.New(o.Name, o.OutputSpec, inputs, secrets, op))
+		e, x := lokistack.New(o.Name, o.OutputSpec, inputs, secrets, op)
+		exporters.Merge(e)
+		extensions.Merge(x)
 	}
-	return exporters
+	return exporters, extensions
 }

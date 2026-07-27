@@ -35,6 +35,7 @@ func NewSCC() *security.SecurityContextConstraints {
 	scc := runtime.NewSCC(sccName)
 	scc.AllowPrivilegedContainer = false
 	scc.RequiredDropCapabilities = RequiredDropCapabilities
+	scc.AllowedCapabilities = []corev1.Capability{"DAC_READ_SEARCH"}
 	scc.AllowHostDirVolumePlugin = true
 	scc.Volumes = DesiredSCCVolumes
 	scc.DefaultAllowPrivilegeEscalation = utils.GetPtr(false)

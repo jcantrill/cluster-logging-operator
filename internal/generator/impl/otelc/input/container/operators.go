@@ -1,7 +1,7 @@
 package container
 
 import (
-	operators2 "github.com/openshift/cluster-logging-operator/internal/generator/impl/otelc/api/receivers/operators"
+	operators "github.com/openshift/cluster-logging-operator/internal/generator/impl/otelc/api/receivers/operators"
 )
 
 // NewOperators creates a complete operator pipeline for parsing CRI-O container logs
@@ -12,11 +12,11 @@ import (
 // Example: 2023-03-15T10:30:45.123456789+00:00 stdout F log message here
 //
 // File path format: /var/log/pods/<namespace>_<pod_name>_<uid>/<container_name>/<restart_count>.log
-func NewOperators(clusterUID, nodeName, logSource, logType string) []operators2.Operator {
-	return []operators2.Operator{
+func NewOperators(clusterUID, nodeName, logSource, logType string) []operators.Operator {
+	return []operators.Operator{
 		// Step 1: Parse CRI-O format
 		{
-			Type:   operators2.OperatorTypeRegexParser,
+			Type:   operators.OperatorTypeRegexParser,
 			ID:     "parser-crio",
 			Output: "extract_metadata_from_filepath",
 			Config: map[string]interface{}{
@@ -32,7 +32,7 @@ func NewOperators(clusterUID, nodeName, logSource, logType string) []operators2.
 		// Step 2: Extract Kubernetes metadata from file path
 		// Path: /var/log/pods/<namespace>_<pod_name>_<uid>/<container_name>/<restart_count>.log
 		{
-			Type:   operators2.OperatorTypeRegexParser,
+			Type:   operators.OperatorTypeRegexParser,
 			ID:     "extract_metadata_from_filepath",
 			Output: "move_log_to_body",
 			Config: map[string]interface{}{
@@ -46,7 +46,7 @@ func NewOperators(clusterUID, nodeName, logSource, logType string) []operators2.
 
 		// Step 3: Move parsed log content to body
 		{
-			Type:   operators2.OperatorTypeMove,
+			Type:   operators.OperatorTypeMove,
 			ID:     "move_log_to_body",
 			Output: "set_iostream",
 			Config: map[string]interface{}{
@@ -57,7 +57,7 @@ func NewOperators(clusterUID, nodeName, logSource, logType string) []operators2.
 
 		// Step 4: Set log.iostream (non-deprecated attribute)
 		{
-			Type:   operators2.OperatorTypeMove,
+			Type:   operators.OperatorTypeMove,
 			ID:     "set_iostream",
 			Output: "move_namespace_to_resource",
 			Config: map[string]interface{}{
@@ -68,7 +68,7 @@ func NewOperators(clusterUID, nodeName, logSource, logType string) []operators2.
 
 		// Step 5: Move namespace to resource attributes (k8s.namespace.name)
 		{
-			Type:   operators2.OperatorTypeMove,
+			Type:   operators.OperatorTypeMove,
 			ID:     "move_namespace_to_resource",
 			Output: "move_pod_name_to_resource",
 			Config: map[string]interface{}{
@@ -79,7 +79,7 @@ func NewOperators(clusterUID, nodeName, logSource, logType string) []operators2.
 
 		// Step 6: Move pod name to resource attributes (k8s.pod.name)
 		{
-			Type:   operators2.OperatorTypeMove,
+			Type:   operators.OperatorTypeMove,
 			ID:     "move_pod_name_to_resource",
 			Output: "move_pod_uid_to_resource",
 			Config: map[string]interface{}{
@@ -90,7 +90,7 @@ func NewOperators(clusterUID, nodeName, logSource, logType string) []operators2.
 
 		// Step 7: Move pod UID to resource attributes (k8s.pod.uid)
 		{
-			Type:   operators2.OperatorTypeMove,
+			Type:   operators.OperatorTypeMove,
 			ID:     "move_pod_uid_to_resource",
 			Output: "move_container_name_to_resource",
 			Config: map[string]interface{}{
@@ -101,9 +101,9 @@ func NewOperators(clusterUID, nodeName, logSource, logType string) []operators2.
 
 		// Step 8: Move container name to resource attributes (k8s.container.name)
 		{
-			Type:   operators2.OperatorTypeMove,
+			Type:   operators.OperatorTypeMove,
 			ID:     "move_container_name_to_resource",
-			Output: "move_restart_count_to_resource",
+			Output: "remove_restartcount",
 			Config: map[string]interface{}{
 				"from": "attributes.container_name",
 				"to":   "resource[\"k8s.container.name\"]",
@@ -112,7 +112,7 @@ func NewOperators(clusterUID, nodeName, logSource, logType string) []operators2.
 
 		// Step 9: Move restart count to resource attributes (k8s.container.restart_count)
 		{
-			Type:   operators2.OperatorTypeRemove,
+			Type:   operators.OperatorTypeRemove,
 			ID:     "remove_restartcount",
 			Output: "remove_logtag",
 			Config: map[string]interface{}{
@@ -122,7 +122,7 @@ func NewOperators(clusterUID, nodeName, logSource, logType string) []operators2.
 
 		// Step 10: Remove the logtag field (not needed in final output)
 		{
-			Type:   operators2.OperatorTypeRemove,
+			Type:   operators.OperatorTypeRemove,
 			ID:     "remove_logtag",
 			Output: "remove_time",
 			Config: map[string]interface{}{
@@ -132,14 +132,14 @@ func NewOperators(clusterUID, nodeName, logSource, logType string) []operators2.
 
 		// Step 11: Remove the time field (already parsed to timestamp)
 		{
-			Type: operators2.OperatorTypeRemove,
+			Type: operators.OperatorTypeRemove,
 			ID:   "remove_time",
 			Config: map[string]interface{}{
 				"field": "attributes.time",
 			},
 		},
 		{
-			Type: operators2.OperatorTypeAdd,
+			Type: operators.OperatorTypeAdd,
 			ID:   "add_node_name",
 			Config: map[string]interface{}{
 				"field": "resource[\"k8s.node.name\"]",
@@ -147,7 +147,7 @@ func NewOperators(clusterUID, nodeName, logSource, logType string) []operators2.
 			},
 		},
 		{
-			Type:   operators2.OperatorTypeAdd,
+			Type:   operators.OperatorTypeAdd,
 			ID:     "add_cluster_uid",
 			Output: "add_log_source",
 			Config: map[string]interface{}{
@@ -156,7 +156,7 @@ func NewOperators(clusterUID, nodeName, logSource, logType string) []operators2.
 			},
 		},
 		{
-			Type:   operators2.OperatorTypeAdd,
+			Type:   operators.OperatorTypeAdd,
 			ID:     "add_log_source",
 			Output: "add_log_type",
 			Config: map[string]interface{}{
@@ -165,7 +165,7 @@ func NewOperators(clusterUID, nodeName, logSource, logType string) []operators2.
 			},
 		},
 		{
-			Type: operators2.OperatorTypeAdd,
+			Type: operators.OperatorTypeAdd,
 			ID:   "add_log_type",
 			Config: map[string]interface{}{
 				"field": `resource["openshift.log.type"]`,
