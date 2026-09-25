@@ -12,6 +12,7 @@ import (
 	"time"
 
 	clolog "github.com/ViaQ/logerr/v2/log/static"
+	"github.com/onsi/ginkgo/v2"
 	testerrors "github.com/openshift/cluster-logging-operator/test/helpers/errors"
 	"github.com/pkg/errors"
 
@@ -21,12 +22,9 @@ import (
 	"github.com/openshift/cluster-logging-operator/internal/runtime"
 	"github.com/openshift/cluster-logging-operator/test"
 	lokitesthelper "github.com/openshift/cluster-logging-operator/test/helpers/loki"
-	appsv1 "k8s.io/api/apps/v1"
-	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/api/resource"
+	"github.com/openshift/cluster-logging-operator/test/helpers/oc"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/apimachinery/pkg/util/wait"
 )
 
@@ -53,12 +51,23 @@ const (
 
 	LokistackName = "lokistack-dev"
 
-	minioName = "minio"
+	// garageName is the name of the Garage S3 storage StatefulSet/Service and the label
+	// value used by its manifests (app.kubernetes.io/name=garage).
+	garageName = "garage"
 
-	minioImage = "quay.io/minio/minio:latest"
+	// garageManifestDir is the kustomize directory (relative to the git root) that deploys
+	// Garage as an S3-compatible storage backend for the LokiStack.
+	garageManifestDir = "hack/manifests/observability-operators/garage"
+
+	// The following credentials/bucket are seeded by the Garage manifests via its
+	// --single-node --default-bucket bootstrap and the "test" storage secret.
+	garageBucket          = "loki"
+	garageRegion          = "garage"
+	garageAccessKeyID     = "GKgarageaccesskey0000"
+	garageAccessKeySecret = "garagesecretkey1234567890abcdefgh"
 )
 
-var lokiOperatorChannel = "stable-6.4"
+var lokiOperatorChannel = "stable-6.6"
 
 func init() {
 	if value := os.Getenv("LOKI_OPERATOR_CHANNEL"); value != "" {
@@ -72,130 +81,30 @@ type LokistackLogStore struct {
 	tc        *E2ETestFramework
 }
 
-func (tc *E2ETestFramework) DeployMinio() error {
-	tc.CreateNamespace(minioName)
-	clolog.V(1).Info("creating pvc, service, deployment for minio", "namespace", minioName)
-	selector := map[string]string{"app.kubernetes.io/name": minioName}
+// DeployGarage deploys Garage as an S3-compatible storage backend for the LokiStack by
+// applying the kustomize manifests at garageManifestDir via the oc wrapper. Garage is started
+// with --single-node --default-bucket so it self-provisions its cluster layout, the "loki"
+// bucket and access keys on first boot; no manual bootstrap is required.
+func (tc *E2ETestFramework) DeployGarage(namespace string) error {
+	ginkgo.By("Deploying Garage from manifest: " + garageManifestDir + " to namespace:" + namespace)
+	manifestDir := test.GitRoot(garageManifestDir)
+	clolog.V(1).Info("deploying garage", "namespace", namespace, "manifests", manifestDir)
 
-	// Create PVC
-	pvc := &corev1.PersistentVolumeClaim{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: minioName,
-		},
-		Spec: corev1.PersistentVolumeClaimSpec{
-			AccessModes: []corev1.PersistentVolumeAccessMode{corev1.ReadWriteOnce},
-			Resources: corev1.VolumeResourceRequirements{
-				Requests: corev1.ResourceList{
-					corev1.ResourceStorage: resource.MustParse("10Gi"),
-				},
-			},
-		},
-	}
-	_, err := tc.KubeClient.CoreV1().PersistentVolumeClaims(minioName).Create(context.TODO(), pvc, metav1.CreateOptions{})
-	if err != nil {
+	if _, err := oc.Literal().From("oc apply -k %s -n %s", manifestDir, namespace).Run(); err != nil {
 		return err
 	}
 	tc.AddCleanup(func() error {
-		return tc.KubeClient.CoreV1().PersistentVolumeClaims(minioName).Delete(context.TODO(), minioName, metav1.DeleteOptions{})
-	})
-
-	// Create service
-	service := runtime.NewService(minioName, minioName)
-	servicePorts := []corev1.ServicePort{
-		{
-			Name:       "api",
-			Port:       9000,
-			TargetPort: intstr.FromInt(9000),
-		},
-		{
-			Name:       "console",
-			Port:       9001,
-			TargetPort: intstr.FromInt(9001),
-		},
-	}
-	runtime.NewServiceBuilder(service).WithServicePort(servicePorts).WithSelector(selector)
-
-	_, err = tc.KubeClient.CoreV1().Services(minioName).Create(context.TODO(), service, metav1.CreateOptions{})
-	if err != nil {
+		_, err := oc.Literal().From("oc delete -k %s -n %s --ignore-not-found", manifestDir, namespace).Run()
 		return err
-	}
-	tc.AddCleanup(func() error {
-		return tc.KubeClient.CoreV1().PersistentVolumeClaims(minioName).Delete(context.TODO(), minioName, metav1.DeleteOptions{})
 	})
 
-	// Create deployment
-	deployment := runtime.NewDeployment(minioName, minioName)
-
-	container := corev1.Container{
-		Command: []string{
-			"/bin/sh",
-			"-c",
-			`
-mkdir -p /data/loki && \
-minio server /data --console-address ":9001"
-`},
-		Env: []corev1.EnvVar{
-			{
-				Name:  "MINIO_ROOT_USER",
-				Value: "minio",
-			},
-			{
-				Name:  "MINIO_ROOT_PASSWORD",
-				Value: "minio123",
-			},
-		},
-		Image: minioImage,
-		Name:  minioName,
-		Ports: []corev1.ContainerPort{
-			{
-				Name:          "api",
-				ContainerPort: 9000,
-			},
-			{
-				Name:          "console",
-				ContainerPort: 9001,
-			},
-		},
-		VolumeMounts: []corev1.VolumeMount{
-			{
-				MountPath: "/data",
-				Name:      minioName + "-data",
-			},
-		},
-	}
-	podSpec := corev1.PodSpec{
-		Containers: []corev1.Container{container},
-		Volumes: []corev1.Volume{
-			{
-				Name: minioName + "-data",
-				VolumeSource: corev1.VolumeSource{
-					PersistentVolumeClaim: &corev1.PersistentVolumeClaimVolumeSource{
-						ClaimName: minioName,
-					},
-				},
-			},
-		},
-	}
-	runtime.NewDeploymentBuilder(deployment).
-		WithPodSpec(podSpec).
-		WithSelector(selector).
-		WithTemplateLabels(selector).
-		WithUpdateStrategy(appsv1.DeploymentStrategy{Type: appsv1.RecreateDeploymentStrategyType})
-
-	_, err = tc.KubeClient.AppsV1().Deployments(minioName).Create(context.TODO(), deployment, metav1.CreateOptions{})
-	if err != nil {
-		return err
-	}
-
-	tc.AddCleanup(func() error {
-		return tc.KubeClient.AppsV1().Deployments(minioName).Delete(context.TODO(), minioName, metav1.DeleteOptions{})
-	})
-
-	// Ensure minio deployment is ready
-	return tc.WaitForDeployment(minioName, minioName, defaultRetryInterval, defaultTimeout)
+	// Wait for the garage statefulset to become ready before the LokiStack tries to use it.
+	return oc.Literal().From("oc -n %s rollout status statefulset/%s --timeout=%s",
+		namespace, garageName, defaultTimeout).Output()
 }
 
 func (tc *E2ETestFramework) DeployLokiOperator() error {
+	ginkgo.By("Deploying Loki Operator to namespace: " + test.OpenshiftOperatorsRedhatNS + " channel: " + lokiOperatorChannel)
 	clolog.V(1).Info("deploying loki operator", "namespace", test.OpenshiftOperatorsRedhatNS, "channel", lokiOperatorChannel)
 	operatorGroupYaml := `
 apiVersion: operators.coreos.com/v1
@@ -262,6 +171,7 @@ spec:
 }
 
 func (tc *E2ETestFramework) DeployLokistackInNamespace(namespace string) (ls *LokistackLogStore, err error) {
+	ginkgo.By("Deploying Lokistack in namespace: " + namespace + "/" + LokistackName)
 	clolog.V(1).Info("deploying lokistack", "namespace", namespace, "name", LokistackName)
 	logStore := &LokistackLogStore{
 		Name:      LokistackName,
@@ -278,6 +188,8 @@ func (tc *E2ETestFramework) DeployLokistackInNamespace(namespace string) (ls *Lo
 	if err := tc.createClusterRole(ClusterRoleAllLogsReader, apiGroups, resources, resourceNames, verbs); err != nil {
 		return nil, err
 	}
+
+	storageSecretName := garageName + "-secret"
 
 	yaml := fmt.Sprintf(`
 apiVersion: loki.grafana.com/v1
@@ -310,25 +222,27 @@ spec:
       ingestion:
         ingestionBurstSize: 10
         ingestionRate: 10
-`, LokistackName, namespace, minioName+"-secret")
+`, LokistackName, namespace, storageSecretName)
 
 	uri := fmt.Sprintf(lokistackURI, namespace, LokistackName)
 
-	// Create minIO storage secret
-	clolog.V(1).Info("creating minio secret for lokistack", "namespace", namespace)
+	// Create the garage storage secret in the lokistack namespace. Garage is deployed into the
+	// same namespace as the lokistack, so the endpoint uses the in-namespace service DNS.
+	clolog.V(1).Info("creating garage secret for lokistack", "namespace", namespace)
 	data := map[string][]byte{
-		"endpoint":          []byte(fmt.Sprintf("http://%s.%s.svc:9000", minioName, minioName)),
-		"bucketnames":       []byte("loki"),
-		"access_key_id":     []byte(minioName),
-		"access_key_secret": []byte(minioName + "123"),
+		"endpoint":          []byte(fmt.Sprintf("http://%s.%s.svc:3900", garageName, namespace)),
+		"bucketnames":       []byte(garageBucket),
+		"region":            []byte(garageRegion),
+		"access_key_id":     []byte(garageAccessKeyID),
+		"access_key_secret": []byte(garageAccessKeySecret),
 	}
-	storageSecret := runtime.NewSecret(namespace, minioName+"-secret", data)
+	storageSecret := runtime.NewSecret(namespace, storageSecretName, data)
 	_, err = tc.KubeClient.CoreV1().Secrets(namespace).Create(context.TODO(), storageSecret, metav1.CreateOptions{})
 	if err != nil {
 		return nil, err
 	}
 	tc.AddCleanup(func() error {
-		return tc.KubeClient.CoreV1().Secrets(namespace).Delete(context.TODO(), minioName+"-secret", metav1.DeleteOptions{})
+		return tc.KubeClient.CoreV1().Secrets(namespace).Delete(context.TODO(), storageSecretName, metav1.DeleteOptions{})
 	})
 
 	if err = tc.Client().RESTClient().Post().

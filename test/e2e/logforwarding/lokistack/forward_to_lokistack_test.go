@@ -35,7 +35,7 @@ var _ = Describe("[ClusterLogForwarder] Forward to Lokistack", func() {
 	BeforeEach(func() {
 		deployNS = e2e.CreateTestNamespace()
 
-		if err = e2e.DeployMinio(); err != nil {
+		if err = e2e.DeployGarage(deployNS); err != nil {
 			Fail(err.Error())
 		}
 		if err = e2e.DeployLokiOperator(); err != nil {

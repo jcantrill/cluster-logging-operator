@@ -7,6 +7,7 @@ import (
 	"time"
 
 	clolog "github.com/ViaQ/logerr/v2/log/static"
+	"github.com/onsi/ginkgo/v2"
 	"github.com/openshift/cluster-logging-operator/internal/constants"
 	"github.com/openshift/cluster-logging-operator/test/helpers"
 	"github.com/openshift/cluster-logging-operator/test/helpers/oc"
@@ -124,6 +125,7 @@ func (tc *E2ETestFramework) waitForElasticsearchPods(retryInterval, timeout time
 }
 
 func (tc *E2ETestFramework) WaitForDeployment(namespace, name string, retryInterval, timeout time.Duration) error {
+	ginkgo.By("Waiting for deployment: " + namespace + "/" + name)
 	return wait.PollUntilContextTimeout(context.TODO(), retryInterval, timeout, true, func(cxt context.Context) (done bool, err error) {
 		deployment, err := tc.KubeClient.AppsV1().Deployments(namespace).Get(context.TODO(), name, metav1.GetOptions{})
 		if err != nil {
@@ -179,6 +181,7 @@ func (tc *E2ETestFramework) waitForClusterLoggingPodsCompletion(namespace string
 }
 
 func (tc *E2ETestFramework) waitForStatefulSet(namespace, name string, retryInterval, timeout time.Duration) error {
+	ginkgo.By("Waiting for statefulset: " + namespace + "/" + name)
 	err := wait.PollUntilContextTimeout(context.TODO(), retryInterval, timeout, true, func(cxt context.Context) (done bool, err error) {
 		deployment, err := tc.KubeClient.AppsV1().StatefulSets(namespace).Get(context.TODO(), name, metav1.GetOptions{})
 		if err != nil {
