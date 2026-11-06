@@ -19,6 +19,7 @@ type KubernetesLogs struct {
 	UseApiServerCache         bool                       `json:"use_apiserver_cache,omitempty" yaml:"use_apiserver_cache,omitempty" toml:"use_apiserver_cache,omitempty"`
 	PodAnnotationFields       *PodAnnotationFields       `json:"pod_annotation_fields,omitempty" yaml:"pod_annotation_fields,omitempty" toml:"pod_annotation_fields,omitempty"`
 	NamespaceAnnotationFields *NamespaceAnnotationFields `json:"namespace_annotation_fields,omitempty" yaml:"namespace_annotation_fields,omitempty" toml:"namespace_annotation_fields,omitempty"`
+	NodeAnnotationFields      *NodeAnnotationFields      `json:"node_annotation_fields,omitempty" yaml:"node_annotation_fields,omitempty" toml:"node_annotation_fields,omitempty"`
 }
 
 func NewKubernetesLogs(init func(logs *KubernetesLogs)) *KubernetesLogs {
@@ -45,4 +46,11 @@ type PodAnnotationFields struct {
 
 type NamespaceAnnotationFields struct {
 	NamespaceUid string `json:"namespace_uid,omitempty" yaml:"namespace_uid,omitempty" toml:"namespace_uid,omitempty"`
+}
+
+type NodeAnnotationFields struct {
+	// no toml omitempty: an empty string must render as `node_labels = ""`
+	// (vector semantics: empty value suppresses the field) — omitempty would
+	// drop the key and vector's default (kubernetes.node_labels) would apply
+	NodeLabels string `json:"node_labels,omitempty" yaml:"node_labels,omitempty" toml:"node_labels"`
 }

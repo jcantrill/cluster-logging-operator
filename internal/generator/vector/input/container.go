@@ -85,6 +85,12 @@ func NewContainerSource(spec *adapters.Input, includes, excludes []string, logTy
 		kl.NamespaceAnnotationFields = &sources.NamespaceAnnotationFields{
 			NamespaceUid: "kubernetes.namespace_id",
 		}
+		// bench patch (LOG-10388): suppress node labels at the source — the VIAQ
+		// normalize filter deletes .kubernetes.node_labels anyway, so attaching
+		// them per event is pure overhead
+		kl.NodeAnnotationFields = &sources.NodeAnnotationFields{
+			NodeLabels: "",
+		}
 		kl.RotateWaitSecs = 5
 		kl.UseApiServerCache = true
 	})
