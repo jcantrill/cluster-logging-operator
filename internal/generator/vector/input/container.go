@@ -80,14 +80,20 @@ func NewContainerSource(spec *adapters.Input, includes, excludes []string, logTy
 			PodNamespace:   "kubernetes.namespace_name",
 			PodAnnotations: "kubernetes.annotations",
 			PodUid:         "kubernetes.pod_id",
-			PodNodeName:    "hostname",
+			// bench patch (LOG-10547): suppress fields never consumed
+			// downstream — pod_ip/pod_owner are not in the VIAQ datamodel,
+			// pod_ips/container_image_id/node_labels are deleted by the
+			// normalize filter, and pod_node_name (-> hostname) is overwritten
+			// by VECTOR_SELF_NODE_NAME before anything reads it
+			PodNodeName:      "",
+			PodIP:            "",
+			PodIPs:           "",
+			PodOwner:         "",
+			ContainerImageID: "",
 		}
 		kl.NamespaceAnnotationFields = &sources.NamespaceAnnotationFields{
 			NamespaceUid: "kubernetes.namespace_id",
 		}
-		// bench patch (LOG-10388): suppress node labels at the source — the VIAQ
-		// normalize filter deletes .kubernetes.node_labels anyway, so attaching
-		// them per event is pure overhead
 		kl.NodeAnnotationFields = &sources.NodeAnnotationFields{
 			NodeLabels: "",
 		}

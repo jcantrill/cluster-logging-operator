@@ -41,7 +41,14 @@ type PodAnnotationFields struct {
 	PodNamespace   string `json:"pod_namespace,omitempty" yaml:"pod_namespace,omitempty" toml:"pod_namespace,omitempty"`
 	PodAnnotations string `json:"pod_annotations,omitempty" yaml:"pod_annotations,omitempty" toml:"pod_annotations,omitempty"`
 	PodUid         string `json:"pod_uid,omitempty" yaml:"pod_uid,omitempty" toml:"pod_uid,omitempty"`
-	PodNodeName    string `json:"pod_node_name,omitempty" yaml:"pod_node_name,omitempty" toml:"pod_node_name,omitempty"`
+	// no toml omitempty on the keys below: an empty string must render as
+	// `pod_node_name = ""` etc. (vector semantics: empty value suppresses the
+	// field) — omitempty would drop the key and vector's default would apply
+	PodNodeName      string `json:"pod_node_name,omitempty" yaml:"pod_node_name,omitempty" toml:"pod_node_name"`
+	PodIP            string `json:"pod_ip,omitempty" yaml:"pod_ip,omitempty" toml:"pod_ip"`
+	PodIPs           string `json:"pod_ips,omitempty" yaml:"pod_ips,omitempty" toml:"pod_ips"`
+	PodOwner         string `json:"pod_owner,omitempty" yaml:"pod_owner,omitempty" toml:"pod_owner"`
+	ContainerImageID string `json:"container_image_id,omitempty" yaml:"container_image_id,omitempty" toml:"container_image_id"`
 }
 
 type NamespaceAnnotationFields struct {
